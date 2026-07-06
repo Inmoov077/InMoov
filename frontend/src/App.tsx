@@ -10,6 +10,7 @@ import { PresetsPage } from '@/pages/PresetsPage';
 import { OfflinePage } from '@/pages/OfflinePage';
 import { TestingPage } from '@/pages/TestingPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { BodyPage } from '@/pages/BodyPage';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/control" element={<AllServosPage />} />
           <Route path="/head" element={<HeadPage />} />
           <Route path="/neck" element={<NeckPage />} />
+          <Route path="/body" element={<BodyPage />} />
           <Route path="/camera" element={<CameraPage />} />
           <Route path="/ai" element={<AiChatPage />} />
           <Route path="/presets" element={<PresetsPage />} />

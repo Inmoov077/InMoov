@@ -1,0 +1,82 @@
+/**
+ * Official InMoov joint ranges from MyRobotLab/inmoov_ros config.yaml.
+ * Maps UI servo degrees → URDF radians with rest-offset for perfect alignment.
+ */
+
+const DEG = Math.PI / 180;
+
+export interface JointGoalRange {
+  minGoal: number;
+  maxGoal: number;
+}
+
+/** Servo value that maps to 0 rad on this joint (official rest pose). */
+export function restServoForZero(range: JointGoalRange, servoMin = 0, servoMax = 180): number {
+  const span = range.maxGoal - range.minGoal;
+  if (Math.abs(span) < 1e-6) return (servoMin + servoMax) / 2;
+  let t = -range.minGoal / span;
+  t = Math.min(1, Math.max(0, t));
+  return servoMin + t * (servoMax - servoMin);
+}
+
+/** Servo slider → URDF radians using official minGoal/maxGoal (degrees). */
+export function servoToUrdfRad(
+  servoDeg: number,
+  range: JointGoalRange,
+  servoMin = 0,
+  servoMax = 180,
+): number {
+  const t = Math.min(1, Math.max(0, (servoDeg - servoMin) / (servoMax - servoMin)));
+  const goalDeg = range.minGoal + t * (range.maxGoal - range.minGoal);
+  return goalDeg * DEG;
+}
+
+/** Map servo to joint angle relative to rest pose (default slider = 0 rad). */
+export function servoToJointRad(
+  servoDeg: number,
+  range: JointGoalRange,
+  restServo: number,
+  servoMin = 0,
+  servoMax = 180,
+): number {
+  return (
+    servoToUrdfRad(servoDeg, range, servoMin, servoMax) -
+    servoToUrdfRad(restServo, range, servoMin, servoMax)
+  );
+}
+
+export function fingerServoToRad(
+  servoDeg: number,
+  range: JointGoalRange = FINGER,
+  restServo = 10,
+): number {
+  return servoToJointRad(servoDeg, range, restServo);
+}
+
+export const HEAD_PAN: JointGoalRange = { minGoal: -100, maxGoal: 90 };
+export const HEAD_TILT: JointGoalRange = { minGoal: -20, maxGoal: 20 };
+export const HEAD_ROLL: JointGoalRange = { minGoal: -15, maxGoal: 15 };
+export const WAIST_PAN: JointGoalRange = { minGoal: -90, maxGoal: 90 };
+export const WAIST_ROLL: JointGoalRange = { minGoal: 15, maxGoal: -15 };
+export const EYES_TILT: JointGoalRange = { minGoal: 15, maxGoal: -15 };
+export const EYES_PAN: JointGoalRange = { minGoal: -30, maxGoal: 30 };
+export const JAW: JointGoalRange = { minGoal: 0, maxGoal: 5 };
+
+export const L_SHOULDER_OUT: JointGoalRange = { minGoal: 5, maxGoal: 60 };
+export const R_SHOULDER_OUT: JointGoalRange = { minGoal: -5, maxGoal: -60 };
+export const SHOULDER_LIFT: JointGoalRange = { minGoal: 45, maxGoal: -135 };
+export const L_UPPER_ARM_ROLL: JointGoalRange = { minGoal: -90, maxGoal: 90 };
+export const R_UPPER_ARM_ROLL: JointGoalRange = { minGoal: 90, maxGoal: -90 };
+export const ELBOW_FLEX: JointGoalRange = { minGoal: -15, maxGoal: -85 };
+export const L_WRIST_ROLL: JointGoalRange = { minGoal: 180, maxGoal: 0 };
+export const R_WRIST_ROLL: JointGoalRange = { minGoal: 0, maxGoal: -180 };
+
+export const FINGER: JointGoalRange = { minGoal: -5, maxGoal: 85 };
+export const THUMB: JointGoalRange = { minGoal: -5, maxGoal: 65 };
+
+/** Leg servos — matches BodyPage sliders and Arduino firmware */
+export const HIP_PAN: JointGoalRange = { minGoal: -45, maxGoal: 45 };
+export const HIP_LIFT: JointGoalRange = { minGoal: -45, maxGoal: 45 };
+export const KNEE: JointGoalRange = { minGoal: 0, maxGoal: 130 };
+export const ANKLE: JointGoalRange = { minGoal: -30, maxGoal: 30 };
+export const FOOT_ROLL: JointGoalRange = { minGoal: -25, maxGoal: 25 };

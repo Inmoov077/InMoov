@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Move } from 'lucide-react';
+import { syncLiveRobot } from '@/lib/robotLiveController';
+import { readStoreAngles } from '@/lib/robotStoreAngles';
 import { useServoStore } from '@/store/servoStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn, clamp } from '@/lib/utils';
@@ -36,6 +38,7 @@ export function Joystick({ className }: { className?: string }) {
     const tiltVal = Math.round(limits.tilt.max - (y / (PAD - KNOB)) * (limits.tilt.max - limits.tilt.min));
     st.setNeck('rot', rotVal, false);
     st.setNeck('tilt', tiltVal, true);
+    syncLiveRobot(readStoreAngles());
   }, [limits]);
 
   return (

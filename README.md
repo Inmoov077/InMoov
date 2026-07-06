@@ -2,7 +2,7 @@
 
 Open-source InMoov humanoid robot **head control system** — Marwadi University Robotics & AI Club.
 
-6-axis servo control, unified web dashboard, AI conversation, offline voice Q&A, camera tracking, and 3D preview.
+36-axis full-body servo control (head, neck, arms, hands, legs), unified web dashboard, AI conversation, offline voice Q&A, camera tracking, and 3D preview.
 
 ## Quick Start
 
@@ -18,7 +18,7 @@ Or double-click `run.bat` on Windows.
 
 ## Hardware
 
-1. Upload `combined_servo_control.ino` to Arduino
+1. Upload `full_body_servo_control.ino` to **Arduino Mega 2560** (or `combined_servo_control.ino` for head-only on Uno)
 2. Connect via USB (9600 baud)
 3. Dashboard → **Settings** → Auto-Detect or select COM port
 
@@ -41,11 +41,18 @@ Or double-click `run.bat` on Windows.
 | Head | `H,<neck>,<eye>,<jaw>` |
 | Neck | `N,<rot>,<tilt>,<roll>` |
 | Combined | `C,<hn>,<he>,<hj>,<nr>,<nt>,<nro>` |
+| Left arm | `LA,<shoulder>,<lift>,<rotate>,<elbow>,<wrist>` |
+| Right arm | `RA,<shoulder>,<lift>,<rotate>,<elbow>,<wrist>` |
+| Left hand | `LH,<thumb>,<index>,<middle>,<ring>,<pinky>` |
+| Right hand | `RH,<thumb>,<index>,<middle>,<ring>,<pinky>` |
+| Left leg | `LL,<hip>,<thigh>,<knee>,<ankle>,<foot>` |
+| Right leg | `RL,<hip>,<thigh>,<knee>,<ankle>,<foot>` |
 | Stop | `S` |
 
 ## Dashboard Tabs
 
-- **All 6 Servos** — unified control + 3D preview
+- **All 6 Servos** — head & neck control + 3D preview
+- **Body** — arms (10), hands (10), legs (10) with live 3D sync
 - **Head / Neck** — individual axis control
 - **Camera Tracking** — MediaPipe face/hand tracking
 - **AI Conversation** — Gemini / Ollama with mood expressions
@@ -75,7 +82,8 @@ dashboard.html          Main control center UI
 robot_viewer.js         Three.js 3D model viewer
 chat_cli.py             Terminal conversation
 vector_db.py            TF-IDF knowledge search
-combined_servo_control.ino   Arduino firmware
+full_body_servo_control.ino  Arduino Mega firmware (36 servos)
+combined_servo_control.ino   Arduino Uno firmware (head only)
 knowledge_base.txt      RAG content
 requirements.txt        Python dependencies
 ```

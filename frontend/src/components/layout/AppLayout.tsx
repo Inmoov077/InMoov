@@ -14,6 +14,7 @@ import {
   Settings,
   SlidersHorizontal,
   Bone,
+  Footprints,
   Octagon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,7 @@ const NAV = [
   { to: '/control', label: 'Control', icon: Gamepad2 },
   { to: '/head', label: 'Head', icon: SlidersHorizontal },
   { to: '/neck', label: 'Neck', icon: Bone },
+  { to: '/body', label: 'Body', icon: Footprints },
   { to: '/presets', label: 'Moves', icon: Rocket },
   { to: '/ai', label: 'Chat', icon: Brain },
   { to: '/offline', label: 'Voice', icon: Mic },

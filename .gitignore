@@ -19,5 +19,13 @@ Thumbs.db
 terminals/
 *.log
 
+# Node / build
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Large local vendor extract (regenerate via scripts)
+myrobotlab-1.1.1610/
+
 # Optional: regenerate locally
 # vector_db.pkl

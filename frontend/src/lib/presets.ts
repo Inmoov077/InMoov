@@ -1,3 +1,5 @@
+import type { ArmJoints, HandJoints, LegJoints } from '@/lib/bodyConfig';
+
 export interface PresetKeyframe {
   hneck: number;
   eye: number;
@@ -6,6 +8,12 @@ export interface PresetKeyframe {
   tilt: number;
   roll: number;
   hold: number;
+  rightArm?: Partial<ArmJoints>;
+  leftArm?: Partial<ArmJoints>;
+  rightHand?: Partial<HandJoints>;
+  leftHand?: Partial<HandJoints>;
+  rightLeg?: Partial<LegJoints>;
+  leftLeg?: Partial<LegJoints>;
 }
 
 export const PRESETS: Record<string, PresetKeyframe[]> = {
@@ -58,6 +66,26 @@ export const PRESETS: Record<string, PresetKeyframe[]> = {
     { hneck: 88, eye: 88, jaw: 0, rot: 60, tilt: 55, roll: 120, hold: 3000 },
     { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 50, roll: 120, hold: 2000 },
   ],
+  'wave-arm': [
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 90, lift: 45, rotate: 90, elbow: 90, wrist: 90 }, hold: 800 },
+    { hneck: 85, eye: 90, jaw: 15, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 60, lift: 130, rotate: 90, elbow: 40, wrist: 90 }, hold: 1200 },
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 120, lift: 130, rotate: 90, elbow: 40, wrist: 90 }, hold: 1200 },
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 90, lift: 45, rotate: 90, elbow: 90, wrist: 90 }, hold: 1000 },
+  ],
+  'handshake': [
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 90, lift: 45, elbow: 90 }, hold: 600 },
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 45, lift: 100, elbow: 120, wrist: 90 }, rightHand: { thumb: 120, index: 10, middle: 170, ring: 170, pinky: 170 }, hold: 2000 },
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 90, lift: 45, elbow: 90 }, rightHand: { thumb: 10, index: 10, middle: 10, ring: 10, pinky: 10 }, hold: 1000 },
+  ],
+  'gallery-real': [
+    { hneck: 82, eye: 88, jaw: 8, rot: 58, tilt: 48, roll: 118, leftArm: { shoulder: 55, lift: 95, rotate: 88, elbow: 35, wrist: 92 }, rightArm: { shoulder: 125, lift: 95, rotate: 92, elbow: 35, wrist: 88 }, leftHand: { thumb: 15, index: 12, middle: 12, ring: 12, pinky: 12 }, rightHand: { thumb: 15, index: 12, middle: 12, ring: 12, pinky: 12 }, hold: 3000 },
+  ],
+  'leg-step': [
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, leftLeg: { hip: 90, thigh: 90, knee: 10, ankle: 90, foot: 90 }, rightLeg: { hip: 90, thigh: 90, knee: 10, ankle: 90, foot: 90 }, hold: 800 },
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, leftLeg: { hip: 75, thigh: 110, knee: 70, ankle: 80 }, hold: 1200 },
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, leftLeg: { hip: 90, thigh: 90, knee: 10, ankle: 90 }, rightLeg: { hip: 105, thigh: 110, knee: 70, ankle: 80 }, hold: 1200 },
+    { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, leftLeg: { hip: 90, thigh: 90, knee: 10, ankle: 90, foot: 90 }, rightLeg: { hip: 90, thigh: 90, knee: 10, ankle: 90, foot: 90 }, hold: 1000 },
+  ],
 };
 
 export const PRESET_META: { id: string; name: string; desc: string; icon: string }[] = [
@@ -70,4 +98,8 @@ export const PRESET_META: { id: string; name: string; desc: string; icon: string
   { id: 'happy-greet', name: 'Happy Greet', desc: 'Jaw + eye animation', icon: '☺' },
   { id: 'scan-room', name: 'Scan Room', desc: 'Full pan sweep', icon: '⌖' },
   { id: 'idle-breathe', name: 'Idle Breathe', desc: 'Subtle life motion', icon: '∿' },
+  { id: 'gallery-real', name: 'Gallery Pose', desc: 'Like real InMoov photo', icon: '📷' },
+  { id: 'wave-arm', name: 'Wave Arm', desc: 'Right arm greeting wave', icon: '👋' },
+  { id: 'handshake', name: 'Handshake', desc: 'Extend hand to greet', icon: '🤝' },
+  { id: 'leg-step', name: 'Leg Step', desc: 'Alternating walk motion', icon: '🦵' },
 ];

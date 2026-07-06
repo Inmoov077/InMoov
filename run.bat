@@ -4,6 +4,13 @@ echo ========================================
 echo   InMoov Control Deck
 echo ========================================
 
+if not exist "models\inmoov\meshes\l_thumb5_1.stl" (
+  echo Downloading official InMoov meshes from MyRobotLab/inmoov_ros...
+  python scripts\download_inmoov_meshes.py
+)
+echo Generating leg meshes + compiling full URDF...
+python scripts\compile_inmoov_ros_urdf.py
+
 if not exist "frontend\node_modules\" (
   echo Installing frontend dependencies...
   cd frontend

@@ -9,6 +9,7 @@ import {
   Rocket,
   Settings,
   SlidersHorizontal,
+  Footprints,
 } from 'lucide-react';
 import { QuickStart } from '@/components/ux/QuickStart';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ const TILES = [
   { to: '/control', icon: Gamepad2, title: 'Control panel', desc: 'All motors + 3D preview', color: 'from-primary/20 to-primary/5', big: true },
   { to: '/head', icon: SlidersHorizontal, title: 'Head', desc: 'Turn, eyes, jaw', color: 'from-accent/15 to-transparent' },
   { to: '/neck', icon: Bone, title: 'Neck', desc: 'Spin, nod, lean', color: 'from-info/15 to-transparent' },
+  { to: '/body', icon: Footprints, title: 'Body', desc: 'Arms, hands & legs', color: 'from-primary/15 to-transparent' },
   { to: '/presets', icon: Rocket, title: 'Moves', desc: 'Nod, wave, bow', color: 'from-success/15 to-transparent' },
   { to: '/ai', icon: Brain, title: 'Chat', desc: 'Talk with AI', color: 'from-axis-violet/15 to-transparent' },
   { to: '/offline', icon: Mic, title: 'Voice', desc: 'Offline commands', color: 'from-axis-amber/15 to-transparent' },
@@ -41,7 +43,7 @@ export function HomePage() {
             Control your <span className="text-gradient">InMoov</span> robot
           </h1>
           <p className="mt-4 max-w-lg text-lg text-muted-foreground">
-            Move the head and neck, try ready-made gestures, or chat with your humanoid — all from one place.
+            Move the head, neck, arms, hands, and legs — try ready-made gestures or chat with your humanoid.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button size="lg" asChild>

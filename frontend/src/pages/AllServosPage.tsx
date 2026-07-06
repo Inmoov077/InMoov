@@ -1,4 +1,6 @@
-import { RotateCcw, ScanFace, Bone, ScrollText } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { RotateCcw, ScanFace, Bone, ScrollText, Footprints, ArrowUpRight, Hand, Workflow } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ConnectionPanel } from '@/components/servo/ConnectionPanel';
 import { ServoControl } from '@/components/servo/ServoControl';
@@ -11,8 +13,19 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { useServoStore } from '@/store/servoStore';
+import { useBodyStore } from '@/store/bodyStore';
+import {
+  ARM_JOINT_META,
+  HAND_JOINT_META,
+  LEG_JOINT_META,
+  type BodySide,
+} from '@/lib/bodyConfig';
+import { cn } from '@/lib/utils';
+
+type BodyTab = 'arms' | 'hands' | 'legs';
 
 export function AllServosPage() {
+  const [bodyTab, setBodyTab] = useState<BodyTab>('arms');
   const hneck = useServoStore((s) => s.hneck);
   const eye = useServoStore((s) => s.eye);
   const jaw = useServoStore((s) => s.jaw);
@@ -24,6 +37,69 @@ export function AllServosPage() {
   const setNeck = useServoStore((s) => s.setNeck);
   const setMaster = useServoStore((s) => s.setMaster);
   const centerAll = useServoStore((s) => s.centerAll);
+  const leftArm = useBodyStore((s) => s.leftArm);
+  const rightArm = useBodyStore((s) => s.rightArm);
+  const leftHand = useBodyStore((s) => s.leftHand);
+  const rightHand = useBodyStore((s) => s.rightHand);
+  const leftLeg = useBodyStore((s) => s.leftLeg);
+  const rightLeg = useBodyStore((s) => s.rightLeg);
+  const setArmJoint = useBodyStore((s) => s.setArmJoint);
+  const setHandJoint = useBodyStore((s) => s.setHandJoint);
+  const setLegJoint = useBodyStore((s) => s.setLegJoint);
+  const centerBody = useBodyStore((s) => s.centerBody);
+
+  const renderBodySide = (
+    side: BodySide,
+    tab: BodyTab,
+  ) => {
+    const arm = side === 'left' ? leftArm : rightArm;
+    const hand = side === 'left' ? leftHand : rightHand;
+    const leg = side === 'left' ? leftLeg : rightLeg;
+
+    if (tab === 'arms') {
+      return ARM_JOINT_META.map((joint) => (
+        <ServoControl
+          key={`${side}-${joint.key}`}
+          label={joint.label}
+          hint={joint.hint}
+          pin={joint.pin[side]}
+          value={arm[joint.key]}
+          min={joint.min}
+          max={joint.max}
+          onChange={(v) => setArmJoint(side, joint.key, v)}
+          accent={side === 'left' ? 'signal' : 'copper'}
+        />
+      ));
+    }
+    if (tab === 'hands') {
+      return HAND_JOINT_META.map((joint) => (
+        <ServoControl
+          key={`${side}-${joint.key}`}
+          label={joint.label}
+          hint={joint.hint}
+          pin={joint.pin[side]}
+          value={hand[joint.key]}
+          min={joint.min}
+          max={joint.max}
+          onChange={(v) => setHandJoint(side, joint.key, v)}
+          accent={side === 'left' ? 'phosphor' : 'violet'}
+        />
+      ));
+    }
+    return LEG_JOINT_META.map((joint) => (
+      <ServoControl
+        key={`${side}-${joint.key}`}
+        label={joint.label}
+        hint={joint.hint}
+        pin={joint.pin[side]}
+        value={leg[joint.key]}
+        min={joint.min}
+        max={joint.max}
+        onChange={(v) => setLegJoint(side, joint.key, v)}
+        accent={side === 'left' ? 'signal' : 'copper'}
+      />
+    ));
+  };
 
   return (
     <div className="space-y-6">
@@ -41,11 +117,57 @@ export function AllServosPage() {
 
       <div className="bento p-4">
         <p className="mb-1 font-display text-lg font-semibold">Full InMoov 3D preview</p>
-        <p className="mb-3 text-sm text-muted-foreground">Torso, head, arms &amp; hands — drag to orbit, scroll to zoom out</p>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Realistic white PLA look · compare with gallery photos · all joints move live
+        </p>
         <div className="h-[min(68vh,640px)] min-h-[480px]">
           <RobotViewer className="h-full w-full" />
         </div>
       </div>
+
+      <SectionCard
+        icon={Footprints}
+        title="Arms, hands & legs"
+        description="All body motors — preview updates live above"
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => centerBody()}>
+              <RotateCcw className="h-3.5 w-3.5" /> Reset body
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/body">Full body page <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+            </Button>
+          </div>
+        }
+      >
+        <div className="mb-4 flex flex-wrap gap-2">
+          {(
+            [
+              { id: 'arms' as BodyTab, label: 'Arms', icon: Workflow },
+              { id: 'hands' as BodyTab, label: 'Hands', icon: Hand },
+              { id: 'legs' as BodyTab, label: 'Legs', icon: Footprints },
+            ] as const
+          ).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setBodyTab(item.id)}
+              className={cn(bodyTab === item.id ? 'nav-pill-active' : 'nav-pill-idle')}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {(['left', 'right'] as BodySide[]).map((side) => (
+            <div key={side} className="space-y-4">
+              <p className="text-sm font-semibold">{side === 'left' ? 'Left' : 'Right'} side</p>
+              {renderBodySide(side, bodyTab)}
+            </div>
+          ))}
+        </div>
+      </SectionCard>
 
       <div className="grid gap-5 lg:grid-cols-12">
         <div className="space-y-5 lg:col-span-4">

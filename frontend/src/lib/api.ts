@@ -58,6 +58,58 @@ export async function sendCombined6(payload: {
   return res.json();
 }
 
+export async function sendArm(
+  side: 'left' | 'right',
+  arm: { shoulder: number; lift: number; rotate: number; elbow: number; wrist: number },
+) {
+  const res = await fetch('/api/servo/arm', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ side, ...arm }),
+  });
+  return res.json();
+}
+
+export async function sendHand(
+  side: 'left' | 'right',
+  hand: { thumb: number; index: number; middle: number; ring: number; pinky: number },
+) {
+  const res = await fetch('/api/servo/hand', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ side, ...hand }),
+  });
+  return res.json();
+}
+
+export async function sendLeg(
+  side: 'left' | 'right',
+  leg: { hip: number; thigh: number; knee: number; ankle: number; foot: number },
+) {
+  const res = await fetch('/api/servo/leg', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ side, ...leg }),
+  });
+  return res.json();
+}
+
+export async function sendFullBody(payload: {
+  leftArm: { shoulder: number; lift: number; rotate: number; elbow: number; wrist: number };
+  rightArm: { shoulder: number; lift: number; rotate: number; elbow: number; wrist: number };
+  leftHand: { thumb: number; index: number; middle: number; ring: number; pinky: number };
+  rightHand: { thumb: number; index: number; middle: number; ring: number; pinky: number };
+  leftLeg: { hip: number; thigh: number; knee: number; ankle: number; foot: number };
+  rightLeg: { hip: number; thigh: number; knee: number; ankle: number; foot: number };
+}) {
+  const res = await fetch('/api/servo/body', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
 export async function emergencyStop() {
   await fetch('/api/servo/neck3/stop', { method: 'POST' });
   await fetch('/api/scripts/stop', { method: 'POST' });

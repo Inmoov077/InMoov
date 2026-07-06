@@ -75,9 +75,11 @@
     </visual>
   </link>
 
-  <joint name="waist_roll_joint" type="fixed">
+  <joint name="waist_roll_joint" type="revolute">
     <parent link="top_stomach_link"/><child link="torso_link"/>
     <origin xyz="0 0 0.11" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.262" upper="0.262" effort="1000" velocity="1"/>
   </joint>
 
   <link name="chestplate_link">
@@ -90,6 +92,19 @@
   <joint name="chestplate_joint" type="fixed">
     <parent link="torso_link"/><child link="chestplate_link"/>
     <origin xyz="0.042 0 0.025" rpy="0 0 0"/>
+  </joint>
+
+  <link name="kinect2_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/kinectone.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="base"/>
+    </visual>
+  </link>
+
+  <joint name="kinect2_joint" type="fixed">
+    <parent link="torso_link"/><child link="kinect2_link"/>
+    <origin xyz="0 0 0.066" rpy="-1.57 0 -1.57"/>
   </joint>
 
   <!-- Head / neck -->
@@ -291,9 +306,11 @@
     </visual>
   </link>
 
-  <joint name="r_shoulder_out_joint" type="fixed">
+  <joint name="r_shoulder_out_joint" type="revolute">
     <parent link="torso_link"/><child link="r_shoulder_base_link"/>
     <origin xyz="0 -0.143 0.298" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.047" upper="-0.087" effort="1000" velocity="1"/>
   </joint>
 
   <link name="r_shoulder_link">
@@ -303,9 +320,11 @@
     </visual>
   </link>
 
-  <joint name="r_shoulder_lift_joint" type="fixed">
+  <joint name="r_shoulder_lift_joint" type="revolute">
     <parent link="r_shoulder_base_link"/><child link="r_shoulder_link"/>
     <origin xyz="0 0.012 -0.04" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.356" upper="0.785" effort="1000" velocity="1"/>
   </joint>
 
   <link name="r_bicep_link">
@@ -315,9 +334,11 @@
     </visual>
   </link>
 
-  <joint name="r_upper_arm_roll_joint" type="fixed">
+  <joint name="r_upper_arm_roll_joint" type="revolute">
     <parent link="r_shoulder_link"/><child link="r_bicep_link"/>
     <origin xyz="0 0.066 -0.060" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="1000" velocity="1"/>
   </joint>
 
   <link name="r_bicepcover_link">
@@ -340,9 +361,11 @@
     </visual>
   </link>
 
-  <joint name="r_elbow_flex_joint" type="fixed">
+  <joint name="r_elbow_flex_joint" type="revolute">
     <parent link="r_bicep_link"/><child link="r_forearm_link"/>
     <origin xyz="-0.0278 0 -0.2235" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.484" upper="-0.262" effort="1000" velocity="1"/>
   </joint>
 
   <link name="r_hand_link">
@@ -352,9 +375,47 @@
     </visual>
   </link>
 
-  <joint name="r_wrist_roll_joint" type="fixed">
+  <joint name="r_wrist_roll_joint" type="revolute">
     <parent link="r_forearm_link"/><child link="r_hand_link"/>
     <origin xyz="-0.0144 0.01 -0.2885" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="r_thumb_link">
+    <visual><origin xyz="0.04 0.02 0" rpy="0 0 0"/><geometry><box size="0.05 0.012 0.012"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="r_thumb_joint" type="revolute">
+    <parent link="r_hand_link"/><child link="r_thumb_link"/>
+    <origin xyz="0.02 0.03 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.2" effort="100" velocity="1"/>
+  </joint>
+  <link name="r_index_link">
+    <visual><origin xyz="0.06 0 0" rpy="0 0 0"/><geometry><box size="0.07 0.01 0.01"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="r_index_joint" type="revolute">
+    <parent link="r_hand_link"/><child link="r_index_link"/>
+    <origin xyz="0.02 0.01 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.4" effort="100" velocity="1"/>
+  </joint>
+  <link name="r_middle_link">
+    <visual><origin xyz="0.065 0 0" rpy="0 0 0"/><geometry><box size="0.075 0.01 0.01"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="r_middle_joint" type="revolute">
+    <parent link="r_hand_link"/><child link="r_middle_link"/>
+    <origin xyz="0.02 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.4" effort="100" velocity="1"/>
+  </joint>
+  <link name="r_ring_link">
+    <visual><origin xyz="0.06 0 0" rpy="0 0 0"/><geometry><box size="0.07 0.01 0.01"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="r_ring_joint" type="revolute">
+    <parent link="r_hand_link"/><child link="r_ring_link"/>
+    <origin xyz="0.02 -0.01 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.4" effort="100" velocity="1"/>
+  </joint>
+  <link name="r_pinky_link">
+    <visual><origin xyz="0.055 0 0" rpy="0 0 0"/><geometry><box size="0.065 0.01 0.01"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="r_pinky_joint" type="revolute">
+    <parent link="r_hand_link"/><child link="r_pinky_link"/>
+    <origin xyz="0.02 -0.02 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.4" effort="100" velocity="1"/>
   </joint>
 
   <!-- Left arm -->
@@ -365,9 +426,11 @@
     </visual>
   </link>
 
-  <joint name="l_shoulder_out_joint" type="fixed">
+  <joint name="l_shoulder_out_joint" type="revolute">
     <parent link="torso_link"/><child link="l_shoulder_base_link"/>
     <origin xyz="0 0.143 0.298" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0.087" upper="1.047" effort="1000" velocity="1"/>
   </joint>
 
   <link name="l_shoulder_link">
@@ -377,9 +440,11 @@
     </visual>
   </link>
 
-  <joint name="l_shoulder_lift_joint" type="fixed">
+  <joint name="l_shoulder_lift_joint" type="revolute">
     <parent link="l_shoulder_base_link"/><child link="l_shoulder_link"/>
     <origin xyz="0 -0.012 -0.04" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.356" upper="0.785" effort="1000" velocity="1"/>
   </joint>
 
   <link name="l_bicep_link">
@@ -389,9 +454,11 @@
     </visual>
   </link>
 
-  <joint name="l_upper_arm_roll_joint" type="fixed">
+  <joint name="l_upper_arm_roll_joint" type="revolute">
     <parent link="l_shoulder_link"/><child link="l_bicep_link"/>
     <origin xyz="0 -0.066 -0.060" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="1000" velocity="1"/>
   </joint>
 
   <link name="l_bicepcover_link">
@@ -414,9 +481,11 @@
     </visual>
   </link>
 
-  <joint name="l_elbow_flex_joint" type="fixed">
+  <joint name="l_elbow_flex_joint" type="revolute">
     <parent link="l_bicep_link"/><child link="l_forearm_link"/>
     <origin xyz="-0.0278 0 -0.2235" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.484" upper="-0.262" effort="1000" velocity="1"/>
   </joint>
 
   <link name="l_hand_link">
@@ -426,9 +495,116 @@
     </visual>
   </link>
 
-  <joint name="l_wrist_roll_joint" type="fixed">
+  <joint name="l_wrist_roll_joint" type="revolute">
     <parent link="l_forearm_link"/><child link="l_hand_link"/>
     <origin xyz="-0.0144 -0.01 -0.2885" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="l_thumb_link">
+    <visual><origin xyz="0.04 -0.02 0" rpy="0 0 0"/><geometry><box size="0.05 0.012 0.012"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="l_thumb_joint" type="revolute">
+    <parent link="l_hand_link"/><child link="l_thumb_link"/>
+    <origin xyz="0.02 -0.03 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.2" effort="100" velocity="1"/>
+  </joint>
+  <link name="l_index_link">
+    <visual><origin xyz="0.06 0 0" rpy="0 0 0"/><geometry><box size="0.07 0.01 0.01"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="l_index_joint" type="revolute">
+    <parent link="l_hand_link"/><child link="l_index_link"/>
+    <origin xyz="0.02 -0.01 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.4" effort="100" velocity="1"/>
+  </joint>
+  <link name="l_middle_link">
+    <visual><origin xyz="0.065 0 0" rpy="0 0 0"/><geometry><box size="0.075 0.01 0.01"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="l_middle_joint" type="revolute">
+    <parent link="l_hand_link"/><child link="l_middle_link"/>
+    <origin xyz="0.02 0 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.4" effort="100" velocity="1"/>
+  </joint>
+  <link name="l_ring_link">
+    <visual><origin xyz="0.06 0 0" rpy="0 0 0"/><geometry><box size="0.07 0.01 0.01"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="l_ring_joint" type="revolute">
+    <parent link="l_hand_link"/><child link="l_ring_link"/>
+    <origin xyz="0.02 0.01 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.4" effort="100" velocity="1"/>
+  </joint>
+  <link name="l_pinky_link">
+    <visual><origin xyz="0.055 0 0" rpy="0 0 0"/><geometry><box size="0.065 0.01 0.01"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="l_pinky_joint" type="revolute">
+    <parent link="l_hand_link"/><child link="l_pinky_link"/>
+    <origin xyz="0.02 0.02 0" rpy="0 0 0"/><axis xyz="0 1 0"/><limit lower="0" upper="1.4" effort="100" velocity="1"/>
+  </joint>
+
+  <!-- Legs -->
+  <link name="l_hip_link">
+    <visual><origin xyz="0 0.09 -0.12" rpy="0 0 0"/><geometry><sphere radius="0.04"/></geometry><material name="frame"/></visual>
+  </link>
+  <joint name="l_hip_pan_joint" type="revolute">
+    <parent link="mid_stomach_link"/><child link="l_hip_link"/>
+    <origin xyz="0 0.09 1.02" rpy="0 0 0"/><axis xyz="0 0 1"/><limit lower="-0.8" upper="0.8" effort="1000" velocity="1"/>
+  </joint>
+  <link name="l_thigh_link">
+    <visual><origin xyz="0 0 -0.18" rpy="0 0 0"/><geometry><cylinder length="0.36" radius="0.035"/></geometry><material name="frame"/></visual>
+  </link>
+  <joint name="l_hip_lift_joint" type="revolute">
+    <parent link="l_hip_link"/><child link="l_thigh_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.2" upper="1.2" effort="1000" velocity="1"/>
+  </joint>
+  <link name="l_shin_link">
+    <visual><origin xyz="0 0 -0.16" rpy="0 0 0"/><geometry><cylinder length="0.32" radius="0.03"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="l_knee_joint" type="revolute">
+    <parent link="l_thigh_link"/><child link="l_shin_link"/>
+    <origin xyz="0 0 -0.36" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="0" upper="2.2" effort="1000" velocity="1"/>
+  </joint>
+  <link name="l_foot_link"/>
+  <joint name="l_ankle_joint" type="revolute">
+    <parent link="l_shin_link"/><child link="l_foot_link"/>
+    <origin xyz="0 0 -0.32" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-0.8" upper="0.8" effort="1000" velocity="1"/>
+  </joint>
+  <link name="l_foot_roll_link">
+    <visual><origin xyz="0.06 0 -0.04" rpy="0 0 0"/><geometry><box size="0.18 0.08 0.04"/></geometry><material name="base"/></visual>
+  </link>
+  <joint name="l_foot_roll_joint" type="revolute">
+    <parent link="l_foot_link"/><child link="l_foot_roll_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 0 1"/><limit lower="-0.5" upper="0.5" effort="100" velocity="1"/>
+  </joint>
+
+  <link name="r_hip_link">
+    <visual><origin xyz="0 -0.09 -0.12" rpy="0 0 0"/><geometry><sphere radius="0.04"/></geometry><material name="frame"/></visual>
+  </link>
+  <joint name="r_hip_pan_joint" type="revolute">
+    <parent link="mid_stomach_link"/><child link="r_hip_link"/>
+    <origin xyz="0 -0.09 1.02" rpy="0 0 0"/><axis xyz="0 0 1"/><limit lower="-0.8" upper="0.8" effort="1000" velocity="1"/>
+  </joint>
+  <link name="r_thigh_link">
+    <visual><origin xyz="0 0 -0.18" rpy="0 0 0"/><geometry><cylinder length="0.36" radius="0.035"/></geometry><material name="frame"/></visual>
+  </link>
+  <joint name="r_hip_lift_joint" type="revolute">
+    <parent link="r_hip_link"/><child link="r_thigh_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-1.2" upper="1.2" effort="1000" velocity="1"/>
+  </joint>
+  <link name="r_shin_link">
+    <visual><origin xyz="0 0 -0.16" rpy="0 0 0"/><geometry><cylinder length="0.32" radius="0.03"/></geometry><material name="cover"/></visual>
+  </link>
+  <joint name="r_knee_joint" type="revolute">
+    <parent link="r_thigh_link"/><child link="r_shin_link"/>
+    <origin xyz="0 0 -0.36" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="0" upper="2.2" effort="1000" velocity="1"/>
+  </joint>
+  <link name="r_foot_link"/>
+  <joint name="r_ankle_joint" type="revolute">
+    <parent link="r_shin_link"/><child link="r_foot_link"/>
+    <origin xyz="0 0 -0.32" rpy="0 0 0"/><axis xyz="1 0 0"/><limit lower="-0.8" upper="0.8" effort="1000" velocity="1"/>
+  </joint>
+  <link name="r_foot_roll_link">
+    <visual><origin xyz="0.06 0 -0.04" rpy="0 0 0"/><geometry><box size="0.18 0.08 0.04"/></geometry><material name="base"/></visual>
+  </link>
+  <joint name="r_foot_roll_joint" type="revolute">
+    <parent link="r_foot_link"/><child link="r_foot_roll_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/><axis xyz="0 0 1"/><limit lower="-0.5" upper="0.5" effort="100" velocity="1"/>
   </joint>
 
 </robot>

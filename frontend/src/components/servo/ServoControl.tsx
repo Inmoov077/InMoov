@@ -2,6 +2,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { syncLiveRobot } from '@/lib/robotLiveController';
+import { readStoreAngles } from '@/lib/robotStoreAngles';
 import { cn } from '@/lib/utils';
 
 interface ServoControlProps {
@@ -42,6 +44,11 @@ export function ServoControl({
 }: ServoControlProps) {
   const filtered = presets.filter((p) => p >= min && p <= max);
 
+  const handleChange = (v: number) => {
+    onChange(v);
+    syncLiveRobot(readStoreAngles());
+  };
+
   return (
     <div
       className={cn('motor-card', className)}
@@ -56,7 +63,7 @@ export function ServoControl({
           {Math.round(value)}°
         </span>
       </div>
-      <Slider accent={accent} min={min} max={max} step={1} value={[value]} onValueChange={([v]) => onChange(v)} disabled={disabled} />
+      <Slider accent={accent} min={min} max={max} step={1} value={[value]} onValueChange={([v]) => handleChange(v)} disabled={disabled} />
       <div className="flex flex-wrap gap-2">
         {filtered.map((p) => (
           <Button
@@ -64,7 +71,7 @@ export function ServoControl({
             type="button"
             variant={Math.round(value) === p ? 'default' : 'outline'}
             size="sm"
-            onClick={() => onChange(p)}
+            onClick={() => handleChange(p)}
             disabled={disabled}
           >
             {presetLabels?.[p] ?? `${p}°`}

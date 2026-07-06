@@ -103,7 +103,7 @@ class SerialManager:
           - Any token ending in '_OK' or '_READY'
         """
         # All valid handshake tokens from any InMoov firmware
-        VALID_TOKENS = ["ARDUINO_OK", "NECK_OK", "NECK_READY", "INMOOV_OK"]
+        VALID_TOKENS = ["ARDUINO_OK", "NECK_OK", "NECK_READY", "INMOOV_OK", "FULL_BODY_READY"]
         try:
             logger.info(f"Testing port {port_name} for handshake...")
             test_conn = serial.Serial(port_name, 9600, timeout=2, write_timeout=1)
@@ -152,6 +152,26 @@ def serve_frontend_assets(filename):
         return send_file(asset_path)
     return f"{filename} not found.", 404
 
+@app.route('/models/<path:filename>')
+def serve_model(filename):
+    """Serve 3D model files (GLB/GLTF/STL/URDF) from the project directory."""
+    base = os.path.dirname(__file__)
+    candidates = [
+        os.path.join(base, filename),
+        os.path.join(base, 'models', filename),
+    ]
+    model_path = next((p for p in candidates if os.path.exists(p)), None)
+    if not model_path:
+        return f"{filename} not found.", 404
+    ext = os.path.splitext(filename)[1].lower()
+    mime = {
+        '.glb': 'model/gltf-binary',
+        '.gltf': 'model/gltf+json',
+        '.stl': 'model/stl',
+        '.urdf': 'application/xml',
+    }.get(ext, 'application/octet-stream')
+    return send_file(model_path, mimetype=mime)
+
 @app.route('/<path:path>')
 def spa_fallback(path):
     """SPA routes — return index.html for client-side routing."""
@@ -178,26 +198,6 @@ def serve_image(filename):
     if os.path.exists(img_path):
         return send_file(img_path)
     return f"{filename} not found.", 404
-
-@app.route('/models/<path:filename>')
-def serve_model(filename):
-    """Serve 3D model files (GLB/GLTF/STL/URDF) from the project directory."""
-    base = os.path.dirname(__file__)
-    candidates = [
-        os.path.join(base, filename),
-        os.path.join(base, 'models', filename),
-    ]
-    model_path = next((p for p in candidates if os.path.exists(p)), None)
-    if not model_path:
-        return f"{filename} not found.", 404
-    ext = os.path.splitext(filename)[1].lower()
-    mime = {
-        '.glb': 'model/gltf-binary',
-        '.gltf': 'model/gltf+json',
-        '.stl': 'model/stl',
-        '.urdf': 'application/xml',
-    }.get(ext, 'application/octet-stream')
-    return send_file(model_path, mimetype=mime)
 
 @app.route('/js/<path:filename>')
 def serve_js(filename):
@@ -379,6 +379,119 @@ def set_neck_3axis():
         "angles": {"rot": rot, "tilt": tilt, "roll": roll}
     })
 
+def _clamp_angle(val, lo=0, hi=180):
+    return max(lo, min(hi, int(val)))
+
+
+@app.route('/api/servo/arm', methods=['POST'])
+def set_servo_arm():
+    """Controls one arm: shoulder, lift, rotate, elbow, wrist."""
+    data = request.get_json() or {}
+    side = data.get('side', 'left')
+    shoulder = _clamp_angle(data.get('shoulder', 90))
+    lift = _clamp_angle(data.get('lift', 45))
+    rotate = _clamp_angle(data.get('rotate', 90))
+    elbow = _clamp_angle(data.get('elbow', 90))
+    wrist = _clamp_angle(data.get('wrist', 90))
+
+    prefix = 'LA' if side == 'left' else 'RA'
+    cmd = f"{prefix},{shoulder},{lift},{rotate},{elbow},{wrist}\n"
+    sent = serial_mgr.is_connected() and serial_mgr.send_cmd(cmd)
+    return jsonify({"ok": True, "serial_sent": sent, "side": side})
+
+
+@app.route('/api/servo/hand', methods=['POST'])
+def set_servo_hand():
+    """Controls one hand: thumb, index, middle, ring, pinky."""
+    data = request.get_json() or {}
+    side = data.get('side', 'left')
+    thumb = _clamp_angle(data.get('thumb', 10))
+    index = _clamp_angle(data.get('index', 10))
+    middle = _clamp_angle(data.get('middle', 10))
+    ring = _clamp_angle(data.get('ring', 10))
+    pinky = _clamp_angle(data.get('pinky', 10))
+
+    prefix = 'LH' if side == 'left' else 'RH'
+    cmd = f"{prefix},{thumb},{index},{middle},{ring},{pinky}\n"
+    sent = serial_mgr.is_connected() and serial_mgr.send_cmd(cmd)
+    return jsonify({"ok": True, "serial_sent": sent, "side": side})
+
+
+@app.route('/api/servo/leg', methods=['POST'])
+def set_servo_leg():
+    """Controls one leg: hip, thigh, knee, ankle, foot."""
+    data = request.get_json() or {}
+    side = data.get('side', 'left')
+    hip = _clamp_angle(data.get('hip', 90))
+    thigh = _clamp_angle(data.get('thigh', 90))
+    knee = _clamp_angle(data.get('knee', 10), hi=160)
+    ankle = _clamp_angle(data.get('ankle', 90))
+    foot = _clamp_angle(data.get('foot', 90))
+
+    prefix = 'LL' if side == 'left' else 'RL'
+    cmd = f"{prefix},{hip},{thigh},{knee},{ankle},{foot}\n"
+    sent = serial_mgr.is_connected() and serial_mgr.send_cmd(cmd)
+    return jsonify({"ok": True, "serial_sent": sent, "side": side})
+
+
+@app.route('/api/servo/body', methods=['POST'])
+def set_servo_body():
+    """Batch update arms, hands, and legs."""
+    data = request.get_json() or {}
+
+    def arm_vals(key, defaults):
+        block = data.get(key, {})
+        return (
+            _clamp_angle(block.get('shoulder', defaults[0])),
+            _clamp_angle(block.get('lift', defaults[1])),
+            _clamp_angle(block.get('rotate', defaults[2])),
+            _clamp_angle(block.get('elbow', defaults[3])),
+            _clamp_angle(block.get('wrist', defaults[4])),
+        )
+
+    def hand_vals(key):
+        block = data.get(key, {})
+        return (
+            _clamp_angle(block.get('thumb', 10)),
+            _clamp_angle(block.get('index', 10)),
+            _clamp_angle(block.get('middle', 10)),
+            _clamp_angle(block.get('ring', 10)),
+            _clamp_angle(block.get('pinky', 10)),
+        )
+
+    def leg_vals(key):
+        block = data.get(key, {})
+        return (
+            _clamp_angle(block.get('hip', 90)),
+            _clamp_angle(block.get('thigh', 90)),
+            _clamp_angle(block.get('knee', 10), hi=160),
+            _clamp_angle(block.get('ankle', 90)),
+            _clamp_angle(block.get('foot', 90)),
+        )
+
+    la = arm_vals('leftArm', (90, 45, 90, 90, 90))
+    ra = arm_vals('rightArm', (90, 45, 90, 90, 90))
+    lh = hand_vals('leftHand')
+    rh = hand_vals('rightHand')
+    ll = leg_vals('leftLeg')
+    rl = leg_vals('rightLeg')
+
+    parts = [
+        f"LA,{la[0]},{la[1]},{la[2]},{la[3]},{la[4]}",
+        f"RA,{ra[0]},{ra[1]},{ra[2]},{ra[3]},{ra[4]}",
+        f"LH,{lh[0]},{lh[1]},{lh[2]},{lh[3]},{lh[4]}",
+        f"RH,{rh[0]},{rh[1]},{rh[2]},{rh[3]},{rh[4]}",
+        f"LL,{ll[0]},{ll[1]},{ll[2]},{ll[3]},{ll[4]}",
+        f"RL,{rl[0]},{rl[1]},{rl[2]},{rl[3]},{rl[4]}",
+    ]
+    sent = False
+    if serial_mgr.is_connected():
+        for part in parts:
+            sent = serial_mgr.send_cmd(part + '\n') or sent
+
+    return jsonify({"ok": True, "serial_sent": sent})
+
+
 @app.route('/api/servo/combined6', methods=['POST'])
 def set_combined_6axis():
     """Controls all 6 servos: Head (neck, eye, jaw) and Neck (rot, tilt, roll)."""
@@ -447,7 +560,8 @@ def get_config():
         "gemini_api_key": GEMINI_API_KEY,
         "gemini_configured": bool(GEMINI_API_KEY),
         "app_name": "InMoov Control Center",
-        "firmware": "combined_servo_control.ino",
+        "firmware": "full_body_servo_control.ino",
+        "firmware_head_only": "combined_servo_control.ino",
         "baud_rate": 9600,
     })
 

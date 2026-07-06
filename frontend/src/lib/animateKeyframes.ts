@@ -1,11 +1,11 @@
 import type { PresetKeyframe } from '@/lib/presets';
+import { useBodyStore } from '@/store/bodyStore';
 import { useServoStore } from '@/store/servoStore';
 
 function lerpAngles(from: PresetKeyframe, to: PresetKeyframe, t: number): PresetKeyframe {
-  const keys: (keyof PresetKeyframe)[] = ['hneck', 'eye', 'jaw', 'rot', 'tilt', 'roll'];
-  const result = { ...to, hold: to.hold };
+  const keys = ['hneck', 'eye', 'jaw', 'rot', 'tilt', 'roll'] as const;
+  const result: PresetKeyframe = { ...to, hold: to.hold };
   for (const key of keys) {
-    if (key === 'hold') continue;
     result[key] = Math.round(from[key] + (to[key] - from[key]) * t);
   }
   return result;
@@ -13,12 +13,19 @@ function lerpAngles(from: PresetKeyframe, to: PresetKeyframe, t: number): Preset
 
 function applyKeyframe(kf: PresetKeyframe, send: boolean) {
   const store = useServoStore.getState();
+  const body = useBodyStore.getState();
   store.setHead('hneck', kf.hneck, send);
   store.setHead('eye', kf.eye, send);
   store.setHead('jaw', kf.jaw, send);
   store.setNeck('rot', kf.rot, send);
   store.setNeck('tilt', kf.tilt, send);
   store.setNeck('roll', kf.roll, send);
+  if (kf.leftArm) body.setArm('left', kf.leftArm, send);
+  if (kf.rightArm) body.setArm('right', kf.rightArm, send);
+  if (kf.leftHand) body.setHand('left', kf.leftHand, send);
+  if (kf.rightHand) body.setHand('right', kf.rightHand, send);
+  if (kf.leftLeg) body.setLeg('left', kf.leftLeg, send);
+  if (kf.rightLeg) body.setLeg('right', kf.rightLeg, send);
 }
 
 export async function animateKeyframes(

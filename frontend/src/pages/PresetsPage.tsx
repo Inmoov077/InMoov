@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { PRESETS, PRESET_META } from '@/lib/presets';
 import { animateKeyframes } from '@/lib/animateKeyframes';
+import { useBodyStore } from '@/store/bodyStore';
 import { useServoStore } from '@/store/servoStore';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +12,7 @@ export function PresetsPage() {
   const [running, setRunning] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const centerAll = useServoStore((s) => s.centerAll);
+  const centerBody = useBodyStore((s) => s.centerBody);
 
   const playPreset = async (id: string) => {
     const keyframes = PRESETS[id];
@@ -33,7 +35,7 @@ export function PresetsPage() {
         description="One tap — the robot does the rest."
         actions={
           running ? (
-            <Button variant="destructive" size="sm" onClick={() => { abortRef.current?.abort(); setRunning(null); centerAll(); }}>
+            <Button variant="destructive" size="sm" onClick={() => { abortRef.current?.abort(); setRunning(null); centerAll(); centerBody(); }}>
               <Square className="h-4 w-4" /> Stop
             </Button>
           ) : undefined

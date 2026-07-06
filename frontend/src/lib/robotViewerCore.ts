@@ -1,13 +1,69 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import URDFLoader from 'urdf-loader';
+import {
+  applyRealisticInmoovMaterials,
+  createFloorGrid,
+  createStudioBackdrop,
+  createWoodTable,
+} from '@/lib/robotMaterials';
+import { DEFAULT_ARM, DEFAULT_HAND, DEFAULT_LEG } from '@/lib/bodyConfig';
+import {
+  ELBOW_FLEX,
+  EYES_PAN,
+  EYES_TILT,
+  HEAD_PAN,
+  HEAD_ROLL,
+  HEAD_TILT,
+  JAW,
+  L_SHOULDER_OUT,
+  L_UPPER_ARM_ROLL,
+  L_WRIST_ROLL,
+  R_SHOULDER_OUT,
+  R_UPPER_ARM_ROLL,
+  R_WRIST_ROLL,
+  SHOULDER_LIFT,
+  THUMB,
+  WAIST_PAN,
+  WAIST_ROLL,
+  HIP_PAN,
+  HIP_LIFT,
+  KNEE,
+  ANKLE,
+  FOOT_ROLL,
+  fingerServoToRad,
+  servoToJointRad,
+} from '@/lib/inmoovJointMap';
 
-export const URDF_URL = '/models/inmoov/inmoov.urdf';
+/** Compiled from MyRobotLab/inmoov_ros xacro + procedural legs */
+export const URDF_URL = '/models/inmoov/inmoov_full.urdf';
+export const URDF_FALLBACK_URL = '/models/inmoov/inmoov_official.urdf';
 export const MESH_PACKAGE = '/models/inmoov';
-export const FALLBACK_MODEL_URL = '/models/space%20suit%20character%203d%20model.glb';
+/** Frame lerp — higher = snappier live preview while dragging sliders */
+export const LERP = 0.28;
+/** Immediate blend when store changes (before next animation frame) */
+export const STORE_SNAP_LERP = 0.55;
 
-export const LERP = 0.1;
+export interface CameraViewPreset {
+  id: string;
+  label: string;
+  /** Orbit offset as fractions of fitted distance from robot center */
+  offset: [number, number, number];
+  targetLift?: number;
+  padding?: number;
+}
+
+export const CAMERA_VIEWS: CameraViewPreset[] = [
+  { id: 'full', label: 'Full body', offset: [0.18, 0.08, 0.95], padding: 2.05, targetLift: 0.08 },
+  { id: 'front', label: 'Front', offset: [0.0, 0.1, 1.08], padding: 1.95, targetLift: 0.06 },
+  { id: 'back', label: 'Back', offset: [0.0, 0.1, -1.08], padding: 1.95, targetLift: 0.06 },
+  { id: 'left', label: 'Left', offset: [-1.08, 0.08, 0.05], padding: 1.95, targetLift: 0.05 },
+  { id: 'right', label: 'Right', offset: [1.08, 0.08, 0.05], padding: 1.95, targetLift: 0.05 },
+  { id: 'head', label: 'Head', offset: [0.12, 0.38, 0.52], targetLift: 0.42, padding: 1.25 },
+  { id: 'hands', label: 'Hands', offset: [0.32, -0.12, 0.62], targetLift: -0.05, padding: 1.4 },
+  { id: 'legs', label: 'Legs', offset: [0.15, -0.48, 0.72], targetLift: -0.38, padding: 1.55 },
+  { id: 'top', label: 'Top', offset: [0.05, 1.15, 0.12], targetLift: 0.0, padding: 2.1 },
+];
 
 export interface AngleState {
   headPan: number;
@@ -16,11 +72,41 @@ export interface AngleState {
   neckRot: number;
   neckTilt: number;
   neckRoll: number;
+  leftArm: { shoulder: number; lift: number; rotate: number; elbow: number; wrist: number };
+  rightArm: { shoulder: number; lift: number; rotate: number; elbow: number; wrist: number };
+  leftHand: { thumb: number; index: number; middle: number; ring: number; pinky: number };
+  rightHand: { thumb: number; index: number; middle: number; ring: number; pinky: number };
+  leftLeg: { hip: number; thigh: number; knee: number; ankle: number; foot: number };
+  rightLeg: { hip: number; thigh: number; knee: number; ankle: number; foot: number };
 }
+
+/** Rest pose — matches bodyStore + servoStore defaults (0 rad on every URDF joint). */
+export const DEFAULT_ANGLE_STATE: AngleState = {
+  headPan: 85,
+  eye: 90,
+  jaw: 8,
+  neckRot: 60,
+  neckTilt: 50,
+  neckRoll: 120,
+  leftArm: { ...DEFAULT_ARM },
+  rightArm: { ...DEFAULT_ARM },
+  leftHand: { ...DEFAULT_HAND },
+  rightHand: { ...DEFAULT_HAND },
+  leftLeg: { ...DEFAULT_LEG },
+  rightLeg: { ...DEFAULT_LEG },
+};
+
+export type UrdfRobot = THREE.Object3D & {
+  joints?: Record<string, { setJointValue: (v: number) => boolean }>;
+  setJointValue?: (name: string, ...angle: number[]) => boolean;
+  setJointValues?: (values: Record<string, number>) => boolean;
+  updateMatrixWorld: (force?: boolean) => void;
+};
 
 export interface RobotModel {
   kind: 'urdf' | 'glb';
   root: THREE.Object3D;
+  urdf?: UrdfRobot;
   setJoint?: (name: string, radians: number) => void;
   headGroup: THREE.Object3D | null;
   neckGroup: THREE.Object3D | null;
@@ -46,25 +132,115 @@ function servoToRad(value: number, neutral = 90) {
   return toRad(value - neutral);
 }
 
-export function lerpAngles(current: AngleState, target: AngleState, t: number): AngleState {
-  const out = { ...current };
-  for (const key of Object.keys(out) as (keyof AngleState)[]) {
-    out[key] = current[key] + (target[key] - current[key]) * t;
+function lerpGroup<T extends Record<string, number>>(current: T, target: T, t: number): T {
+  const out = { ...current } as T;
+  for (const key of Object.keys(out) as (keyof T & string)[]) {
+    out[key] = (current[key] + (target[key] - current[key]) * t) as T[keyof T & string];
   }
   return out;
+}
+
+export function lerpAngles(current: AngleState, target: AngleState, t: number): AngleState {
+  return {
+    headPan: current.headPan + (target.headPan - current.headPan) * t,
+    eye: current.eye + (target.eye - current.eye) * t,
+    jaw: current.jaw + (target.jaw - current.jaw) * t,
+    neckRot: current.neckRot + (target.neckRot - current.neckRot) * t,
+    neckTilt: current.neckTilt + (target.neckTilt - current.neckTilt) * t,
+    neckRoll: current.neckRoll + (target.neckRoll - current.neckRoll) * t,
+    leftArm: lerpGroup(current.leftArm, target.leftArm, t),
+    rightArm: lerpGroup(current.rightArm, target.rightArm, t),
+    leftHand: lerpGroup(current.leftHand, target.leftHand, t),
+    rightHand: lerpGroup(current.rightHand, target.rightHand, t),
+    leftLeg: lerpGroup(current.leftLeg, target.leftLeg, t),
+    rightLeg: lerpGroup(current.rightLeg, target.rightLeg, t),
+  };
+}
+
+const REST = DEFAULT_ANGLE_STATE;
+
+/** Map slider → joint rad relative to default pose (aligned at rest). */
+function j(
+  servo: number,
+  range: Parameters<typeof servoToJointRad>[1],
+  rest: number,
+  servoMin = 0,
+  servoMax = 180,
+) {
+  return servoToJointRad(servo, range, rest, servoMin, servoMax);
+}
+
+function buildJointValues(angles: AngleState): Record<string, number> {
+  const la = angles.leftArm;
+  const ra = angles.rightArm;
+  const lh = angles.leftHand;
+  const rh = angles.rightHand;
+  const ll = angles.leftLeg;
+  const rl = angles.rightLeg;
+  return {
+    head_pan_joint: j(angles.headPan, HEAD_PAN, REST.headPan),
+    eyes_tilt_joint: j(angles.eye, EYES_TILT, REST.eye),
+    eyes_pan_joint: j(angles.eye, EYES_PAN, REST.eye),
+    jaw_joint: j(angles.jaw, JAW, REST.jaw, 0, 40),
+    waist_pan_joint: j(angles.neckRot, WAIST_PAN, REST.neckRot),
+    waist_roll_joint: j(angles.neckTilt, WAIST_ROLL, REST.neckTilt),
+    head_tilt_joint: j(angles.neckTilt, HEAD_TILT, REST.neckTilt),
+    head_roll_joint: j(angles.neckRoll, HEAD_ROLL, REST.neckRoll),
+    l_shoulder_out_joint: j(la.shoulder, L_SHOULDER_OUT, REST.leftArm.shoulder),
+    l_shoulder_lift_joint: j(la.lift, SHOULDER_LIFT, REST.leftArm.lift),
+    l_upper_arm_roll_joint: j(la.rotate, L_UPPER_ARM_ROLL, REST.leftArm.rotate),
+    l_elbow_flex_joint: j(la.elbow, ELBOW_FLEX, REST.leftArm.elbow),
+    l_wrist_roll_joint: j(la.wrist, L_WRIST_ROLL, REST.leftArm.wrist),
+    r_shoulder_out_joint: j(ra.shoulder, R_SHOULDER_OUT, REST.rightArm.shoulder),
+    r_shoulder_lift_joint: j(ra.lift, SHOULDER_LIFT, REST.rightArm.lift),
+    r_upper_arm_roll_joint: j(ra.rotate, R_UPPER_ARM_ROLL, REST.rightArm.rotate),
+    r_elbow_flex_joint: j(ra.elbow, ELBOW_FLEX, REST.rightArm.elbow),
+    r_wrist_roll_joint: j(ra.wrist, R_WRIST_ROLL, REST.rightArm.wrist),
+    l_thumb_joint: fingerServoToRad(lh.thumb, THUMB, REST.leftHand.thumb),
+    l_index_joint: fingerServoToRad(lh.index, undefined, REST.leftHand.index),
+    l_middle_joint: fingerServoToRad(lh.middle, undefined, REST.leftHand.middle),
+    l_ring_joint: fingerServoToRad(lh.ring, undefined, REST.leftHand.ring),
+    l_pinky_joint: fingerServoToRad(lh.pinky, undefined, REST.leftHand.pinky),
+    r_thumb_joint: fingerServoToRad(rh.thumb, THUMB, REST.rightHand.thumb),
+    r_index_joint: fingerServoToRad(rh.index, undefined, REST.rightHand.index),
+    r_middle_joint: fingerServoToRad(rh.middle, undefined, REST.rightHand.middle),
+    r_ring_joint: fingerServoToRad(rh.ring, undefined, REST.rightHand.ring),
+    r_pinky_joint: fingerServoToRad(rh.pinky, undefined, REST.rightHand.pinky),
+    l_hip_pan_joint: j(ll.hip, HIP_PAN, REST.leftLeg.hip),
+    l_hip_lift_joint: j(ll.thigh, HIP_LIFT, REST.leftLeg.thigh),
+    l_knee_joint: j(ll.knee, KNEE, REST.leftLeg.knee, 0, 160),
+    l_ankle_joint: j(ll.ankle, ANKLE, REST.leftLeg.ankle),
+    l_foot_roll_joint: j(ll.foot, FOOT_ROLL, REST.leftLeg.foot),
+    r_hip_pan_joint: j(rl.hip, HIP_PAN, REST.rightLeg.hip),
+    r_hip_lift_joint: j(rl.thigh, HIP_LIFT, REST.rightLeg.thigh),
+    r_knee_joint: j(rl.knee, KNEE, REST.rightLeg.knee, 0, 160),
+    r_ankle_joint: j(rl.ankle, ANKLE, REST.rightLeg.ankle),
+    r_foot_roll_joint: j(rl.foot, FOOT_ROLL, REST.rightLeg.foot),
+  };
 }
 
 export function applyAngles(robot: RobotModel | null, angles: AngleState) {
   if (!robot) return;
 
-  if (robot.kind === 'urdf' && robot.setJoint) {
-    robot.setJoint('head_pan_joint', -servoToRad(angles.headPan));
-    robot.setJoint('eyes_tilt_joint', servoToRad(angles.eye));
-    robot.setJoint('eyes_pan_joint', servoToRad(angles.eye) * 0.35);
-    robot.setJoint('jaw_joint', servoToRad(angles.jaw, 8));
-    robot.setJoint('waist_pan_joint', -servoToRad(angles.neckRot));
-    robot.setJoint('head_tilt_joint', servoToRad(angles.neckTilt));
-    robot.setJoint('head_roll_joint', -servoToRad(angles.neckRoll));
+  if (robot.kind === 'urdf') {
+    const jointValues = buildJointValues(angles);
+    const urdf = robot.urdf;
+    if (urdf?.joints) {
+      for (const [name, rad] of Object.entries(jointValues)) {
+        const joint = urdf.joints[name] as { setJointValue?: (v: number) => boolean } | undefined;
+        if (joint?.setJointValue) {
+          joint.setJointValue(rad);
+        } else if (urdf.setJointValue) {
+          urdf.setJointValue(name, rad);
+        }
+      }
+    } else if (robot.setJoint) {
+      for (const [name, rad] of Object.entries(jointValues)) robot.setJoint(name, rad);
+    } else {
+      return;
+    }
+    urdf?.updateMatrixWorld?.(true);
+    robot.root.updateMatrixWorld(true);
     return;
   }
 
@@ -90,21 +266,7 @@ export function applyAngles(robot: RobotModel | null, angles: AngleState) {
 }
 
 function enhanceMaterials(object: THREE.Object3D) {
-  object.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    mats.forEach((mat) => {
-      if (!mat) return;
-      if ('envMapIntensity' in mat) (mat as THREE.MeshStandardMaterial).envMapIntensity = 0.8;
-      if ('metalness' in mat && (mat as THREE.MeshStandardMaterial).metalness > 0.9) {
-        (mat as THREE.MeshStandardMaterial).metalness = 0.65;
-      }
-      mat.needsUpdate = true;
-    });
-  });
+  applyRealisticInmoovMaterials(object);
 }
 
 function robotBounds(object: THREE.Object3D) {
@@ -121,33 +283,70 @@ function robotBounds(object: THREE.Object3D) {
   return box;
 }
 
-function frameCamera(
-  camera: THREE.PerspectiveCamera,
-  controls: OrbitControls,
+export interface FrameMetrics {
+  center: THREE.Vector3;
+  size: THREE.Vector3;
+  distance: number;
+}
+
+export function computeFrameMetrics(
   object: THREE.Object3D,
+  cameraFov = 32,
   padding = 2.15,
-) {
+): FrameMetrics {
   object.updateMatrixWorld(true);
   const box = robotBounds(object);
   const size = new THREE.Vector3();
   const center = new THREE.Vector3();
   box.getSize(size);
   box.getCenter(center);
-
   const maxDim = Math.max(size.x, size.y, size.z, 0.5);
-  const fov = camera.fov * (Math.PI / 180);
-  let dist = maxDim / (2 * Math.tan(fov / 2));
-  dist *= padding;
+  const fovRad = cameraFov * (Math.PI / 180);
+  let distance = maxDim / (2 * Math.tan(fovRad / 2));
+  distance *= padding;
+  return { center, size, distance };
+}
 
-  camera.position.set(center.x + dist * 0.22, center.y + size.y * 0.04, center.z + dist * 0.92);
-  camera.near = Math.max(0.01, dist / 100);
-  camera.far = dist * 40;
+function frameCamera(
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  object: THREE.Object3D,
+  padding = 2.15,
+  preset?: CameraViewPreset,
+) {
+  const { center, size, distance } = computeFrameMetrics(
+    object,
+    camera.fov,
+    preset?.padding ?? padding,
+  );
+  const lift = preset?.targetLift ?? 0;
+  const target = center.clone();
+  target.y += size.y * lift;
+
+  const off = preset?.offset ?? [0.22, 0.04, 0.92];
+  camera.position.set(
+    target.x + distance * off[0],
+    target.y + distance * off[1],
+    target.z + distance * off[2],
+  );
+  camera.near = Math.max(0.01, distance / 100);
+  camera.far = distance * 40;
   camera.updateProjectionMatrix();
 
-  controls.target.copy(center);
-  controls.minDistance = dist * 0.35;
-  controls.maxDistance = dist * 4;
+  controls.target.copy(target);
+  controls.minDistance = distance * 0.25;
+  controls.maxDistance = distance * 5;
   controls.update();
+}
+
+export function applyCameraView(
+  camera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+  object: THREE.Object3D,
+  viewId: string,
+) {
+  const preset = CAMERA_VIEWS.find((v) => v.id === viewId) ?? CAMERA_VIEWS[0];
+  frameCamera(camera, controls, object, preset.padding, preset);
 }
 
 function groundRobot(object: THREE.Object3D, floorY = 0) {
@@ -155,6 +354,18 @@ function groundRobot(object: THREE.Object3D, floorY = 0) {
   const box = robotBounds(object);
   if (box.isEmpty()) return;
   object.position.y += floorY - box.min.y;
+  object.updateMatrixWorld(true);
+}
+
+/** Center robot on X/Z so orbit target stays on the body. */
+function centerRobotXZ(object: THREE.Object3D) {
+  object.updateMatrixWorld(true);
+  const box = robotBounds(object);
+  if (box.isEmpty()) return;
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  object.position.x -= center.x;
+  object.position.z -= center.z;
   object.updateMatrixWorld(true);
 }
 
@@ -177,79 +388,43 @@ export function createViewerScene(
 
   const scene = new THREE.Scene();
 
-  const bgCanvas = document.createElement('canvas');
-  bgCanvas.width = 2;
-  bgCanvas.height = 512;
-  const bgCtx = bgCanvas.getContext('2d');
-  if (bgCtx) {
-    const grad = bgCtx.createLinearGradient(0, 0, 0, 512);
-    grad.addColorStop(0, '#e8ddd0');
-    grad.addColorStop(0.45, '#f5f0ea');
-    grad.addColorStop(1, '#d4c8bc');
-    bgCtx.fillStyle = grad;
-    bgCtx.fillRect(0, 0, 2, 512);
-  }
-  const bgTexture = new THREE.CanvasTexture(bgCanvas);
-  bgTexture.colorSpace = THREE.SRGBColorSpace;
-  scene.background = bgTexture;
-  scene.fog = new THREE.FogExp2(0xf0e8de, 0.018);
+  // Studio look — white wall + warm key light (matches inmoov.fr gallery photos)
+  scene.background = new THREE.Color(0xf2f2f2);
+  scene.fog = new THREE.FogExp2(0xf2f2f2, 0.012);
 
-  const hemi = new THREE.HemisphereLight(0xf0f7ff, 0x8fa8be, 0.85);
+  scene.add(createStudioBackdrop());
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0xc8c0b8, 1.0);
   scene.add(hemi);
 
-  const ambient = new THREE.AmbientLight(0xe8f0f8, 0.45);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.55);
   scene.add(ambient);
 
-  const keyLight = new THREE.DirectionalLight(0xfff4e6, 2.0);
-  keyLight.position.set(2.5, 4, 2);
+  const keyLight = new THREE.DirectionalLight(0xfff8f0, 2.4);
+  keyLight.position.set(1.8, 3.5, 2.2);
   keyLight.castShadow = true;
-  keyLight.shadow.mapSize.set(1024, 1024);
-  keyLight.shadow.bias = -0.0002;
+  keyLight.shadow.mapSize.set(2048, 2048);
+  keyLight.shadow.bias = -0.0003;
+  keyLight.shadow.camera.near = 0.1;
+  keyLight.shadow.camera.far = 12;
   scene.add(keyLight);
 
-  const fillLight = new THREE.DirectionalLight(0x8ecae6, 1.1);
-  fillLight.position.set(-2.5, 1.5, -1);
+  const fillLight = new THREE.DirectionalLight(0xe8eef8, 0.9);
+  fillLight.position.set(-2.2, 2, 1.2);
   scene.add(fillLight);
 
-  const rimLight = new THREE.DirectionalLight(0xa8c4e0, 0.75);
-  rimLight.position.set(0, 1, -3);
-  scene.add(rimLight);
+  const backLight = new THREE.DirectionalLight(0xffffff, 0.45);
+  backLight.position.set(0, 2, -2.5);
+  scene.add(backLight);
 
-  const accentLight = new THREE.PointLight(0xe8913a, 0.35, 8);
-  accentLight.position.set(1.2, 0.8, 1.5);
-  scene.add(accentLight);
+  scene.add(createFloorGrid(3.2, 28));
 
-  const grid = new THREE.GridHelper(4.5, 28, 0x7a94aa, 0xa8bccf);
-  grid.position.y = -0.02;
-  grid.material.opacity = 0.4;
-  grid.material.transparent = true;
-  scene.add(grid);
+  const table = createWoodTable(2.8, 2.0);
+  scene.add(table);
 
-  const platform = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.7, 0.78, 0.04, 48),
-    new THREE.MeshStandardMaterial({
-      color: 0xc9bfb2,
-      metalness: 0.35,
-      roughness: 0.55,
-    }),
-  );
-  platform.position.y = -0.04;
-  platform.receiveShadow = true;
-  scene.add(platform);
-
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.78, 0.012, 8, 64),
-    new THREE.MeshStandardMaterial({
-      color: 0xe85d4c,
-      metalness: 0.5,
-      roughness: 0.4,
-      emissive: 0xc44a3a,
-      emissiveIntensity: 0.25,
-    }),
-  );
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = -0.018;
-  scene.add(ring);
+  const axes = new THREE.AxesHelper(0.4);
+  axes.position.set(-1.35, 0.02, -1.35);
+  scene.add(axes);
 
   const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 300);
   camera.position.set(1.2, 1.05, 2.6);
@@ -291,166 +466,118 @@ export function createViewerScene(
   };
 }
 
-function loadUrdfRobot(scene: THREE.Scene, viewer: ViewerScene): Promise<RobotModel> {
+function removeRobotWorld(scene: THREE.Scene) {
+  const old = scene.getObjectByName('INMOOV_WORLD');
+  if (old) scene.remove(old);
+}
+
+function countMeshes(root: THREE.Object3D) {
+  let n = 0;
+  root.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) n += 1;
+  });
+  return n;
+}
+
+function loadUrdfFrom(url: string, scene: THREE.Scene, viewer: ViewerScene): Promise<RobotModel> {
   return new Promise((resolve, reject) => {
+    removeRobotWorld(scene);
+
     const world = new THREE.Group();
     world.name = 'INMOOV_WORLD';
+    // ROS Z-up → Three.js Y-up (same as official urdf-viewer)
     world.rotation.x = -Math.PI / 2;
     scene.add(world);
 
     let robot: THREE.Object3D | null = null;
+    let meshErrors = 0;
+    const failedUrls: string[] = [];
     const manager = new THREE.LoadingManager();
-
     manager.onLoad = () => {
-      if (!robot) return;
+      if (!robot) {
+        scene.remove(world);
+        reject(new Error('URDF parsed but robot is null'));
+        return;
+      }
+      const meshCount = countMeshes(robot);
+      if (meshCount < 10) {
+        scene.remove(world);
+        reject(
+          new Error(
+            `Only ${meshCount} mesh(es) loaded${meshErrors ? ` (${meshErrors} failed)` : ''}. Check /models/ paths.`,
+          ),
+        );
+        return;
+      }
+      if (meshErrors > 0) {
+        console.warn(`[RobotViewer] ${meshErrors} mesh(s) failed:`, failedUrls.slice(0, 5));
+      }
       enhanceMaterials(robot);
-      groundRobot(world, 0);
-      frameCamera(viewer.camera, viewer.controls, world);
+      centerRobotXZ(world);
+      groundRobot(world, 0.02);
+      frameCamera(viewer.camera, viewer.controls, world, 2.05, CAMERA_VIEWS[0]);
       viewer.resize();
-
-      const urdfRobot = robot as THREE.Object3D & {
-        joints?: Record<string, { setJointValue: (v: number) => void }>;
-      };
-
-      resolve({
+      const urdfRobot = robot as UrdfRobot;
+      for (const joint of Object.values(urdfRobot.joints ?? {})) {
+        (joint as { ignoreLimits?: boolean }).ignoreLimits = true;
+      }
+      const warnedJoints = new Set<string>();
+      const model: RobotModel = {
         kind: 'urdf',
         root: world,
+        urdf: urdfRobot,
         setJoint: (name, radians) => {
-          urdfRobot.joints?.[name]?.setJointValue(radians);
+          if (!urdfRobot.joints?.[name]) {
+            if (!warnedJoints.has(name)) {
+              warnedJoints.add(name);
+              console.warn(`[RobotViewer] URDF joint not found: ${name}`);
+            }
+            return;
+          }
+          if (urdfRobot.setJointValue) {
+            urdfRobot.setJointValue(name, radians);
+          } else {
+            urdfRobot.joints[name].setJointValue(radians);
+          }
         },
         headGroup: robot.getObjectByName('head_link') ?? null,
         neckGroup: robot.getObjectByName('head_tilt_link') ?? null,
-      });
+      };
+      applyAngles(model, DEFAULT_ANGLE_STATE);
+      console.info(`[RobotViewer] Loaded ${url} — ${meshCount} meshes, ${Object.keys(urdfRobot.joints ?? {}).length} joints`);
+      resolve(model);
     };
-
-    manager.onError = (url) => {
-      console.error('[RobotViewer] mesh load failed:', url);
+    manager.onError = (u) => {
+      meshErrors += 1;
+      failedUrls.push(String(u));
+      console.error('[RobotViewer] mesh load failed:', u);
     };
-
     const loader = new URDFLoader(manager);
     loader.packages = { inmoov_meshes: MESH_PACKAGE };
     loader.load(
-      URDF_URL,
+      url,
       (model) => {
         robot = model;
         world.add(model);
       },
       undefined,
-      reject,
-    );
-  });
-}
-
-const HEAD_Y_THRESHOLD = 0.12;
-const NECK_Y_THRESHOLD = 0.02;
-
-function loadGlbRobot(scene: THREE.Scene): Promise<RobotModel> {
-  return new Promise((resolve, reject) => {
-    const loader = new GLTFLoader();
-    loader.load(
-      FALLBACK_MODEL_URL,
-      (gltf) => {
-        const model = gltf.scene;
-        enhanceMaterials(model);
-
-        const parts: { child: THREE.Mesh; scaledCenterY: number; name: string }[] = [];
-        model.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            const box = new THREE.Box3().setFromObject(mesh);
-            const center = new THREE.Vector3();
-            box.getCenter(center);
-            parts.push({ child: mesh, scaledCenterY: center.y, name: mesh.name });
-          }
-        });
-
-        parts.sort((a, b) => a.name.localeCompare(b.name));
-
-        const allBox = new THREE.Box3().setFromObject(model);
-        const allCenter = new THREE.Vector3();
-        allBox.getCenter(allCenter);
-        const allSize = new THREE.Vector3();
-        allBox.getSize(allSize);
-        const scale = 1.0 / Math.max(allSize.x, allSize.y, allSize.z);
-
-        model.scale.setScalar(scale);
-        model.position.sub(allCenter.multiplyScalar(scale));
-
-        parts.forEach((p) => {
-          const box = new THREE.Box3().setFromObject(p.child);
-          const center = new THREE.Vector3();
-          box.getCenter(center);
-          p.scaledCenterY = center.y;
-        });
-
-        scene.add(model);
-
-        const headMeshes = parts
-          .filter((p) => p.scaledCenterY > HEAD_Y_THRESHOLD)
-          .map((p) => p.child);
-        const neckMeshes = parts
-          .filter(
-            (p) =>
-              p.scaledCenterY > NECK_Y_THRESHOLD && p.scaledCenterY <= HEAD_Y_THRESHOLD,
-          )
-          .map((p) => p.child);
-
-        const neckGroup = new THREE.Group();
-        neckGroup.name = 'NECK_PIVOT';
-        const headGroup = new THREE.Group();
-        headGroup.name = 'HEAD_PIVOT';
-
-        scene.add(neckGroup);
-        neckGroup.add(headGroup);
-
-        let neckAvgY = 0.1;
-        if (neckMeshes.length > 0) {
-          const neckBox = new THREE.Box3();
-          neckMeshes.forEach((m) => neckBox.expandByObject(m));
-          const nc = new THREE.Vector3();
-          neckBox.getCenter(nc);
-          neckAvgY = nc.y;
-        }
-
-        let headPivotY = 0.2;
-        if (headMeshes.length > 0) {
-          const headBox = new THREE.Box3();
-          headMeshes.forEach((m) => headBox.expandByObject(m));
-          headPivotY = headBox.min.y;
-        }
-
-        neckGroup.position.set(0, neckAvgY, 0);
-        headGroup.position.set(0, headPivotY - neckAvgY, 0);
-
-        headMeshes.forEach((mesh) => headGroup.attach(mesh));
-        neckMeshes.forEach((mesh) => neckGroup.attach(mesh));
-
-        resolve({
-          kind: 'glb',
-          root: model,
-          headGroup,
-          neckGroup,
-        });
+      (err) => {
+        scene.remove(world);
+        reject(err instanceof Error ? err : new Error(String(err)));
       },
-      undefined,
-      reject,
     );
   });
 }
 
 export function loadRobotModel(scene: THREE.Scene, viewer: ViewerScene): Promise<void> {
-  return loadUrdfRobot(scene, viewer)
+  return loadUrdfFrom(URDF_URL, scene, viewer)
     .catch((err) => {
-      console.warn('[RobotViewer] URDF failed, using fallback GLB:', err);
-      return loadGlbRobot(scene);
+      console.warn('[RobotViewer] Full URDF failed, trying official upper-body:', err);
+      return loadUrdfFrom(URDF_FALLBACK_URL, scene, viewer);
     })
     .then((robot) => {
       viewer.robot = robot;
       viewer.headGroup = robot.headGroup;
       viewer.neckGroup = robot.neckGroup;
-      if (robot.kind === 'glb') {
-        frameCamera(viewer.camera, viewer.controls, robot.root);
-        viewer.resize();
-      }
     });
 }

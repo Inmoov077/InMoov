@@ -1,0 +1,189 @@
+import { create } from 'zustand';
+import * as api from '@/lib/api';
+import {
+  DEFAULT_ARM,
+  DEFAULT_HAND,
+  DEFAULT_LEG,
+  type ArmJoints,
+  type BodySide,
+  type HandJoints,
+  type LegJoints,
+} from '@/lib/bodyConfig';
+import { notifyRobotPreview } from '@/lib/robotPreviewBridge';
+import { clamp } from '@/lib/utils';
+import { useServoStore } from '@/store/servoStore';
+
+interface BodyState {
+  leftArm: ArmJoints;
+  rightArm: ArmJoints;
+  leftHand: HandJoints;
+  rightHand: HandJoints;
+  leftLeg: LegJoints;
+  rightLeg: LegJoints;
+
+  setArmJoint: (side: BodySide, joint: keyof ArmJoints, value: number, send?: boolean) => void;
+  setHandJoint: (side: BodySide, joint: keyof HandJoints, value: number, send?: boolean) => void;
+  setLegJoint: (side: BodySide, joint: keyof LegJoints, value: number, send?: boolean) => void;
+  setArm: (side: BodySide, values: Partial<ArmJoints>, send?: boolean) => void;
+  setHand: (side: BodySide, values: Partial<HandJoints>, send?: boolean) => void;
+  setLeg: (side: BodySide, values: Partial<LegJoints>, send?: boolean) => void;
+  centerArms: () => void;
+  centerHands: () => void;
+  centerLegs: () => void;
+  centerBody: () => void;
+  sendArm: (side: BodySide) => Promise<void>;
+  sendHand: (side: BodySide) => Promise<void>;
+  sendLeg: (side: BodySide) => Promise<void>;
+  sendFullBody: () => Promise<void>;
+}
+
+let bodyThrottle: ReturnType<typeof setTimeout> | null = null;
+const BODY_THROTTLE_MS = 80;
+
+function scheduleBodySend(fn: () => void) {
+  if (bodyThrottle) clearTimeout(bodyThrottle);
+  bodyThrottle = setTimeout(() => {
+    bodyThrottle = null;
+    fn();
+  }, BODY_THROTTLE_MS);
+}
+
+function logBody(type: 'send' | 'error', msg: string) {
+  useServoStore.getState().log(type, msg);
+}
+
+export const useBodyStore = create<BodyState>((set, get) => ({
+  leftArm: { ...DEFAULT_ARM },
+  rightArm: { ...DEFAULT_ARM },
+  leftHand: { ...DEFAULT_HAND },
+  rightHand: { ...DEFAULT_HAND },
+  leftLeg: { ...DEFAULT_LEG },
+  rightLeg: { ...DEFAULT_LEG },
+
+  setArmJoint: (side, joint, value, send = true) => {
+    const key = side === 'left' ? 'leftArm' : 'rightArm';
+    const v = clamp(Number(value), 0, 180);
+    set((s) => ({ [key]: { ...s[key], [joint]: v } }));
+    notifyRobotPreview();
+    if (send && useServoStore.getState().connected) {
+      scheduleBodySend(() => get().sendArm(side));
+    }
+  },
+
+  setHandJoint: (side, joint, value, send = true) => {
+    const key = side === 'left' ? 'leftHand' : 'rightHand';
+    const v = clamp(Number(value), 0, 180);
+    set((s) => ({ [key]: { ...s[key], [joint]: v } }));
+    notifyRobotPreview();
+    if (send && useServoStore.getState().connected) {
+      scheduleBodySend(() => get().sendHand(side));
+    }
+  },
+
+  setLegJoint: (side, joint, value, send = true) => {
+    const key = side === 'left' ? 'leftLeg' : 'rightLeg';
+    const max = joint === 'knee' ? 160 : 180;
+    const v = clamp(Number(value), 0, max);
+    set((s) => ({ [key]: { ...s[key], [joint]: v } }));
+    notifyRobotPreview();
+    if (send && useServoStore.getState().connected) {
+      scheduleBodySend(() => get().sendLeg(side));
+    }
+  },
+
+  setArm: (side, values, send = true) => {
+    const key = side === 'left' ? 'leftArm' : 'rightArm';
+    set((s) => ({ [key]: { ...s[key], ...values } }));
+    notifyRobotPreview();
+    if (send && useServoStore.getState().connected) get().sendArm(side);
+  },
+
+  setHand: (side, values, send = true) => {
+    const key = side === 'left' ? 'leftHand' : 'rightHand';
+    set((s) => ({ [key]: { ...s[key], ...values } }));
+    notifyRobotPreview();
+    if (send && useServoStore.getState().connected) get().sendHand(side);
+  },
+
+  setLeg: (side, values, send = true) => {
+    const key = side === 'left' ? 'leftLeg' : 'rightLeg';
+    set((s) => ({ [key]: { ...s[key], ...values } }));
+    notifyRobotPreview();
+    if (send && useServoStore.getState().connected) get().sendLeg(side);
+  },
+
+  centerArms: () => {
+    set({ leftArm: { ...DEFAULT_ARM }, rightArm: { ...DEFAULT_ARM } });
+    notifyRobotPreview();
+    if (useServoStore.getState().connected) {
+      get().sendArm('left');
+      get().sendArm('right');
+    }
+  },
+
+  centerHands: () => {
+    set({ leftHand: { ...DEFAULT_HAND }, rightHand: { ...DEFAULT_HAND } });
+    notifyRobotPreview();
+    if (useServoStore.getState().connected) {
+      get().sendHand('left');
+      get().sendHand('right');
+    }
+  },
+
+  centerLegs: () => {
+    set({ leftLeg: { ...DEFAULT_LEG }, rightLeg: { ...DEFAULT_LEG } });
+    notifyRobotPreview();
+    if (useServoStore.getState().connected) {
+      get().sendLeg('left');
+      get().sendLeg('right');
+    }
+  },
+
+  centerBody: () => {
+    get().centerArms();
+    get().centerHands();
+    get().centerLegs();
+  },
+
+  sendArm: async (side) => {
+    const arm = side === 'left' ? get().leftArm : get().rightArm;
+    const res = await api.sendArm(side, arm);
+    if (res.ok && useServoStore.getState().connected) {
+      const prefix = side === 'left' ? 'LA' : 'RA';
+      logBody('send', `${prefix},${arm.shoulder},${arm.lift},${arm.rotate},${arm.elbow},${arm.wrist}`);
+    }
+  },
+
+  sendHand: async (side) => {
+    const hand = side === 'left' ? get().leftHand : get().rightHand;
+    const res = await api.sendHand(side, hand);
+    if (res.ok && useServoStore.getState().connected) {
+      const prefix = side === 'left' ? 'LH' : 'RH';
+      logBody('send', `${prefix},${hand.thumb},${hand.index},${hand.middle},${hand.ring},${hand.pinky}`);
+    }
+  },
+
+  sendLeg: async (side) => {
+    const leg = side === 'left' ? get().leftLeg : get().rightLeg;
+    const res = await api.sendLeg(side, leg);
+    if (res.ok && useServoStore.getState().connected) {
+      const prefix = side === 'left' ? 'LL' : 'RL';
+      logBody('send', `${prefix},${leg.hip},${leg.thigh},${leg.knee},${leg.ankle},${leg.foot}`);
+    }
+  },
+
+  sendFullBody: async () => {
+    const s = get();
+    const res = await api.sendFullBody({
+      leftArm: s.leftArm,
+      rightArm: s.rightArm,
+      leftHand: s.leftHand,
+      rightHand: s.rightHand,
+      leftLeg: s.leftLeg,
+      rightLeg: s.rightLeg,
+    });
+    if (res.ok && useServoStore.getState().connected) {
+      logBody('send', 'BODY full update');
+    }
+  },
+}));

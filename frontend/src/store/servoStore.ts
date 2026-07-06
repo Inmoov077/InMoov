@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as api from '@/lib/api';
+import { notifyRobotPreview } from '@/lib/robotPreviewBridge';
 import { clamp } from '@/lib/utils';
 
 export type Axis = 'rot' | 'tilt' | 'roll';
@@ -136,6 +137,7 @@ export const useServoStore = create<ServoState>((set, get) => ({
   setHead: (joint, value, send = true) => {
     const v = joint === 'jaw' ? clamp(Number(value), 0, 40) : clamp(Number(value), 0, 180);
     set({ [joint]: v } as Partial<ServoState>);
+    notifyRobotPreview();
     if (send && get().connected) {
       const s = get();
       const hneck = joint === 'hneck' ? v : s.hneck;
@@ -159,6 +161,7 @@ export const useServoStore = create<ServoState>((set, get) => ({
     }
 
     set(updates as Partial<ServoState>);
+    notifyRobotPreview();
 
     if (!send || !get().connected) return;
 
@@ -187,6 +190,7 @@ export const useServoStore = create<ServoState>((set, get) => ({
   setMaster: (value) => {
     const v = clamp(Number(value), 0, 180);
     set({ rot: v, tilt: v, roll: 180 - v });
+    notifyRobotPreview();
     if (get().connected) {
       get().setNeck('rot', v, true);
     }
@@ -194,12 +198,14 @@ export const useServoStore = create<ServoState>((set, get) => ({
 
   centerHead: () => {
     set({ hneck: 85, eye: 90, jaw: 8 });
+    notifyRobotPreview();
     if (get().connected) api.sendHead(85, 90, 8);
     get().sendCombined();
   },
 
   centerNeck: () => {
     set({ rot: 60, tilt: 50, roll: 120 });
+    notifyRobotPreview();
     if (get().connected) {
       const out = applyInversions(get());
       api.sendNeck(out.rot, out.tilt, out.roll);
