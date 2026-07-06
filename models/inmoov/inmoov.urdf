@@ -1,0 +1,434 @@
+<?xml version="1.0"?>
+<!-- Simplified InMoov upper-body URDF (MyRobotLab/inmoov_ros, CC BY-NC) -->
+<robot name="inmoov">
+
+  <material name="frame"><color rgba="0.88 0.88 0.9 1"/></material>
+  <material name="cover"><color rgba="0.78 0.8 0.84 1"/></material>
+  <material name="base"><color rgba="0.35 0.38 0.42 1"/></material>
+  <material name="eyeball"><color rgba="0.95 0.95 0.98 1"/></material>
+  <material name="iris"><color rgba="0.15 0.45 0.75 1"/></material>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.055" rpy="0 0 0"/>
+      <geometry><cylinder length="0.11" radius="0.26"/></geometry>
+      <material name="base"/>
+    </visual>
+  </link>
+
+  <link name="pedestal_link">
+    <visual>
+      <origin xyz="0 0 0.58" rpy="0 0 0"/>
+      <geometry><cylinder length="0.94" radius="0.0254"/></geometry>
+      <material name="base"/>
+    </visual>
+  </link>
+
+  <joint name="base_to_pedestal" type="fixed">
+    <parent link="base_link"/><child link="pedestal_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="mid_stomach_link">
+    <visual>
+      <origin xyz="0 0 1.152" rpy="0 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/mid_stomach.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="pedestal_to_mid_stomach" type="fixed">
+    <parent link="pedestal_link"/><child link="mid_stomach_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="top_stomach_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/top_stomach.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="waist_pan_joint" type="revolute">
+    <parent link="mid_stomach_link"/><child link="top_stomach_link"/>
+    <origin xyz="0 0 1.152" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="disk_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/disk.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="disk_joint" type="fixed">
+    <parent link="top_stomach_link"/><child link="disk_link"/>
+    <origin xyz="0.046 0 0.09" rpy="0 0 0"/>
+  </joint>
+
+  <link name="torso_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/torso.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="waist_roll_joint" type="fixed">
+    <parent link="top_stomach_link"/><child link="torso_link"/>
+    <origin xyz="0 0 0.11" rpy="0 0 0"/>
+  </joint>
+
+  <link name="chestplate_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/chest.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="chestplate_joint" type="fixed">
+    <parent link="torso_link"/><child link="chestplate_link"/>
+    <origin xyz="0.042 0 0.025" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Head / neck -->
+  <link name="head_tilt_link"/>
+
+  <joint name="head_roll_joint" type="revolute">
+    <parent link="torso_link"/><child link="head_tilt_link"/>
+    <origin xyz="-0.0315 -0.001 0.4551" rpy="0 0 3.1415"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-0.8" upper="0.8" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="head_base_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/head_base.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="head_tilt_joint" type="revolute">
+    <parent link="head_tilt_link"/><child link="head_base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 3.1415"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.8" upper="0.8" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="head_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/head.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="head_pan_joint" type="revolute">
+    <parent link="head_base_link"/><child link="head_link"/>
+    <origin xyz="0 0 0.0245" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.57" upper="1.57" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="jaw_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/jaw.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="jaw_joint" type="revolute">
+    <parent link="head_link"/><child link="jaw_link"/>
+    <origin xyz="0.0375 0.0005 0.0437" rpy="0 0.09 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="0.6" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="skull_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/skull.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="skull_joint" type="fixed">
+    <parent link="head_link"/><child link="skull_link"/>
+    <origin xyz="0.044 0 -0.0245" rpy="0 0 0"/>
+  </joint>
+
+  <link name="left_ear_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/earleftv1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="left_ear_joint" type="fixed">
+    <parent link="head_link"/><child link="left_ear_link"/>
+    <origin xyz="0.035 0.056 0.0437" rpy="0 0 0"/>
+  </joint>
+
+  <link name="right_ear_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/earrightv1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="right_ear_joint" type="fixed">
+    <parent link="head_link"/><child link="right_ear_link"/>
+    <origin xyz="0.035 -0.056 0.0437" rpy="0 0 0"/>
+  </joint>
+
+  <link name="face_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/face.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="face_joint" type="fixed">
+    <parent link="skull_link"/><child link="face_link"/>
+    <origin xyz="0.0637 0 0.079" rpy="0 0 0"/>
+  </joint>
+
+  <link name="eyesupport_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/eyesupport.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="eyes_tilt_joint" type="revolute">
+    <parent link="face_link"/><child link="eyesupport_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.5" upper="0.5" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="r_eyesupport_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/r_eyesupport.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="eyes_pan_joint" type="revolute">
+    <parent link="eyesupport_link"/><child link="r_eyesupport_link"/>
+    <origin xyz="0 0.033 -0.0036" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.5" upper="0.5" effort="1000" velocity="1"/>
+  </joint>
+
+  <link name="l_eyesupport_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/l_eyesupport.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="l_eye_pan_joint" type="revolute">
+    <parent link="eyesupport_link"/><child link="l_eyesupport_link"/>
+    <origin xyz="0 -0.033 -0.0036" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.5" upper="0.5" effort="1000" velocity="1"/>
+    <mimic joint="eyes_pan_joint" multiplier="1" offset="0"/>
+  </joint>
+
+  <link name="r_eye_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/eye.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="eyeball"/>
+    </visual>
+  </link>
+
+  <joint name="r_eye_joint" type="fixed">
+    <parent link="r_eyesupport_link"/><child link="r_eye_link"/>
+    <origin xyz="0.003 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="l_eye_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/eye.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="eyeball"/>
+    </visual>
+  </link>
+
+  <joint name="l_eye_joint" type="fixed">
+    <parent link="l_eyesupport_link"/><child link="l_eye_link"/>
+    <origin xyz="0.003 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="r_iris_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/iris.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="iris"/>
+    </visual>
+  </link>
+
+  <joint name="r_iris_joint" type="fixed">
+    <parent link="r_eyesupport_link"/><child link="r_iris_link"/>
+    <origin xyz="0.0061 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="l_iris_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/iris.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="iris"/>
+    </visual>
+  </link>
+
+  <joint name="l_iris_joint" type="fixed">
+    <parent link="l_eyesupport_link"/><child link="l_iris_link"/>
+    <origin xyz="0.0061 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Right arm -->
+  <link name="r_shoulder_base_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/r_shoulder_base.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="r_shoulder_out_joint" type="fixed">
+    <parent link="torso_link"/><child link="r_shoulder_base_link"/>
+    <origin xyz="0 -0.143 0.298" rpy="0 0 0"/>
+  </joint>
+
+  <link name="r_shoulder_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/r_shoulder.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="r_shoulder_lift_joint" type="fixed">
+    <parent link="r_shoulder_base_link"/><child link="r_shoulder_link"/>
+    <origin xyz="0 0.012 -0.04" rpy="0 0 0"/>
+  </joint>
+
+  <link name="r_bicep_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/bicep.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="r_upper_arm_roll_joint" type="fixed">
+    <parent link="r_shoulder_link"/><child link="r_bicep_link"/>
+    <origin xyz="0 0.066 -0.060" rpy="0 0 0"/>
+  </joint>
+
+  <link name="r_bicepcover_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/bicepcover.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="r_bicepcover_joint" type="fixed">
+    <parent link="r_bicep_link"/><child link="r_bicepcover_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="r_forearm_link">
+    <visual>
+      <origin xyz="0.001 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/r_forearm.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="r_elbow_flex_joint" type="fixed">
+    <parent link="r_bicep_link"/><child link="r_forearm_link"/>
+    <origin xyz="-0.0278 0 -0.2235" rpy="0 0 0"/>
+  </joint>
+
+  <link name="r_hand_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/r_hand.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="r_wrist_roll_joint" type="fixed">
+    <parent link="r_forearm_link"/><child link="r_hand_link"/>
+    <origin xyz="-0.0144 0.01 -0.2885" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Left arm -->
+  <link name="l_shoulder_base_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/l_shoulder_base.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="l_shoulder_out_joint" type="fixed">
+    <parent link="torso_link"/><child link="l_shoulder_base_link"/>
+    <origin xyz="0 0.143 0.298" rpy="0 0 0"/>
+  </joint>
+
+  <link name="l_shoulder_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/l_shoulder.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="l_shoulder_lift_joint" type="fixed">
+    <parent link="l_shoulder_base_link"/><child link="l_shoulder_link"/>
+    <origin xyz="0 -0.012 -0.04" rpy="0 0 0"/>
+  </joint>
+
+  <link name="l_bicep_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/bicep.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="frame"/>
+    </visual>
+  </link>
+
+  <joint name="l_upper_arm_roll_joint" type="fixed">
+    <parent link="l_shoulder_link"/><child link="l_bicep_link"/>
+    <origin xyz="0 -0.066 -0.060" rpy="0 0 0"/>
+  </joint>
+
+  <link name="l_bicepcover_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/bicepcover.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="l_bicepcover_joint" type="fixed">
+    <parent link="l_bicep_link"/><child link="l_bicepcover_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="l_forearm_link">
+    <visual>
+      <origin xyz="-0.001 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/l_forearm.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="l_elbow_flex_joint" type="fixed">
+    <parent link="l_bicep_link"/><child link="l_forearm_link"/>
+    <origin xyz="-0.0278 0 -0.2235" rpy="0 0 0"/>
+  </joint>
+
+  <link name="l_hand_link">
+    <visual>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/l_hand.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
+    </visual>
+  </link>
+
+  <joint name="l_wrist_roll_joint" type="fixed">
+    <parent link="l_forearm_link"/><child link="l_hand_link"/>
+    <origin xyz="-0.0144 -0.01 -0.2885" rpy="0 0 0"/>
+  </joint>
+
+</robot>

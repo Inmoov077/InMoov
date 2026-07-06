@@ -54,7 +54,7 @@ export const RobotViewer = forwardRef<RobotViewerHandle, { className?: string; s
       const animate = () => {
         animId = requestAnimationFrame(animate);
         currentRef.current = lerpAngles(currentRef.current, targetRef.current, LERP);
-        if (readyRef.current) applyAngles(viewer.headGroup, viewer.neckGroup, currentRef.current);
+        if (readyRef.current) applyAngles(viewer.robot, currentRef.current);
         viewer.controls.update();
         viewer.renderer.render(viewer.scene, viewer.camera);
       };
@@ -73,13 +73,13 @@ export const RobotViewer = forwardRef<RobotViewerHandle, { className?: string; s
       <div ref={containerRef} className={cn('viewer-shell h-full min-h-[280px] w-full', className)}>
         <canvas ref={canvasRef} className="relative z-[1] block h-full w-full touch-none" />
         <div className="absolute left-4 top-4 z-[3] flex items-center gap-2 rounded-full bg-card/90 px-3 py-1.5 text-xs font-medium shadow-soft backdrop-blur-sm">
-          <Box className="h-3.5 w-3.5 text-primary" /> 3D View
+          <Box className="h-3.5 w-3.5 text-primary" /> InMoov 3D
           {status === 'ready' && <span className="h-2 w-2 rounded-full bg-success animate-pulseDot" />}
         </div>
         {status === 'loading' && (
           <div className="absolute inset-0 z-[3] flex flex-col items-center justify-center gap-3 bg-viewer/80 backdrop-blur-sm">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading model…</p>
+            <p className="text-sm text-muted-foreground">Loading full InMoov model…</p>
           </div>
         )}
         {status === 'error' && (
@@ -89,7 +89,7 @@ export const RobotViewer = forwardRef<RobotViewerHandle, { className?: string; s
           </div>
         )}
         {status === 'ready' && (
-          <p className="absolute bottom-4 right-4 z-[3] rounded-full bg-card/90 px-3 py-1 text-xs text-muted-foreground shadow-soft">Drag to rotate</p>
+          <p className="absolute bottom-4 right-4 z-[3] rounded-full bg-card/90 px-3 py-1 text-xs text-muted-foreground shadow-soft">Full body view · drag to orbit · scroll to zoom</p>
         )}
       </div>
     );

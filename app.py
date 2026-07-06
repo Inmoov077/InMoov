@@ -181,11 +181,23 @@ def serve_image(filename):
 
 @app.route('/models/<path:filename>')
 def serve_model(filename):
-    """Serve 3D model files (GLB/GLTF) from the project directory."""
-    model_path = os.path.join(os.path.dirname(__file__), filename)
-    if os.path.exists(model_path):
-        return send_file(model_path, mimetype='model/gltf-binary')
-    return f"{filename} not found.", 404
+    """Serve 3D model files (GLB/GLTF/STL/URDF) from the project directory."""
+    base = os.path.dirname(__file__)
+    candidates = [
+        os.path.join(base, filename),
+        os.path.join(base, 'models', filename),
+    ]
+    model_path = next((p for p in candidates if os.path.exists(p)), None)
+    if not model_path:
+        return f"{filename} not found.", 404
+    ext = os.path.splitext(filename)[1].lower()
+    mime = {
+        '.glb': 'model/gltf-binary',
+        '.gltf': 'model/gltf+json',
+        '.stl': 'model/stl',
+        '.urdf': 'application/xml',
+    }.get(ext, 'application/octet-stream')
+    return send_file(model_path, mimetype=mime)
 
 @app.route('/js/<path:filename>')
 def serve_js(filename):

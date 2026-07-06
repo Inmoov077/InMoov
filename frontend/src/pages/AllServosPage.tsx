@@ -39,6 +39,14 @@ export function AllServosPage() {
 
       <HelpTip>Drag sliders or the neck pad. Connect USB in Settings to move the real robot.</HelpTip>
 
+      <div className="bento p-4">
+        <p className="mb-1 font-display text-lg font-semibold">Full InMoov 3D preview</p>
+        <p className="mb-3 text-sm text-muted-foreground">Torso, head, arms &amp; hands — drag to orbit, scroll to zoom out</p>
+        <div className="h-[min(68vh,640px)] min-h-[480px]">
+          <RobotViewer className="h-full w-full" />
+        </div>
+      </div>
+
       <div className="grid gap-5 lg:grid-cols-12">
         <div className="space-y-5 lg:col-span-4">
           <ConnectionPanel compact />
@@ -52,12 +60,6 @@ export function AllServosPage() {
         </div>
 
         <div className="space-y-5 lg:col-span-5">
-          <div className="bento p-4">
-            <p className="mb-3 font-display text-lg font-semibold">3D preview</p>
-            <div className="h-[420px]">
-              <RobotViewer className="h-full w-full" />
-            </div>
-          </div>
           <Joystick />
         </div>
 
