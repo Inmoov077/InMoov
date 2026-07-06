@@ -3,13 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InMoov Control Center — Marwadi University</title>
-  <meta name="description" content="InMoov humanoid robot control center. 6-axis servo control, camera tracking, AI conversation, offline voice Q&A, and motion presets.">
+  <title>InMoov Control Center — Marwadi University Robotics</title>
+  <meta name="description" content="Professional InMoov humanoid robot control center. 6-axis servo control, live 3D preview, camera tracking, Gemini AI conversation, offline voice Q&A, and motion presets.">
+  <meta name="theme-color" content="#030508">
+  <meta name="author" content="Marwadi University Robotics & AI Club">
+  <link rel="canonical" href="http://localhost:5000/">
 
-  <!-- Fonts -->
+  <!-- Fonts: Rajdhani (display) + DM Sans (UI) + JetBrains Mono (telemetry) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/dashboard-theme.css">
   <!-- Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <!-- MediaPipe -->
@@ -21,879 +25,76 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
 
-  <style>
-    /* ==============================
-       DESIGN TOKENS
-    ============================== */
-    :root {
-      --bg-deep:       #f0f4f9;
-      --bg-card:       rgba(255, 255, 255, 0.72);
-      --border:        rgba(255, 255, 255, 0.6);
-      --border-glow:   rgba(59, 130, 246, 0.4);
-
-      --cyan:          #3b82f6;
-      --cyan-glow:     rgba(59, 130, 246, 0.2);
-      --amber:         #f59e0b;
-      --amber-glow:    rgba(245, 158, 11, 0.2);
-      --amber-dim:     rgba(245, 158, 11, 0.08);
-      --purple:        #8b5cf6;
-      --purple-glow:   rgba(139, 92, 246, 0.2);
-      --green:         #10b981;
-      --green-glow:    rgba(16, 185, 129, 0.2);
-      --red:           #ef4444;
-      --red-glow:      rgba(239, 68, 68, 0.2);
-      --pink:          #ec4899;
-
-      --text:          #1e293b;
-      --text-muted:    #64748b;
-      --mono:          'JetBrains Mono', monospace;
-      --sans:          'Outfit', sans-serif;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--bg-deep);
-      background-image:
-        radial-gradient(at 10% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 40%),
-        radial-gradient(at 90% 10%, rgba(236, 72, 153, 0.12) 0px, transparent 45%),
-        radial-gradient(at 50% 80%, rgba(245, 158, 11, 0.08) 0px, transparent 50%);
-      color: var(--text);
-      font-family: var(--sans);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
-    }
-
-    /* ==============================
-       HEADER
-    ============================== */
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 18px 36px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.6);
-      backdrop-filter: blur(20px);
-      background: rgba(255, 255, 255, 0.65);
-      position: sticky;
-      top: 0;
-      z-index: 200;
-      box-shadow: 0 4px 30px rgba(99, 102, 241, 0.03);
-    }
-
-    .brand { display: flex; align-items: center; gap: 14px; }
-
-    .brand-icon {
-      width: 44px; height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-      box-shadow: 0 4px 12px var(--cyan-glow);
-      animation: glow-pulse 2.5s ease-in-out infinite;
-    }
-
-    @keyframes glow-pulse {
-      0%,100% { box-shadow: 0 4px 12px var(--cyan-glow); }
-      50%      { box-shadow: 0 8px 20px rgba(59,130,246,0.4); }
-    }
-
-    .brand h1 {
-      font-size: 20px; font-weight: 800; letter-spacing: 0.5px;
-      background: linear-gradient(90deg, var(--cyan), var(--purple), var(--amber));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .brand p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-
-    .header-right { display: flex; align-items: center; gap: 12px; }
-
-    .nav-btn {
-      display: flex; align-items: center; gap: 7px;
-      padding: 7px 16px; border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      background: rgba(255, 255, 255, 0.7);
-      color: var(--text-muted);
-      text-decoration: none; font-size: 13px; font-weight: 600;
-      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-      backdrop-filter: blur(10px);
-    }
-    .nav-btn:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(59,130,246,0.05); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.12); transform: translateY(-2px); }
-
-    .conn-badge {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 14px; border-radius: 20px;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      background: rgba(239, 68, 68, 0.1); color: var(--red);
-      font-size: 12px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.5px; transition: all 0.4s ease;
-    }
-    .conn-badge.online { border-color: rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.1); color: var(--green); }
-    .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: blink 1.4s ease-in-out infinite; }
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-
-    /* ==============================
-       TABS
-    ============================== */
-    .tabs-bar {
-      display: flex;
-      gap: 4px;
-      padding: 14px 36px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.6);
-      background: rgba(240, 244, 249, 0.65);
-      backdrop-filter: blur(10px);
-      overflow-x: auto;
-    }
-
-    .tab-btn {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 20px;
-      border: 1px solid transparent; border-bottom: 3px solid transparent;
-      background: transparent; color: var(--text-muted);
-      font-family: var(--sans); font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s ease;
-      white-space: nowrap; letter-spacing: 0.3px;
-      border-radius: 12px 12px 0 0;
-    }
-    .tab-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.35); }
-    .tab-btn.active {
-      color: var(--cyan);
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      border-bottom-color: transparent;
-      background: rgba(255, 255, 255, 0.85);
-      box-shadow: 0 -4px 12px rgba(99, 102, 241, 0.04);
-    }
-    .tab-btn i { font-size: 16px; }
-
-    /* ==============================
-       PAGE LAYOUT
-    ============================== */
-    .page { flex: 1; padding: 24px 36px 56px; max-width: 1600px; margin: 0 auto; width: 100%; }
-
-    .tab-panel { display: none; flex-direction: column; gap: 24px; }
-    .tab-panel.active { display: flex; }
-
-    /* TESTING TAB */
-    .testing-subnav {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      padding: 4px; background: rgba(255,255,255,0.5);
-      border: 1px solid rgba(255,255,255,0.7); border-radius: 14px;
-      backdrop-filter: blur(12px);
-    }
-    .testing-sub-btn {
-      display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px; border-radius: 10px; border: 1px solid transparent;
-      background: transparent; color: var(--text-muted);
-      font-family: var(--sans); font-size: 12px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s ease;
-    }
-    .testing-sub-btn:hover { background: rgba(236,72,153,0.08); color: var(--pink); }
-    .testing-sub-btn.active {
-      background: rgba(236,72,153,0.12); color: var(--pink);
-      border-color: rgba(236,72,153,0.25);
-      box-shadow: 0 2px 8px rgba(236,72,153,0.1);
-    }
-    .testing-panel { display: none; flex-direction: column; gap: 16px; }
-    .testing-panel.active { display: flex; }
-    .test-servo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-    .test-servo-card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
-      backdrop-filter: blur(16px); transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .test-servo-card:hover { border-color: rgba(236,72,153,0.3); box-shadow: 0 4px 16px rgba(236,72,153,0.06); }
-    .test-servo-card .ts-name { font-size: 13px; font-weight: 800; color: var(--text); }
-    .test-servo-card .ts-pin { font-size: 10px; font-family: var(--mono); color: var(--text-muted); }
-    .test-servo-card .ts-val { font-family: var(--mono); font-size: 18px; font-weight: 700; color: var(--pink); }
-    .test-result-box {
-      font-family: var(--mono); font-size: 11px; line-height: 1.5;
-      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
-      padding: 12px; min-height: 60px; max-height: 160px; overflow-y: auto;
-      color: var(--text); white-space: pre-wrap; word-break: break-word;
-    }
-    .test-quick-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-    .test-quick-grid .btn { font-size: 11px; padding: 6px 10px; }
-
-    /* ==============================
-       BANNER
-    ============================== */
-    .banner {
-      background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(139,92,246,0.03));
-      border: 1px solid rgba(59,130,246,0.2);
-      border-radius: 16px; padding: 18px 24px;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 14px;
-      box-shadow: 
-        0 4px 6px -1px rgba(0,0,0,0.01),
-        inset 0 1px 0 rgba(255,255,255,0.9);
-    }
-    .banner.amber { background: linear-gradient(135deg, rgba(245,158,11,0.06), rgba(249,115,22,0.03)); border-color: rgba(245,158,11,0.2); }
-    .banner h2 { font-size: 15px; font-weight: 800; color: var(--cyan); }
-    .banner.amber h2 { color: var(--amber); }
-    .banner p { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
-
-    /* ==============================
-       STAT CARDS
-    ============================== */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 12px;
-    }
-    @media(max-width:1100px) { .stats-row { grid-template-columns: repeat(3,1fr); } }
-    @media(max-width:600px)  { .stats-row { grid-template-columns: repeat(2,1fr); } }
-
-    .stat-card {
-      border-radius: 14px; padding: 14px 18px;
-      backdrop-filter: blur(8px);
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .stat-card:nth-child(1) { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
-    .stat-card:nth-child(2) { background: linear-gradient(135deg, #2563eb, #06b6d4); }
-    .stat-card:nth-child(3) { background: linear-gradient(135deg, #0d9488, #10b981); }
-    .stat-card:nth-child(4) { background: linear-gradient(135deg, #d97706, #f97316); }
-    .stat-card:nth-child(5) { background: linear-gradient(135deg, #dc2626, #f43f5e); }
-    .stat-card:nth-child(6) { background: linear-gradient(135deg, #6d28d9, #ec4899); }
-
-    .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255, 255, 255, 0.85); margin-bottom: 5px; }
-    .stat-val { font-size: 22px; font-weight: 700; font-family: var(--mono); color: #ffffff !important; text-shadow: none !important; }
-    .stat-val.amber { color: #ffffff !important; text-shadow: none !important; }
-    .stat-val.purple { color: #ffffff !important; text-shadow: none !important; }
-    .stat-unit { font-size: 11px; color: rgba(255, 255, 255, 0.8); margin-left: 2px; }
-
-    /* ==============================
-       GRIDS
-    ============================== */
-    .grid-3col { display: grid; grid-template-columns: 380px 1fr 320px; gap: 20px; align-items: start; }
-    .grid-2col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: start; }
-    @media(max-width:1200px) { .grid-3col { grid-template-columns: 1fr 1fr; } .viz-col { grid-column: 1/-1; } }
-    @media(max-width:900px)  { .grid-3col,.grid-2col { grid-template-columns: 1fr; } }
-
-    /* ==============================
-       CARDS
-    ============================== */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 20px; padding: 22px;
-      backdrop-filter: blur(12px);
-      box-shadow: 
-        0 10px 30px -5px rgba(0, 0, 0, 0.04),
-        0 4px 12px -2px rgba(0, 0, 0, 0.02),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9),
-        0 1px 1px 0 rgba(0, 0, 0, 0.01);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .card:hover { border-color: var(--border-glow); transform: translateY(-4px); box-shadow: 0 20px 40px -10px rgba(59,130,246,0.08), 0 8px 20px -6px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9); }
-    .card.amber { border-color: rgba(245,158,11,0.18); }
-    .card.amber:hover { border-color: rgba(245,158,11,0.45); }
-    .card.purple { border-color: rgba(139,92,246,0.18); }
-    .card.purple:hover { border-color: rgba(139,92,246,0.45); }
-    .card.green  { border-color: rgba(16,185,129,0.18); }
-    .card.green:hover  { border-color: rgba(16,185,129,0.45); }
-
-    .card-title {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 14px; font-weight: 700; letter-spacing: 0.3px;
-      padding-bottom: 14px; margin-bottom: 16px;
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-    }
-    .card-title i { font-size: 18px; color: var(--cyan); }
-    .card-title i.amber { color: var(--amber); }
-    .card-title i.purple { color: var(--purple); }
-    .card-title i.green  { color: var(--green); }
-
-    /* ==============================
-       BUTTONS
-    ============================== */
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 10px 18px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);
-      font-family: var(--sans); font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); white-space: nowrap;
-      box-shadow: 
-        0 4px 6px -1px rgba(0,0,0,0.05),
-        inset 0 -2px 0 rgba(0,0,0,0.15),
-        inset 0 1px 0 rgba(255,255,255,0.3);
-    }
-    .btn:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.05), inset 0 1px 2px rgba(0,0,0,0.1); }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; transform: none; }
-
-    .btn-cyan   { background: linear-gradient(135deg, var(--cyan), #1d4ed8);   color: #fff; }
-    .btn-cyan:hover   { box-shadow: 0 8px 16px -2px rgba(59, 130, 246, 0.2), inset 0 -2px 0 rgba(0,0,0,0.15); transform: translateY(-2px); }
-    .btn-amber  { background: linear-gradient(135deg, var(--amber), #d97706);  color: #fff; }
-    .btn-amber:hover  { box-shadow: 0 8px 16px -2px rgba(245, 158, 11, 0.2), inset 0 -2px 0 rgba(0,0,0,0.15); transform: translateY(-2px); }
-    .btn-green  { background: linear-gradient(135deg, var(--green), #047857);  color: #fff; }
-    .btn-green:hover  { box-shadow: 0 8px 16px -2px rgba(16, 185, 129, 0.2), inset 0 -2px 0 rgba(0,0,0,0.15); transform: translateY(-2px); }
-    .btn-red    { background: linear-gradient(135deg, var(--red), #b91c1c);    color: #fff; }
-    .btn-red:hover    { box-shadow: 0 8px 16px -2px rgba(239, 68, 68, 0.2), inset 0 -2px 0 rgba(0,0,0,0.15); transform: translateY(-2px); }
-    .btn-purple { background: linear-gradient(135deg, var(--purple), #6d28d9); color: #fff; }
-    .btn-purple:hover { box-shadow: 0 8px 16px -2px rgba(139, 92, 246, 0.2), inset 0 -2px 0 rgba(0,0,0,0.15); transform: translateY(-2px); }
-    .btn-ghost {
-      background: linear-gradient(135deg, #f8fafc, #edf2f7);
-      border: 1px solid #e2e8f0;
-      color: var(--text-muted);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .btn-ghost:hover { background: #ffffff; color: var(--text); border-color: #cbd5e1; box-shadow: 0 4px 8px rgba(0,0,0,0.04); }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
-
-    /* ==============================
-       FORM ELEMENTS
-    ============================== */
-    select, input[type="text"], input[type="password"] {
-      background: #ffffff; border: 1px solid #cbd5e1;
-      color: var(--text); padding: 10px 14px; border-radius: 10px;
-      font-family: var(--sans); font-size: 13px; outline: none;
-      transition: all 0.2s ease;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
-    }
-    select:focus, input[type="text"]:focus, input[type="password"]:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), inset 0 1px 2px rgba(0,0,0,0.02); }
-
-    input[type="number"] {
-      width: 100%; background: #ffffff; border: 1px solid #cbd5e1;
-      color: var(--text); padding: 8px 4px; border-radius: 8px;
-      font-family: var(--mono); font-size: 13px; text-align: center;
-      outline: none; transition: border-color 0.2s; -moz-appearance: textfield;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
-    }
-    input[type="number"]::-webkit-outer-spin-button,
-    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type="number"]:focus { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15), inset 0 1px 2px rgba(0,0,0,0.02); }
-
-    /* ==============================
-       SLIDERS
-    ============================== */
-    input[type="range"] {
-      -webkit-appearance: none; width: 100%; height: 8px;
-      border-radius: 4px; background: #e2e8f0;
-      outline: none; margin-bottom: 10px;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 24px; height: 24px;
-      border-radius: 50%; cursor: pointer; transition: transform 0.12s;
-      box-shadow: 
-        0 4px 8px rgba(0,0,0,0.1),
-        inset 0 2px 0 rgba(255,255,255,0.9),
-        inset 0 -2px 0 rgba(0,0,0,0.05);
-    }
-    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
-
-    /* Per-axis colors */
-    .range-amber::-webkit-slider-thumb { background: linear-gradient(135deg, #fbbf24, #f59e0b); border: 1px solid #d97706; }
-    .range-purple::-webkit-slider-thumb { background: linear-gradient(135deg, #c084fc, #8b5cf6); border: 1px solid #7c3aed; }
-    .range-cyan::-webkit-slider-thumb { background: linear-gradient(135deg, #60a5fa, #3b82f6); border: 1px solid #2563eb; }
-    .range-green::-webkit-slider-thumb { background: linear-gradient(135deg, #34d399, #10b981); border: 1px solid #059669; }
-
-    /* ==============================
-       SERVO BLOCK (Head Style)
-    ============================== */
-    .servo-block {
-      background: rgba(255, 255, 255, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      border-radius: 16px; padding: 16px 18px;
-      margin-bottom: 12px; transition: all 0.3s;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 10px rgba(99, 102, 241, 0.02);
-    }
-    .servo-block:last-child { margin-bottom: 0; }
-    .servo-block:hover { border-color: rgba(59,130,246,0.25); background: rgba(255, 255, 255, 0.85); }
-    #block-hneck { border-left: 5px solid var(--cyan); }
-    #block-heye  { border-left: 5px solid var(--green); }
-    #block-hjaw  { border-left: 5px solid var(--purple); }
-
-    .servo-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .servo-info { display: flex; flex-direction: column; gap: 3px; }
-    .servo-name { font-size: 14px; font-weight: 700; color: var(--text); }
-    .servo-pin  { font-family: var(--mono); font-size: 11px; }
-    #block-hneck .servo-pin { color: var(--cyan); }
-    #block-heye  .servo-pin { color: var(--green); }
-    #block-hjaw  .servo-pin { color: var(--purple); }
-
-    .servo-val {
-      font-family: var(--mono); font-size: 24px; font-weight: 700;
-      background: #ffffff; padding: 4px 12px;
-      border-radius: 8px; border: 1px solid #cbd5e1;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
-      text-shadow: none !important;
-    }
-    #block-hneck .servo-val { color: var(--cyan); border-color: rgba(59, 130, 246, 0.3); }
-    #block-heye  .servo-val { color: var(--green); border-color: rgba(16, 185, 129, 0.3); }
-    #block-hjaw  .servo-val { color: var(--purple); border-color: rgba(139, 92, 246, 0.3); }
-
-    /* ==============================
-       AXIS BLOCK (Neck Style)
-    ============================== */
-    .axis-block {
-      background: rgba(255, 255, 255, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      border-radius: 16px; padding: 16px 18px;
-      margin-bottom: 12px; transition: all 0.3s;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 10px rgba(99, 102, 241, 0.02);
-    }
-    .axis-block:last-child { margin-bottom: 0; }
-    .axis-block:hover { border-color: rgba(59,130,246,0.25); background: rgba(255, 255, 255, 0.85); }
-    .axis-rot { border-left: 5px solid var(--amber); }
-    .axis-tilt { border-left: 5px solid var(--cyan); }
-    .axis-roll { border-left: 5px solid var(--purple); }
-
-    .axis-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .axis-label  { display: flex; flex-direction: column; gap: 3px; }
-    .axis-name   { font-size: 14px; font-weight: 700; }
-    .axis-desc   { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
-    .axis-val-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-    .axis-val    { font-family: var(--mono); font-size: 24px; font-weight: 700; line-height: 1; text-shadow: none !important; }
-    .axis-range-hint { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
-
-    .axis-rot  .axis-name, .axis-rot  .axis-val  { color: var(--amber); }
-    .axis-tilt .axis-name, .axis-tilt .axis-val  { color: var(--cyan); }
-    .axis-roll .axis-name, .axis-roll .axis-val  { color: var(--purple); }
-
-    /* ==============================
-       QUICK BUTTONS
-    ============================== */
-    .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-    .qbtn {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      color: var(--text-muted);
-      font-family: var(--mono);
-      font-size: 11px;
-      padding: 5px 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-      transition: all 0.2s;
-    }
-    .qbtn:hover { background: #f1f5f9; color: var(--text); border-color: #94a3b8; }
-    
-    #block-hneck .qbtn.active { background: rgba(59, 130, 246, 0.15); color: #2563eb; border-color: #3b82f6; font-weight: 700; }
-    #block-heye  .qbtn.active { background: rgba(16, 185, 129, 0.15); color: #059669; border-color: #10b981; font-weight: 700; }
-    #block-hjaw  .qbtn.active { background: rgba(139, 92, 246, 0.15); color: #7c3aed; border-color: #8b5cf6; font-weight: 700; }
-    
-    .axis-rot  .qbtn.active { background: rgba(245, 158, 11, 0.15); color: #d97706; border-color: #f59e0b; font-weight: 700; }
-    .axis-tilt .qbtn.active { background: rgba(59, 130, 246, 0.15); color: #2563eb; border-color: #3b82f6; font-weight: 700; }
-    .axis-roll .qbtn.active { background: rgba(139, 92, 246, 0.15); color: #7c3aed; border-color: #8b5cf6; font-weight: 700; }
-
-    /* ==============================
-       SWEEP ROW
-    ============================== */
-    .sweep-row {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: 10px; padding-top: 10px;
-      border-top: 1px dashed #e2e8f0;
-    }
-    .sweep-label { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-
-    /* ==============================
-       CONNECTION
-    ============================== */
-    .port-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-    .conn-log-box {
-      background: rgba(255, 255, 255, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      border-radius: 10px;
-      padding: 10px 14px;
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      min-height: 36px;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
-    }
-
-    /* ==============================
-       3D VIEWER
-    ============================== */
-    .viewer-wrap {
-      position: relative; width: 100%; height: 360px;
-      border-radius: 16px; overflow: hidden; background: #e0e7ff;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: inset 0 2px 4px rgba(99, 102, 241, 0.05);
-    }
-    .viewer-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
-    .viewer-loading {
-      position: absolute; inset: 0; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 12px;
-      color: var(--text-muted); font-size: 12px; z-index: 10;
-      background: #e0e7ff; pointer-events: none; transition: opacity 0.5s;
-    }
-    .viewer-loading.hidden { opacity: 0; pointer-events: none; }
-    .viewer-spinner {
-      width: 32px; height: 32px;
-      border: 3px solid rgba(59, 130, 246, 0.15); border-top-color: var(--cyan);
-      border-radius: 50%; animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ==============================
-       JOYSTICK
-    ============================== */
-    .joystick-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-    .joystick-area {
-      position: relative; width: 150px; height: 150px;
-      background: rgba(255, 255, 255, 0.65); border: 1px solid rgba(255, 255, 255, 0.6);
-      border-radius: 50%; cursor: crosshair; user-select: none; touch-action: none;
-      box-shadow: inset 0 2px 5px rgba(0,0,0,0.04);
-    }
-    .joystick-area::before {
-      content: ''; position: absolute; inset: 0; border-radius: 50%;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0, transparent 70%);
-    }
-    .joystick-area::after {
-      content: ''; position: absolute; inset: 0; border-radius: 50%;
-      background:
-        linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px) center/1px 100%,
-        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px) center/100% 1px;
-    }
-    .joystick-knob {
-      position: absolute; width: 38px; height: 38px;
-      background: radial-gradient(circle at 35% 35%, #8be5ff, var(--cyan));
-      border-radius: 50%; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35), 0 4px 8px rgba(0,0,0,0.1);
-      pointer-events: none; transition: transform 0.05s;
-    }
-
-    /* ==============================
-       PRESETS
-    ============================== */
-    .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .preset-btn {
-      display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
-      padding: 12px 14px; border-radius: 12px;
-      background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(255, 255, 255, 0.5);
-      color: var(--text); cursor: pointer; transition: all 0.2s ease; text-align: left;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.01);
-    }
-    .preset-btn:hover { background: var(--amber-dim); border-color: rgba(245,158,11,0.4); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(245,158,11,0.1); }
-    .preset-btn.running { background: rgba(245,158,11,0.15); border-color: var(--amber); box-shadow: 0 0 15px rgba(245,158,11,0.25); font-weight: 700; }
-    .preset-icon { font-size: 20px; }
-    .preset-name { font-size: 12px; font-weight: 700; color: var(--amber); }
-    .preset-desc { font-size: 10px; color: var(--text-muted); }
-
-    /* ==============================
-       CONSOLE LOG
-    ============================== */
-    .console {
-      background: #0f172a; border: 1px solid #1e293b;
-      border-radius: 12px; height: 200px; overflow-y: auto;
-      padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;
-      font-family: var(--mono); font-size: 11px;
-      box-shadow: inset 0 2px 8px rgba(0,0,0,0.25);
-    }
-    .log { display: flex; gap: 8px; line-height: 1.6; }
-    .log-ts { color: rgba(255,255,255,0.35); user-select: none; }
-    .log.info   .log-msg { color: #cbd5e1; }
-    .log.send   .log-msg { color: #38bdf8; }
-    .log.recv   .log-msg { color: #34d399; }
-    .log.error  .log-msg { color: #f87171; }
-    .log.system .log-msg { color: #c084fc; }
-
-    /* ==============================
-       WEBCAM
-    ============================== */
-    .webcam-wrap {
-      display: none; position: relative; border-radius: 16px;
-      overflow: hidden; border: 1px solid var(--border);
-      background: #000; aspect-ratio: 4/3;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-    #webcam-video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
-    #webcam-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
-    .webcam-stats {
-      position: absolute; bottom: 10px; left: 10px;
-      background: rgba(255,255,255,0.92); padding: 7px 12px;
-      border-radius: 8px; border: 1px solid #cbd5e1;
-      font-family: var(--mono); font-size: 11px;
-      display: flex; flex-direction: column; gap: 3px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      color: var(--text);
-    }
-
-    /* ==============================
-       CONVERSATION
-    ============================== */
-    .conv-history {
-      background: rgba(255, 255, 255, 0.55); border: 1px solid rgba(255, 255, 255, 0.6);
-      border-radius: 12px; height: 160px; padding: 12px; overflow-y: auto;
-      font-size: 13px; display: flex; flex-direction: column; gap: 8px;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
-    }
-
-    /* ==============================
-       LIMITS
-    ============================== */
-    .limits-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .limit-group { display: flex; flex-direction: column; gap: 6px; }
-    .limit-label { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-    .limit-dot   { width: 8px; height: 8px; border-radius: 50%; }
-    .limit-inputs { display: flex; gap: 5px; }
-    .limit-input-wrap { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .limit-sub { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
-
-    /* ==============================
-       TOAST
-    ============================== */
-    .toasts { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-    .toast {
-      background: rgba(255, 255, 255, 0.95); border-left: 4px solid var(--cyan);
-      color: var(--text); padding: 12px 20px; border-radius: 8px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08); font-size: 13px; font-weight: 600;
-      min-width: 240px; display: flex; align-items: center; gap: 10px;
-      backdrop-filter: blur(10px);
-      transform: translateX(120%);
-      animation: toast-in 0.3s forwards cubic-bezier(0.175,0.885,0.32,1.275);
-      border-top: 1px solid rgba(0,0,0,0.02);
-      border-bottom: 1px solid rgba(0,0,0,0.02);
-      border-right: 1px solid rgba(0,0,0,0.02);
-    }
-    .toast.success { border-left-color: var(--green); }
-    .toast.error   { border-left-color: var(--red); }
-    @keyframes toast-in { to { transform: translateX(0); } }
-
-    /* ==============================
-       MISC
-    ============================== */
-    .flex-col { display: flex; flex-direction: column; gap: 16px; }
-    .flex-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .flex-between { display: flex; justify-content: space-between; align-items: center; }
-    .label-sm {
-      font-size: 11px; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
-    }
-    .divider { height: 1px; background: rgba(0,0,0,0.05); margin: 6px 0; }
-    
-    /* ==========================================
-       OFFLINE TAB CUSTOM STYLES
-       ========================================== */
-    .camera-hud-container {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 4/3;
-      background: #000;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
-    .camera-video {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1); /* mirror */
-      display: block;
-    }
-    .camera-overlay-canvas {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-      z-index: 5;
-    }
-    .telemetry-row {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-      margin-top: 10px; font-family: var(--mono); font-size: 11px;
-    }
-    .telemetry-item {
-      background: #f1f5f9; padding: 6px 10px; border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
-    }
-    .telemetry-label { color: var(--text-muted); display: block; font-size: 9px; margin-bottom: 2px; }
-    .telemetry-value { color: var(--cyan); font-weight: 700; }
-    .status-panel {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 18px; border-radius: 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      margin-bottom: 16px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
-    }
-    .status-indicator {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 14px; font-weight: 700;
-    }
-    .status-pulse {
-      width: 12px; height: 12px; border-radius: 50%;
-      background: var(--text-muted);
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-    .status-pulse.listening { background: var(--green); box-shadow: 0 0 14px var(--green); animation: pulse 1.2s infinite; }
-    .status-pulse.thinking  { background: var(--purple); box-shadow: 0 0 14px var(--purple); animation: pulse 1s infinite; }
-    .status-pulse.speaking  { background: var(--cyan); box-shadow: 0 0 14px var(--cyan); animation: pulse 0.8s infinite; }
-    
-    .conversation-box {
-      height: 380px;
-      overflow-y: auto;
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
-    }
-    .message {
-      max-width: 85%; padding: 10px 14px; border-radius: 12px;
-      line-height: 1.4; word-wrap: break-word;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .message.user {
-      align-self: flex-end;
-      background: rgba(139, 92, 246, 0.08);
-      border: 1px solid rgba(139, 92, 246, 0.15);
-      color: #5c3db3;
-    }
-    .message.robot {
-      align-self: flex-start;
-      background: rgba(59, 130, 246, 0.06);
-      border: 1px solid rgba(59, 130, 246, 0.12);
-      color: #1e40af;
-    }
-    .msg-sender { font-size: 9px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px; display: block; }
-    .conversation-input-row {
-      display: flex; gap: 10px;
-    }
-    .chat-input {
-      flex: 1; background: #ffffff; border: 1px solid #cbd5e1;
-      border-radius: 10px; padding: 10px 16px; color: var(--text);
-      font-family: var(--sans); font-size: 13px; outline: none;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
-      transition: border-color 0.2s;
-    }
-    .chat-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
-    
-    .waveform-container {
-      width: 100%; height: 60px;
-      background: #edf2f7;
-      border-radius: 12px; border: 1px solid #e2e8f0;
-      overflow: hidden; margin-bottom: 16px;
-      position: relative;
-    }
-    .waveform-canvas { width: 100%; height: 100%; display: block; }
-    .waveform-overlay-text {
-      position: absolute; top: 6px; left: 10px;
-      font-size: 9px; font-family: var(--mono); color: var(--text-muted);
-    }
-    .qa-directory {
-      display: flex; flex-direction: column; gap: 10px;
-      max-height: 520px; overflow-y: auto;
-      padding-right: 4px;
-    }
-    .qa-card {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 12px; padding: 12px;
-      cursor: pointer; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-      display: flex; flex-direction: column; gap: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.01);
-    }
-    .qa-card:hover {
-      border-color: var(--cyan);
-      background: rgba(59, 130, 246, 0.04);
-      transform: translateX(4px);
-      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.05);
-    }
-    .qa-card-header {
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .qa-trigger-phrase {
-      font-weight: 700; font-size: 12px; color: var(--text);
-    }
-    .qa-play-btn {
-      width: 26px; height: 26px; border-radius: 50%;
-      background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);
-      color: var(--cyan); display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-    }
-    .qa-card:hover .qa-play-btn {
-      background: var(--cyan); color: #fff;
-    }
-    .qa-answer {
-      font-size: 11px; color: var(--text-muted);
-      line-height: 1.35;
-    }
-    .qa-angles-badge {
-      font-family: var(--mono); font-size: 9px; color: #6d28d9;
-      background: rgba(139, 92, 246, 0.08); padding: 2px 6px;
-      border-radius: 4px; align-self: flex-start;
-    }
-    .search-row {
-      display: flex; gap: 8px; margin-bottom: 12px;
-    }
-    .search-input {
-      flex: 1; background: #ffffff; border: 1px solid #cbd5e1;
-      border-radius: 10px; padding: 6px 12px; color: var(--text);
-      font-size: 12px; outline: none;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
-      transition: border-color 0.2s;
-    }
-    .search-input:focus { border-color: var(--cyan); }
-    .slider-item {
-      display: flex; flex-direction: column; gap: 4px;
-      background: #f8fafc; padding: 8px; border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
-    }
-    .slider-label { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-    .slider-val { font-family: var(--mono); font-size: 11px; color: var(--cyan); align-self: flex-end; }
-    .slider-input { width: 100%; accent-color: var(--cyan); height: 6px; outline: none; }
-  </style>
 </head>
 <body>
+<div class="app-shell">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
-  <!-- ============================================================ -->
-  <!--   HEADER                                                     -->
-  <!-- ============================================================ -->
-  <header>
-    <div class="brand">
-      <div class="brand-icon">🤖</div>
-      <div>
-        <h1>InMoov Control Center</h1>
-        <p>Marwadi University · Robotics &amp; AI Club · 6-Axis Servo System</p>
+  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+    <div class="sidebar-brand">
+      <div class="brand-mark" aria-hidden="true"><i class="ti ti-robot"></i></div>
+      <div class="brand-text">
+        <span class="brand-name">InMoov</span>
+        <span class="brand-sub">Control Deck</span>
       </div>
     </div>
-    <div class="header-right">
-      <button class="nav-btn" onclick="switchTab('settings')" title="Connection &amp; settings"><i class="ti ti-settings"></i> Settings</button>
-      <div class="conn-badge" id="conn-badge">
-        <div class="conn-dot"></div>
-        <span id="conn-text">OFFLINE</span>
+
+    <nav class="sidebar-nav" role="tablist" aria-label="Control panel sections">
+      <div class="nav-group">
+        <span class="nav-group-label">Actuators</span>
+        <button class="tab-btn nav-item active" role="tab" aria-selected="true"  aria-controls="tab-all"      id="tab-btn-all"      onclick="switchTab('all')"><i class="ti ti-layers-intersect" aria-hidden="true"></i> All 6 Servos</button>
+        <button class="tab-btn nav-item"        role="tab" aria-selected="false" aria-controls="tab-head"     id="tab-btn-head"     onclick="switchTab('head')"><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> Head</button>
+        <button class="tab-btn nav-item"        role="tab" aria-selected="false" aria-controls="tab-neck"     id="tab-btn-neck"     onclick="switchTab('neck')"><i class="ti ti-bone" aria-hidden="true"></i> Neck</button>
       </div>
+      <div class="nav-group">
+        <span class="nav-group-label">Perception</span>
+        <button class="tab-btn nav-item" role="tab" aria-selected="false" aria-controls="tab-camera" id="tab-btn-camera" onclick="switchTab('camera')"><i class="ti ti-camera" aria-hidden="true"></i> Camera</button>
+      </div>
+      <div class="nav-group">
+        <span class="nav-group-label">Intelligence</span>
+        <button class="tab-btn nav-item" role="tab" aria-selected="false" aria-controls="tab-ai"      id="tab-btn-ai"      onclick="switchTab('ai')"><i class="ti ti-brain" aria-hidden="true"></i> AI Chat</button>
+        <button class="tab-btn nav-item" role="tab" aria-selected="false" aria-controls="tab-offline" id="tab-btn-offline" onclick="switchTab('offline')"><i class="ti ti-microphone" aria-hidden="true"></i> Offline Q&amp;A</button>
+      </div>
+      <div class="nav-group">
+        <span class="nav-group-label">Automation</span>
+        <button class="tab-btn nav-item" role="tab" aria-selected="false" aria-controls="tab-presets" id="tab-btn-presets" onclick="switchTab('presets')"><i class="ti ti-rocket" aria-hidden="true"></i> Presets</button>
+      </div>
+      <div class="nav-group">
+        <span class="nav-group-label">Diagnostics</span>
+        <button class="tab-btn nav-item" role="tab" aria-selected="false" aria-controls="tab-testing" id="tab-btn-testing" onclick="switchTab('testing')"><i class="ti ti-flask" aria-hidden="true"></i> Testing</button>
+      </div>
+      <div class="nav-group">
+        <span class="nav-group-label">System</span>
+        <button class="tab-btn nav-item" role="tab" aria-selected="false" aria-controls="tab-settings" id="tab-btn-settings" onclick="switchTab('settings')"><i class="ti ti-settings" aria-hidden="true"></i> Settings</button>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-version">MU Robotics · 6-Axis</div>
     </div>
-  </header>
+  </aside>
 
-  <!-- ============================================================ -->
-  <!--   TABS                                                        -->
-  <!-- ============================================================ -->
-  <div class="tabs-bar">
-    <button class="tab-btn active" id="tab-btn-all"       onclick="switchTab('all')">      <i class="ti ti-layers-intersect"></i> All 6 Servos</button>
-    <button class="tab-btn"        id="tab-btn-head"      onclick="switchTab('head')">     <i class="ti ti-adjustments-horizontal"></i> Head (3)</button>
-    <button class="tab-btn"        id="tab-btn-neck"      onclick="switchTab('neck')">     <i class="ti ti-bone"></i> Neck 3-Axis</button>
-    <button class="tab-btn"        id="tab-btn-camera"    onclick="switchTab('camera')">   <i class="ti ti-camera"></i> Camera Tracking</button>
-    <button class="tab-btn"        id="tab-btn-ai"        onclick="switchTab('ai')">       <i class="ti ti-brain"></i> AI Conversation</button>
-    <button class="tab-btn"        id="tab-btn-presets"   onclick="switchTab('presets')">  <i class="ti ti-rocket"></i> Motion Presets</button>
-    <button class="tab-btn"        id="tab-btn-offline"   onclick="switchTab('offline')">  <i class="ti ti-microphone"></i> Offline Q&amp;A</button>
-    <button class="tab-btn"        id="tab-btn-testing"   onclick="switchTab('testing')">  <i class="ti ti-flask"></i> Testing</button>
-    <button class="tab-btn"        id="tab-btn-settings"  onclick="switchTab('settings')"> <i class="ti ti-settings"></i> Settings</button>
-  </div>
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)" aria-hidden="true"></div>
 
-  <!-- ============================================================ -->
-  <!--   PAGE                                                        -->
-  <!-- ============================================================ -->
-  <div class="page">
+  <div class="workspace">
+    <header class="command-bar" role="banner">
+      <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false"><i class="ti ti-menu-2" aria-hidden="true"></i></button>
+      <div class="command-bar-title">
+        <h1 id="page-title">Unified Control</h1>
+        <p id="page-subtitle">6-axis simultaneous servo command</p>
+      </div>
+      <div class="command-bar-actions">
+        <button type="button" class="btn btn-ghost btn-sm btn-estop" onclick="emergencyStopAll()"><i class="ti ti-alert-triangle" aria-hidden="true"></i> E-Stop</button>
+        <div class="conn-badge" id="conn-badge" role="status" aria-live="polite">
+          <div class="conn-dot" aria-hidden="true"></div>
+          <span id="conn-text">OFFLINE</span>
+        </div>
+      </div>
+    </header>
 
-    <!-- ============================
-         STAT ROW (always visible)
-    ============================= -->
-    <div class="stats-row">
+    <main class="page" id="main-content" role="main">
+
+    <div class="telemetry-strip stats-row" aria-label="Live servo telemetry">
       <div class="stat-card">
         <div class="stat-label">Head Neck</div>
         <div><span class="stat-val" id="stat-hneck">85</span><span class="stat-unit">°</span></div>
@@ -912,7 +113,7 @@
       </div>
       <div class="stat-card">
         <div class="stat-label">Neck Tilt</div>
-        <div><span class="stat-val" style="color:var(--cyan);text-shadow:0 0 10px var(--cyan-glow);" id="stat-tilt">50</span><span class="stat-unit">°</span></div>
+        <div><span class="stat-val" id="stat-tilt">50</span><span class="stat-unit">°</span></div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Neck Roll</div>
@@ -923,13 +124,13 @@
     <!-- ============================================================
          TAB: ALL 6 SERVOS
     ============================================================ -->
-    <div class="tab-panel active" id="tab-all">
+    <div class="tab-panel active" id="tab-all" role="tabpanel" aria-labelledby="tab-btn-all" aria-hidden="false">
 
       <!-- Banner + E-Stop -->
       <div class="banner">
         <div>
-          <h2>⚡ SIMULTANEOUS 6-SERVO CONTROL</h2>
-          <p>Send combined C command to all 6 servos at once. Head pins 3–5 · Neck pins 6–8.</p>
+          <h2>Unified 6-Axis Control</h2>
+          <p>Coordinate all servos with a single C command. Head pins 3–5 · Neck pins 6–8.</p>
         </div>
         <div class="flex-row">
           <button class="btn btn-green" onclick="centerAll6()"><i class="ti ti-focus-centered"></i> Center All (90°)</button>
@@ -946,20 +147,20 @@
           <div class="card">
             <div class="card-title"><i class="ti ti-plug-connected"></i> Arduino Connection</div>
             <div class="port-row">
-              <select id="port-select" style="flex:1;min-width:100px;"></select>
+              <select id="port-select" class="flex-1"></select>
               <button class="btn btn-cyan btn-sm"  onclick="connectPort()"><i class="ti ti-power"></i> Connect</button>
               <button class="btn btn-ghost btn-sm" onclick="disconnectPort()"><i class="ti ti-plug-x"></i></button>
             </div>
-            <div class="flex-row" style="margin-bottom:10px;">
-              <button class="btn btn-ghost btn-sm" onclick="refreshPorts()" style="flex:1"><i class="ti ti-refresh"></i> Refresh</button>
-              <button class="btn btn-ghost btn-sm" onclick="autoDetect()"   style="flex:1" id="btn-autodetect"><i class="ti ti-radar"></i> Auto-Detect</button>
+            <div class="flex-row mt-sm">
+              <button class="btn btn-ghost btn-sm flex-1" onclick="refreshPorts()"><i class="ti ti-refresh"></i> Refresh</button>
+              <button class="btn btn-ghost btn-sm flex-1" onclick="autoDetect()" id="btn-autodetect"><i class="ti ti-radar"></i> Auto-Detect</button>
             </div>
             <div class="conn-log-box" id="conn-log">Ready. Select a port and connect.</div>
           </div>
 
           <!-- Head Servos -->
           <div class="card">
-            <div class="card-title"><i class="ti ti-adjustments-horizontal"></i> Head Servos (Pins 3–5) <span class="tag" style="margin-left:auto;">H command</span></div>
+            <div class="card-title"><i class="ti ti-adjustments-horizontal"></i> Head Servos (Pins 3–5) <span class="tag tag-end">H command</span></div>
 
             <!-- Head Neck -->
             <div class="servo-block" id="block-hneck">
@@ -993,7 +194,7 @@
                 </div>
                 <span class="servo-val" id="val-eye">90°</span>
               </div>
-              <input type="range" id="slider-eye" class="range-green" min="0" max="180" value="90" oninput="updateHead('eye', this.value)" style="background:rgba(255,255,255,0.08);">
+              <input type="range" id="slider-eye" class="range-green" min="0" max="180" value="90" oninput="updateHead('eye', this.value)">
               <div class="quick-btns">
                 <button class="qbtn" onclick="setHeadAngle('eye',0)">0°</button>
                 <button class="qbtn" onclick="setHeadAngle('eye',45)">45°</button>
@@ -1014,11 +215,11 @@
                   <span class="servo-name">Jaw (Open / Close)</span>
                   <span class="servo-pin">Pin 5</span>
                 </div>
-                <span class="servo-val" id="val-jaw">0°</span>
+                <span class="servo-val" id="val-jaw">8°</span>
               </div>
-              <input type="range" id="slider-jaw" class="range-purple" min="0" max="40" value="0" oninput="updateHead('jaw', this.value)" style="background:rgba(255,255,255,0.08);">
+              <input type="range" id="slider-jaw" class="range-purple" min="0" max="40" value="8" oninput="updateHead('jaw', this.value)">
               <div class="quick-btns">
-                <button class="qbtn center" onclick="setHeadAngle('jaw',0)">0° C</button>
+                <button class="qbtn center" onclick="setHeadAngle('jaw',8)">8° C</button>
                 <button class="qbtn" onclick="setHeadAngle('jaw',10)">10°</button>
                 <button class="qbtn" onclick="setHeadAngle('jaw',20)">20°</button>
                 <button class="qbtn" onclick="setHeadAngle('jaw',30)">30°</button>
@@ -1035,7 +236,7 @@
         <!-- CENTER: 3D Viewer + Joystick -->
         <div class="viz-col flex-col">
           <div class="card">
-            <div class="card-title"><i class="ti ti-3d-cube-sphere"></i> Live 3D Robot Preview <span class="tag" style="margin-left:auto;">Three.js · GLB</span></div>
+            <div class="card-title"><i class="ti ti-3d-cube-sphere"></i> Live 3D Robot Preview <span class="tag tag-end">Three.js · GLB</span></div>
             <div class="viewer-wrap" id="viewer-wrap-main">
               <div class="viewer-loading" id="viewer-loading-main">
                 <div class="viewer-spinner"></div>
@@ -1043,12 +244,12 @@
               </div>
               <canvas id="robot-canvas-main"></canvas>
             </div>
-            <div style="display:flex;gap:16px;margin-top:10px;font-family:var(--mono);font-size:11px;">
-              <span style="color:var(--cyan)"    id="ao-hneck">HNECK: 85°</span>
-              <span style="color:var(--green)"   id="ao-eye">EYE: 90°</span>
-              <span style="color:var(--amber)"   id="ao-rot">ROT: 60°</span>
-              <span style="color:var(--cyan)"    id="ao-tilt">TILT: 50°</span>
-              <span style="color:var(--purple)"  id="ao-roll">ROLL: 120°</span>
+            <div class="angle-overlay">
+              <span class="ao-signal"  id="ao-hneck">HNECK: 85°</span>
+              <span class="ao-phosphor" id="ao-eye">EYE: 90°</span>
+              <span class="ao-copper"  id="ao-rot">ROT: 60°</span>
+              <span class="ao-signal"  id="ao-tilt">TILT: 50°</span>
+              <span class="ao-violet"  id="ao-roll">ROLL: 120°</span>
             </div>
           </div>
 
@@ -1059,13 +260,13 @@
               <div class="joystick-area" id="joystick">
                 <div class="joystick-knob" id="joystick-knob"></div>
               </div>
-              <div style="display:grid;grid-template-areas:'. up .''left . right''. down .';gap:4px;font-size:11px;color:var(--text-muted);text-align:center;font-family:var(--mono);">
-                <span style="grid-area:up;color:var(--cyan)">↑ Look Up</span>
-                <span style="grid-area:left;color:var(--amber)">← Left</span>
-                <span style="grid-area:right;color:var(--amber)">Right →</span>
-                <span style="grid-area:down;color:var(--cyan)">↓ Look Down</span>
+              <div class="joystick-hints">
+                <span class="up">↑ Look Up</span>
+                <span class="left">← Left</span>
+                <span class="right">Right →</span>
+                <span class="down">↓ Look Down</span>
               </div>
-              <p style="font-size:11px;color:var(--text-muted);text-align:center;">Drag · X = Neck Rotation · Y = Neck Tilt</p>
+              <p class="joystick-caption">Drag · X = Neck Rotation · Y = Neck Tilt</p>
             </div>
           </div>
         </div>
@@ -1075,39 +276,38 @@
 
           <!-- Master / Simultaneous -->
           <div class="card amber">
-            <div class="card-title"><i class="ti ti-layers-intersect amber"></i> Neck Master Control <span class="tag" style="margin-left:auto;border-color:rgba(255,170,0,0.3);color:var(--amber);background:rgba(255,170,0,0.07);">N command</span></div>
+            <div class="card-title"><i class="ti ti-layers-intersect amber"></i> Neck Master Control <span class="tag tag-end tag-amber">N command</span></div>
             <div class="axis-block">
               <div class="axis-header">
                 <div class="axis-label">
-                  <span class="axis-name" style="color:var(--cyan)">🔗 Master (All Neck Axes)</span>
-                  <span class="axis-desc">Sets Rotation, Tilt & Roll simultaneously</span>
+                  <span class="axis-name signal">Master — All Neck Axes</span>
+                  <span class="axis-desc">Sets Rotation, Tilt &amp; Roll simultaneously</span>
                 </div>
-                <span class="axis-val" id="val-master" style="color:var(--cyan);text-shadow:0 0 10px var(--cyan-glow);">90°</span>
+                <span class="axis-val signal" id="val-master">90°</span>
               </div>
               <input type="range" id="slider-master" class="range-cyan" min="0" max="180" value="90" oninput="onMasterSlider(this.value)">
-              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:4px;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+              <div class="master-controls">
+                <label class="check-inline">
                   <input type="checkbox" id="link-sliders" onchange="toggleLinkSliders(this.checked)">
                   <span>Lock/Link Axes</span>
                 </label>
                 <button class="btn btn-cyan btn-sm" id="btn-sweep-all" onclick="toggleSweepAll()"><i class="ti ti-repeat"></i> Sweep All</button>
               </div>
-              <!-- Output inversions -->
-              <div style="margin-top:12px;padding-top:12px;border-top:1px dashed rgba(255,255,255,0.08);">
-                <span class="label-sm" style="display:block;margin-bottom:6px;color:var(--purple);">⚙️ Physical Output Inversion:</span>
-                <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+              <div class="inversion-panel">
+                <span class="label-sm inversion-label">Physical Output Inversion</span>
+                <div class="inversion-row">
+                  <label class="check-inline">
                     <input type="checkbox" id="inv-rot-out"  onchange="toggleOutputInversion('rot', this.checked)"  checked> Invert Rot
                   </label>
-                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+                  <label class="check-inline">
                     <input type="checkbox" id="inv-tilt-out" onchange="toggleOutputInversion('tilt',this.checked)"> Invert Tilt
                   </label>
-                  <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+                  <label class="check-inline">
                     <input type="checkbox" id="inv-roll-out" onchange="toggleOutputInversion('roll',this.checked)" checked> Invert Roll
                   </label>
                 </div>
               </div>
-              <div class="quick-btns" style="margin-top:12px;">
+              <div class="quick-btns mt-md">
                 <button class="qbtn" onclick="setAllNeckAxes(0)">All 0°</button>
                 <button class="qbtn" onclick="setAllNeckAxes(45)">All 45°</button>
                 <button class="qbtn amber" onclick="setAllNeckAxes(90)">All 90°</button>
@@ -1125,7 +325,7 @@
             <div class="axis-block axis-rot" id="block-rot">
               <div class="axis-header">
                 <div class="axis-label">
-                  <span class="axis-name">🔄 Rotation (Pan)</span>
+                  <span class="axis-name">Rotation (Pan)</span>
                   <span class="axis-desc">Pin 6 · Left ← Center → Right</span>
                 </div>
                 <div class="axis-val-wrap">
@@ -1151,7 +351,7 @@
             <div class="axis-block axis-tilt" id="block-tilt">
               <div class="axis-header">
                 <div class="axis-label">
-                  <span class="axis-name">⬆️ Tilt (Nod)</span>
+                  <span class="axis-name">Tilt (Nod)</span>
                   <span class="axis-desc">Pin 7 · Down ← Center → Up</span>
                 </div>
                 <div class="axis-val-wrap">
@@ -1177,7 +377,7 @@
             <div class="axis-block axis-roll" id="block-roll">
               <div class="axis-header">
                 <div class="axis-label">
-                  <span class="axis-name">↩️ Roll (Side)</span>
+                  <span class="axis-name">Roll (Side)</span>
                   <span class="axis-desc">Pin 8 · Left lean ← → Right lean</span>
                 </div>
                 <div class="axis-val-wrap">
@@ -1195,16 +395,16 @@
               </div>
               <div class="sweep-row">
                 <span class="sweep-label"><i class="ti ti-repeat"></i> Sweep</span>
-                <button class="btn btn-sm" style="background:var(--purple);color:#fff;" id="sweep-roll" onclick="toggleNeckSweep('roll')">Start</button>
+                <button class="btn btn-purple btn-sm" id="sweep-roll" onclick="toggleNeckSweep('roll')">Start</button>
               </div>
             </div>
           </div>
 
           <!-- Console -->
           <div class="card">
-            <div class="card-title" style="margin-bottom:10px;">
+            <div class="card-title">
               <i class="ti ti-terminal-2"></i> Serial Log
-              <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="clearLog()">Clear</button>
+              <button class="btn btn-ghost btn-sm ml-auto" onclick="clearLog()">Clear</button>
             </div>
             <div class="console" id="console"></div>
           </div>
@@ -1215,9 +415,9 @@
     <!-- ============================================================
          TAB: HEAD ONLY
     ============================================================ -->
-    <div class="tab-panel" id="tab-head">
+    <div class="tab-panel" id="tab-head" role="tabpanel" aria-labelledby="tab-btn-head" aria-hidden="true">
       <div class="banner">
-        <div><h2>🤖 HEAD SERVO TEST (Pins 3–5)</h2><p>Neck tilt, Eye horizontal tracking and Jaw open/close. H command.</p></div>
+        <div><h2>Head Assembly</h2><p>Neck tilt, eye tracking, and jaw articulation. Serial H command · Pins 3–5.</p></div>
         <div class="flex-row">
           <button class="btn btn-green" onclick="centerHead()"><i class="ti ti-focus-centered"></i> Center Head</button>
         </div>
@@ -1263,14 +463,14 @@
           <!-- Wiring info -->
           <div class="card">
             <div class="card-title"><i class="ti ti-help-circle"></i> Wiring &amp; Diagnostics</div>
-            <div style="font-size:13px;color:var(--text-muted);display:flex;flex-direction:column;gap:10px;line-height:1.6;">
+            <div class="prose-muted">
               <p>If servos do not respond, verify:</p>
-              <ol style="margin-left:18px;display:flex;flex-direction:column;gap:7px;">
-                <li><strong style="color:var(--cyan);">Signal Cables:</strong> Pin 3 → Neck, Pin 4 → Eye, Pin 5 → Jaw.</li>
-                <li><strong style="color:var(--cyan);">Shared GND:</strong> External PSU ground must link to Arduino GND.</li>
-                <li><strong style="color:var(--cyan);">External Power:</strong> Use dedicated 5V–6V PSU for servos.</li>
-                <li><strong style="color:var(--cyan);">Baud Rate:</strong> Confirm Arduino sketch is set to 9600.</li>
-                <li><strong style="color:var(--amber);">Neck Pins:</strong> Pin 6 → Rotation, Pin 7 → Tilt, Pin 8 → Roll.</li>
+              <ol>
+                <li><strong>Signal Cables:</strong> Pin 3 → Neck, Pin 4 → Eye, Pin 5 → Jaw.</li>
+                <li><strong>Shared GND:</strong> External PSU ground must link to Arduino GND.</li>
+                <li><strong>External Power:</strong> Use dedicated 5V–6V PSU for servos.</li>
+                <li><strong>Baud Rate:</strong> Confirm Arduino sketch is set to 9600.</li>
+                <li><strong class="amber">Neck Pins:</strong> Pin 6 → Rotation, Pin 7 → Tilt, Pin 8 → Roll.</li>
               </ol>
             </div>
           </div>
@@ -1281,9 +481,9 @@
     <!-- ============================================================
          TAB: NECK 3-AXIS
     ============================================================ -->
-    <div class="tab-panel" id="tab-neck">
+    <div class="tab-panel" id="tab-neck" role="tabpanel" aria-labelledby="tab-btn-neck" aria-hidden="true">
       <div class="banner amber">
-        <div><h2>⚠️ NECK 3-AXIS CONTROL (Pins 6–8)</h2><p>Rotation (Pan L/R) · Tilt (Nod Up/Down) · Roll (Side-to-Side). Safe limits enforced by firmware.</p></div>
+        <div><h2>Neck 3-Axis Control</h2><p>Rotation, tilt, and roll with firmware-enforced safe limits. Serial N command · Pins 6–8.</p></div>
         <div class="flex-row">
           <button class="btn btn-green" onclick="centerNeck()"><i class="ti ti-focus-centered"></i> Center Neck</button>
           <button class="btn btn-red"   onclick="emergencyStopAll()"><i class="ti ti-alert-triangle"></i> EMERGENCY STOP</button>
@@ -1292,40 +492,40 @@
       <!-- Safe limits config -->
       <div class="card">
         <div class="card-title"><i class="ti ti-shield-lock amber"></i> Safe Angle Limits</div>
-        <p style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">Firmware clamps all commands. Adjust per your physical build.</p>
+        <p class="limits-hint">Firmware clamps all commands. Adjust per your physical build.</p>
         <div class="limits-grid">
           <div class="limit-group">
-            <div class="limit-label" style="color:var(--amber)"><div class="limit-dot" style="background:var(--amber)"></div>Rotation</div>
+            <div class="limit-label rot"><div class="limit-dot"></div>Rotation</div>
             <div class="limit-inputs">
               <div class="limit-input-wrap"><span class="limit-sub">MIN</span><input type="number" id="lim-rot-min" value="0" min="0" max="90"></div>
               <div class="limit-input-wrap"><span class="limit-sub">MAX</span><input type="number" id="lim-rot-max" value="180" min="90" max="180"></div>
             </div>
           </div>
           <div class="limit-group">
-            <div class="limit-label" style="color:var(--cyan)"><div class="limit-dot" style="background:var(--cyan)"></div>Tilt</div>
+            <div class="limit-label tilt"><div class="limit-dot"></div>Tilt</div>
             <div class="limit-inputs">
               <div class="limit-input-wrap"><span class="limit-sub">MIN</span><input type="number" id="lim-tilt-min" value="0" min="0" max="90"></div>
               <div class="limit-input-wrap"><span class="limit-sub">MAX</span><input type="number" id="lim-tilt-max" value="180" min="90" max="180"></div>
             </div>
           </div>
           <div class="limit-group">
-            <div class="limit-label" style="color:var(--purple)"><div class="limit-dot" style="background:var(--purple)"></div>Roll</div>
+            <div class="limit-label roll"><div class="limit-dot"></div>Roll</div>
             <div class="limit-inputs">
               <div class="limit-input-wrap"><span class="limit-sub">MIN</span><input type="number" id="lim-roll-min" value="0" min="0" max="90"></div>
               <div class="limit-input-wrap"><span class="limit-sub">MAX</span><input type="number" id="lim-roll-max" value="180" min="90" max="180"></div>
             </div>
           </div>
         </div>
-        <button class="btn btn-amber" style="width:100%;margin-top:14px;" onclick="applyLimits()"><i class="ti ti-check"></i> Apply Limits &amp; Update Sliders</button>
+        <button class="btn btn-amber btn-block mt-md" onclick="applyLimits()"><i class="ti ti-check"></i> Apply Limits &amp; Update Sliders</button>
       </div>
     </div><!-- /tab-neck -->
 
     <!-- ============================================================
          TAB: CAMERA TRACKING
     ============================================================ -->
-    <div class="tab-panel" id="tab-camera">
+    <div class="tab-panel" id="tab-camera" role="tabpanel" aria-labelledby="tab-btn-camera" aria-hidden="true">
       <div class="banner green">
-        <div><h2>👁️ CAMERA TRACKING — Face + Hand Detection</h2><p>MediaPipe face tracking drives Eye + Neck servos. Open-hand gesture triggers hello greeting (all 6 servos).</p></div>
+        <div><h2>Vision Tracking</h2><p>MediaPipe face and hand detection drives eye and neck servos. Open-hand gesture triggers a greeting sequence.</p></div>
         <button class="btn btn-green" id="btn-camera-toggle" onclick="toggleWebcam()">Enable Camera</button>
       </div>
       <div class="grid-2col">
@@ -1346,8 +546,8 @@
                 <video id="webcam-video" width="640" height="480" autoplay playsinline muted></video>
                 <canvas id="webcam-overlay" width="640" height="480"></canvas>
                 <div class="webcam-stats">
-                  <div>Face: <span id="track-face" style="color:var(--red)">NOT DETECTED</span></div>
-                  <div>Hand: <span id="track-hand" style="color:var(--red)">NOT DETECTED</span></div>
+                  <div>Face: <span id="track-face" class="track-miss">NOT DETECTED</span></div>
+                  <div>Hand: <span id="track-hand" class="track-miss">NOT DETECTED</span></div>
                 </div>
               </div>
             </div>
@@ -1367,8 +567,8 @@ Hey! Great hand wave.</textarea>
         </div>
         <div class="flex-col">
           <div class="card">
-            <div class="card-title"><i class="ti ti-terminal-2"></i> Camera Log <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="clearLog()">Clear</button></div>
-            <div class="console" id="console-cam" style="height:300px;"></div>
+            <div class="card-title"><i class="ti ti-terminal-2"></i> Camera Log <button class="btn btn-ghost btn-sm ml-auto" onclick="clearLog()">Clear</button></div>
+            <div class="console" id="console-cam" class="console-tall"></div>
           </div>
         </div>
       </div>
@@ -1377,9 +577,9 @@ Hey! Great hand wave.</textarea>
     <!-- ============================================================
          TAB: AI CONVERSATION
     ============================================================ -->
-    <div class="tab-panel" id="tab-ai">
-      <div class="banner" style="border-color:rgba(168,85,247,0.3);background:linear-gradient(135deg,rgba(168,85,247,0.07),rgba(123,47,255,0.04));">
-        <div><h2 style="color:var(--purple);">🧠 LIVE AI VOICE CONVERSATION</h2><p>Voice → Gemini/Ollama → Spoken response with jaw sync + facial expressions on all 6 servos.</p></div>
+    <div class="tab-panel" id="tab-ai" role="tabpanel" aria-labelledby="tab-btn-ai" aria-hidden="true">
+      <div class="banner purple">
+        <div><h2>AI Voice Conversation</h2><p>Speech in, Gemini or Ollama out — spoken responses with jaw sync and full 6-axis expression.</p></div>
         <div class="flex-row">
           <button class="btn btn-purple" id="btn-conv-start" onclick="startConversation()"><i class="ti ti-microphone"></i> Start Chat</button>
           <button class="btn btn-red"    id="btn-conv-stop"  onclick="stopConversation()" disabled><i class="ti ti-player-stop"></i> Stop</button>
@@ -1484,8 +684,8 @@ Hey! Great hand wave.</textarea>
           </div>
 
           <div class="card">
-            <div class="card-title"><i class="ti ti-terminal-2"></i> AI Log <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="clearLog()">Clear</button></div>
-            <div class="console" id="console-ai" style="height:160px;"></div>
+            <div class="card-title"><i class="ti ti-terminal-2"></i> AI Log <button class="btn btn-ghost btn-sm ml-auto" onclick="clearLog()">Clear</button></div>
+            <div class="console" id="console-ai" class="console-short"></div>
           </div>
         </div>
       </div>
@@ -1494,9 +694,9 @@ Hey! Great hand wave.</textarea>
     <!-- ============================================================
          TAB: MOTION PRESETS
     ============================================================ -->
-    <div class="tab-panel" id="tab-presets">
+    <div class="tab-panel" id="tab-presets" role="tabpanel" aria-labelledby="tab-btn-presets" aria-hidden="true">
       <div class="banner amber">
-        <div><h2>🚀 MOTION PRESETS — All 6 Servos</h2><p>Keyframe-animated sequences using both Head and Neck servos simultaneously. Smoothstep easing applied.</p></div>
+        <div><h2>Motion Presets</h2><p>Keyframe-animated sequences across head and neck servos with smoothstep easing.</p></div>
         <div class="flex-row">
           <button class="btn btn-ghost" id="btn-stop-preset" onclick="stopPreset()"><i class="ti ti-player-stop"></i> Stop Preset</button>
         </div>
@@ -1518,7 +718,7 @@ Hey! Great hand wave.</textarea>
         </div>
         <div class="flex-col">
           <div class="card">
-            <div class="card-title"><i class="ti ti-terminal-2"></i> Preset Log <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="clearLog()">Clear</button></div>
+            <div class="card-title"><i class="ti ti-terminal-2"></i> Preset Log <button class="btn btn-ghost btn-sm ml-auto" onclick="clearLog()">Clear</button></div>
             <div class="console" id="console-preset" style="height:340px;"></div>
           </div>
         </div>
@@ -1528,10 +728,10 @@ Hey! Great hand wave.</textarea>
     <!-- ============================================================
          TAB: TESTING — Control every subsystem separately
     ============================================================ -->
-    <div class="tab-panel" id="tab-testing">
-      <div class="banner" style="border-color:rgba(236,72,153,0.3);background:linear-gradient(135deg,rgba(236,72,153,0.07),rgba(139,92,246,0.04));">
+    <div class="tab-panel" id="tab-testing" role="tabpanel" aria-labelledby="tab-btn-testing" aria-hidden="true">
+      <div class="banner diag">
         <div>
-          <h2 style="color:var(--pink);">🧪 TESTING LAB</h2>
+          <h2>Diagnostics Lab</h2>
           <p>Control each servo, protocol, voice, AI, and offline feature independently — no separate window needed.</p>
         </div>
         <div class="flex-row">
@@ -1801,13 +1001,13 @@ Hey! Great hand wave.</textarea>
           </div>
           <div class="card">
             <div class="card-title"><i class="ti ti-plug-connected"></i> Connection
-              <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="clearTestingLog()">Clear</button>
+              <button class="btn btn-ghost btn-sm ml-auto" onclick="clearTestingLog()">Clear</button>
             </div>
             <div class="flex-row" style="margin-bottom:10px;gap:6px;">
               <button class="btn btn-cyan btn-sm" onclick="autoDetect();testLog('Auto-detect triggered')"><i class="ti ti-radar"></i> Auto-Detect</button>
               <button class="btn btn-green btn-sm" onclick="connectPort();testLog('Connect triggered')"><i class="ti ti-power"></i> Connect</button>
             </div>
-            <div class="console" id="console-testing" style="height:200px;"></div>
+            <div class="console" id="console-testing" ></div>
           </div>
         </div>
       </div>
@@ -1816,13 +1016,13 @@ Hey! Great hand wave.</textarea>
     <!-- ============================================================
          TAB: SETTINGS
     ============================================================ -->
-    <div class="tab-panel" id="tab-settings">
+    <div class="tab-panel" id="tab-settings" role="tabpanel" aria-labelledby="tab-btn-settings" aria-hidden="true">
       <div class="grid-2col">
         <div class="flex-col">
           <div class="card">
             <div class="card-title"><i class="ti ti-plug-connected"></i> Connection</div>
             <div class="port-row">
-              <select id="port-select-2" style="flex:1;min-width:100px;"></select>
+              <select id="port-select-2" class="flex-1"></select>
               <button class="btn btn-cyan  btn-sm" onclick="connectPort()"><i class="ti ti-power"></i> Connect</button>
               <button class="btn btn-ghost btn-sm" onclick="disconnectPort()"><i class="ti ti-plug-x"></i></button>
             </div>
@@ -1836,21 +1036,21 @@ Hey! Great hand wave.</textarea>
             <div class="card-title"><i class="ti ti-shield-lock"></i> Safe Limits</div>
             <div class="limits-grid">
               <div class="limit-group">
-                <div class="limit-label" style="color:var(--amber)"><div class="limit-dot" style="background:var(--amber)"></div>Rotation</div>
+                <div class="limit-label rot"><div class="limit-dot"></div>Rotation</div>
                 <div class="limit-inputs">
                   <div class="limit-input-wrap"><span class="limit-sub">MIN</span><input type="number" id="s-lim-rot-min" value="0" min="0" max="90"></div>
                   <div class="limit-input-wrap"><span class="limit-sub">MAX</span><input type="number" id="s-lim-rot-max" value="180" min="90" max="180"></div>
                 </div>
               </div>
               <div class="limit-group">
-                <div class="limit-label" style="color:var(--cyan)"><div class="limit-dot" style="background:var(--cyan)"></div>Tilt</div>
+                <div class="limit-label tilt"><div class="limit-dot"></div>Tilt</div>
                 <div class="limit-inputs">
                   <div class="limit-input-wrap"><span class="limit-sub">MIN</span><input type="number" id="s-lim-tilt-min" value="0" min="0" max="90"></div>
                   <div class="limit-input-wrap"><span class="limit-sub">MAX</span><input type="number" id="s-lim-tilt-max" value="180" min="90" max="180"></div>
                 </div>
               </div>
               <div class="limit-group">
-                <div class="limit-label" style="color:var(--purple)"><div class="limit-dot" style="background:var(--purple)"></div>Roll</div>
+                <div class="limit-label roll"><div class="limit-dot"></div>Roll</div>
                 <div class="limit-inputs">
                   <div class="limit-input-wrap"><span class="limit-sub">MIN</span><input type="number" id="s-lim-roll-min" value="0" min="0" max="90"></div>
                   <div class="limit-input-wrap"><span class="limit-sub">MAX</span><input type="number" id="s-lim-roll-max" value="180" min="90" max="180"></div>
@@ -1881,11 +1081,11 @@ Hey! Great hand wave.</textarea>
     <!-- ============================================================
          TAB: OFFLINE Q&A (100% Local Voice & Tracking)
     ============================================================ -->
-    <div class="tab-panel" id="tab-offline">
-      <div class="banner" style="border-color:rgba(0,229,255,0.3);background:linear-gradient(135deg,rgba(0,229,255,0.07),rgba(0,180,255,0.04));">
+    <div class="tab-panel" id="tab-offline" role="tabpanel" aria-labelledby="tab-btn-offline" aria-hidden="true">
+      <div class="banner signal">
         <div>
-          <h2 style="color:var(--cyan);">🎙️ OFFLINE VOICE & VISION MODULE</h2>
-          <p>Local SpeechRecognition & Synthesis. Webcam motion tracking drives neck and eyes physically.</p>
+          <h2>Offline Voice &amp; Vision</h2>
+          <p>Local speech recognition and synthesis. Webcam tracking drives neck and eye servos without cloud APIs.</p>
         </div>
         <div class="flex-row">
           <button class="btn btn-green" onclick="centerAll6()"><i class="ti ti-focus-centered"></i> Center All</button>
@@ -2024,8 +1224,8 @@ Hey! Great hand wave.</textarea>
           
           <!-- Offline Log console -->
           <div class="card">
-            <div class="card-title"><i class="ti ti-terminal-2"></i> Offline Log Console <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="clearLog()">Clear</button></div>
-            <div class="console" id="console-offline" style="height: 100px;"></div>
+            <div class="card-title"><i class="ti ti-terminal-2"></i> Offline Log Console <button class="btn btn-ghost btn-sm ml-auto" onclick="clearLog()">Clear</button></div>
+            <div class="console" id="console-offline" class="console-short"></div>
           </div>
         </div>
 
@@ -2046,10 +1246,15 @@ Hey! Great hand wave.</textarea>
       </div>
     </div><!-- /tab-offline -->
 
-  </div><!-- /page -->
+    </main>
 
-  <!-- Toast container -->
-  <div class="toasts" id="toasts"></div>
+    <footer class="app-footer" role="contentinfo">
+      InMoov Open Source Humanoid · Marwadi University Robotics &amp; AI Club · 6-Axis Servo Control System
+    </footer>
+  </div><!-- /.workspace -->
+
+  <div class="toasts" id="toasts" role="region" aria-live="polite" aria-label="Notifications"></div>
+</div><!-- /.app-shell -->
 
   <!-- ============================================================
        JAVASCRIPT
@@ -3134,7 +2339,7 @@ Hey! Great hand wave.</textarea>
         canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
         ['track-face','track-hand'].forEach(id => {
           const el = document.getElementById(id);
-          if (el) { el.textContent = 'NOT DETECTED'; el.style.color = 'var(--red)'; }
+          if (el) { el.textContent = 'NOT DETECTED'; el.className = 'track-miss'; }
         });
         log('system', 'Camera tracking stopped');
       }
@@ -3148,7 +2353,7 @@ Hey! Great hand wave.</textarea>
       const faceEl = document.getElementById('track-face');
 
       if (results.detections && results.detections.length > 0) {
-        if (faceEl) { faceEl.textContent = 'DETECTED'; faceEl.style.color = 'var(--green)'; }
+        if (faceEl) { faceEl.textContent = 'DETECTED'; faceEl.className = 'track-ok'; }
         const bb = results.detections[0].boundingBox;
         const bx = bb.xCenter * canvas.width  - (bb.width  * canvas.width)  / 2;
         const by = bb.yCenter * canvas.height - (bb.height * canvas.height) / 2;
@@ -3165,7 +2370,7 @@ Hey! Great hand wave.</textarea>
         }
         handleGazeTracking();
       } else {
-        if (faceEl) { faceEl.textContent = 'NOT DETECTED'; faceEl.style.color = 'var(--red)'; }
+        if (faceEl) { faceEl.textContent = 'NOT DETECTED'; faceEl.className = 'track-miss'; }
       }
     }
 
@@ -3211,12 +2416,12 @@ Hey! Great hand wave.</textarea>
       if (!S.cameraActive) return;
       const handEl = document.getElementById('track-hand');
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        if (handEl) { handEl.textContent = 'DETECTED'; handEl.style.color = 'var(--green)'; }
+        if (handEl) { handEl.textContent = 'DETECTED'; handEl.className = 'track-ok'; }
         const lm = results.multiHandLandmarks[0];
         drawHandLandmarks(lm);
         if (isHandOpen(lm)) triggerHelloGreeting();
       } else {
-        if (handEl) { handEl.textContent = 'NOT DETECTED'; handEl.style.color = 'var(--red)'; }
+        if (handEl) { handEl.textContent = 'NOT DETECTED'; handEl.className = 'track-miss'; }
       }
     }
 
@@ -4222,12 +3427,51 @@ Hey! Great hand wave.</textarea>
     // ============================================================
     // ── TABS ─────────────────────────────────────────────────────
     // ============================================================
+    const PAGE_META = {
+      all:      { title: 'Unified Control',      subtitle: '6-axis simultaneous servo command' },
+      head:     { title: 'Head Assembly',        subtitle: 'Pins 3–5 · H command protocol' },
+      neck:     { title: 'Neck Assembly',        subtitle: 'Pins 6–8 · N command protocol' },
+      camera:   { title: 'Vision Tracking',      subtitle: 'MediaPipe face & hand detection' },
+      ai:       { title: 'AI Conversation',      subtitle: 'Gemini voice interface with expression' },
+      presets:  { title: 'Motion Presets',       subtitle: 'Choreographed servo sequences' },
+      offline:  { title: 'Offline Module',       subtitle: 'Local voice & vision without cloud' },
+      testing:  { title: 'Diagnostics Lab',      subtitle: 'Isolate and test each subsystem' },
+      settings: { title: 'System Settings',      subtitle: 'Connection, limits & configuration' }
+    };
+
     function switchTab(name) {
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('tab-' + name).classList.add('active');
-      document.getElementById('tab-btn-' + name).classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.remove('active');
+        p.setAttribute('aria-hidden', 'true');
+      });
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      const panel = document.getElementById('tab-' + name);
+      const btn = document.getElementById('tab-btn-' + name);
+      if (panel) { panel.classList.add('active'); panel.setAttribute('aria-hidden', 'false'); }
+      if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
+      const meta = PAGE_META[name];
+      if (meta) {
+        const titleEl = document.getElementById('page-title');
+        const subEl = document.getElementById('page-subtitle');
+        if (titleEl) titleEl.textContent = meta.title;
+        if (subEl) subEl.textContent = meta.subtitle;
+      }
+      if (window.innerWidth < 900) toggleSidebar(false);
       if (name === 'testing') syncTestingUI();
+    }
+
+    function toggleSidebar(forceOpen) {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const toggle = document.querySelector('.sidebar-toggle');
+      if (!sidebar) return;
+      const open = typeof forceOpen === 'boolean' ? forceOpen : !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', open);
+      if (backdrop) backdrop.classList.toggle('visible', open);
+      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
     // ============================================================

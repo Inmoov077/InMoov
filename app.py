@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(__file__)
 DASHBOARD_HTML = os.path.join(BASE_DIR, 'dashboard.html')
+FRONTEND_DIST = os.path.join(BASE_DIR, 'frontend', 'dist')
 
 # Gemini API key — set via .env or GEMINI_API_KEY environment variable
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
@@ -129,12 +130,39 @@ class SerialManager:
 serial_mgr = SerialManager()
 
 def _serve_dashboard():
+    """Serve React production build when available, else legacy dashboard.html."""
+    react_index = os.path.join(FRONTEND_DIST, 'index.html')
+    if os.path.exists(react_index):
+        return send_file(react_index)
     if os.path.exists(DASHBOARD_HTML):
         return send_file(DASHBOARD_HTML)
-    return "dashboard.html not found. Place it in the project directory.", 404
+    return (
+        "UI not found. Run: cd frontend && npm install && npm run build",
+        404,
+    )
 
 @app.route('/')
 def index():
+    return _serve_dashboard()
+
+@app.route('/assets/<path:filename>')
+def serve_frontend_assets(filename):
+    asset_path = os.path.join(FRONTEND_DIST, 'assets', filename)
+    if os.path.exists(asset_path):
+        return send_file(asset_path)
+    return f"{filename} not found.", 404
+
+@app.route('/<path:path>')
+def spa_fallback(path):
+    """SPA routes — return index.html for client-side routing."""
+    if path.startswith('api/') or path.startswith('models/') or path.startswith('js/'):
+        return f"{path} not found.", 404
+    asset_path = os.path.join(FRONTEND_DIST, path)
+    if os.path.exists(asset_path) and os.path.isfile(asset_path):
+        return send_file(asset_path)
+    react_index = os.path.join(FRONTEND_DIST, 'index.html')
+    if os.path.exists(react_index):
+        return send_file(react_index)
     return _serve_dashboard()
 
 @app.route('/combined')
@@ -165,6 +193,14 @@ def serve_js(filename):
     js_path = os.path.join(os.path.dirname(__file__), filename)
     if os.path.exists(js_path):
         return send_file(js_path, mimetype='application/javascript')
+    return f"{filename} not found.", 404
+
+@app.route('/css/<path:filename>')
+def serve_css(filename):
+    """Serve CSS theme files from the project directory."""
+    css_path = os.path.join(os.path.dirname(__file__), filename)
+    if os.path.exists(css_path):
+        return send_file(css_path, mimetype='text/css')
     return f"{filename} not found.", 404
 
 @app.route('/api/offline/search', methods=['POST'])

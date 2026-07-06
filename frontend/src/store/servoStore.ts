@@ -1,0 +1,230 @@
+import { create } from 'zustand';
+import * as api from '@/lib/api';
+import { clamp } from '@/lib/utils';
+
+export type Axis = 'rot' | 'tilt' | 'roll';
+export type HeadJoint = 'hneck' | 'eye' | 'jaw';
+
+export interface Limits {
+  min: number;
+  max: number;
+}
+
+export interface LogEntry {
+  id: string;
+  ts: string;
+  type: 'info' | 'send' | 'recv' | 'error' | 'system';
+  msg: string;
+}
+
+interface ServoState {
+  hneck: number;
+  eye: number;
+  jaw: number;
+  rot: number;
+  tilt: number;
+  roll: number;
+  connected: boolean;
+  port: string | null;
+  limits: Record<Axis, Limits>;
+  outputInversions: Record<Axis, boolean>;
+  linked: boolean;
+  logs: LogEntry[];
+
+  setHead: (joint: HeadJoint, value: number, send?: boolean) => void;
+  setNeck: (axis: Axis, value: number, send?: boolean) => void;
+  setMaster: (value: number) => void;
+  setConnected: (online: boolean, port?: string | null) => void;
+  centerHead: () => void;
+  centerNeck: () => void;
+  centerAll: () => void;
+  log: (type: LogEntry['type'], msg: string) => void;
+  clearLogs: () => void;
+  refreshConnection: () => Promise<void>;
+  connect: (port: string) => Promise<boolean>;
+  disconnect: () => Promise<void>;
+  autoDetect: () => Promise<string | null>;
+  emergencyStop: () => Promise<void>;
+  sendCombined: () => Promise<void>;
+}
+
+let throttleTimer: ReturnType<typeof setTimeout> | null = null;
+let lastSend = 0;
+const THROTTLE_MS = 100;
+
+function nowTs() {
+  return new Date().toTimeString().split(' ')[0];
+}
+
+function applyInversions(state: ServoState) {
+  const rot = state.outputInversions.rot ? 180 - state.rot : state.rot;
+  const tilt = state.outputInversions.tilt ? 180 - state.tilt : state.tilt;
+  const roll = state.outputInversions.roll ? 180 - state.roll : state.roll;
+  return { rot, tilt, roll };
+}
+
+export const useServoStore = create<ServoState>((set, get) => ({
+  hneck: 85,
+  eye: 90,
+  jaw: 8,
+  rot: 60,
+  tilt: 50,
+  roll: 120,
+  connected: false,
+  port: null,
+  limits: {
+    rot: { min: 0, max: 180 },
+    tilt: { min: 0, max: 180 },
+    roll: { min: 0, max: 180 },
+  },
+  outputInversions: { rot: true, tilt: false, roll: true },
+  linked: false,
+  logs: [],
+
+  log: (type, msg) =>
+    set((s) => ({
+      logs: [...s.logs.slice(-199), { id: crypto.randomUUID(), ts: nowTs(), type, msg }],
+    })),
+
+  clearLogs: () => set({ logs: [] }),
+
+  setConnected: (online, port = null) => set({ connected: online, port }),
+
+  refreshConnection: async () => {
+    try {
+      const data = await api.getPorts();
+      if (data.current) get().setConnected(true, data.current);
+    } catch {
+      /* offline UI */
+    }
+  },
+
+  connect: async (port) => {
+    const res = await api.connectPort(port);
+    if (res.ok) {
+      get().setConnected(true, port);
+      get().log('system', `Connected to ${port}`);
+      return true;
+    }
+    get().log('error', res.error || 'Connection failed');
+    return false;
+  },
+
+  disconnect: async () => {
+    await api.disconnectPort();
+    get().setConnected(false, null);
+    get().log('system', 'Disconnected');
+  },
+
+  autoDetect: async () => {
+    const res = await api.autoDetectPort();
+    if (res.ok && res.port) {
+      get().setConnected(true, res.port);
+      get().log('system', `Auto-detected ${res.port}`);
+      return res.port as string;
+    }
+    get().log('error', res.error || 'Auto-detect failed');
+    return null;
+  },
+
+  emergencyStop: async () => {
+    await api.emergencyStop();
+    get().setConnected(false, null);
+    get().log('error', 'EMERGENCY STOP');
+  },
+
+  setHead: (joint, value, send = true) => {
+    const v = joint === 'jaw' ? clamp(Number(value), 0, 40) : clamp(Number(value), 0, 180);
+    set({ [joint]: v } as Partial<ServoState>);
+    if (send && get().connected) {
+      const s = get();
+      const hneck = joint === 'hneck' ? v : s.hneck;
+      const eye = joint === 'eye' ? v : s.eye;
+      const jaw = joint === 'jaw' ? v : s.jaw;
+      api.sendHead(hneck, eye, jaw).then((d) => {
+        if (d.ok) get().log('send', `H,${hneck},${eye},${jaw}`);
+      });
+      get().sendCombined();
+    }
+  },
+
+  setNeck: (axis, value, send = true) => {
+    let v = clamp(Number(value), get().limits[axis].min, get().limits[axis].max);
+    const updates: Partial<ServoState> = { [axis]: v };
+
+    if (axis === 'rot') {
+      updates.roll = 180 - v;
+    } else if (axis === 'roll') {
+      updates.rot = 180 - v;
+    }
+
+    set(updates as Partial<ServoState>);
+
+    if (!send || !get().connected) return;
+
+    const run = () => {
+      lastSend = Date.now();
+      const s = get();
+      const out = applyInversions(s);
+      api.sendNeck(out.rot, out.tilt, out.roll).then((d) => {
+        if (d.ok) get().log('send', `N,${out.rot},${out.tilt},${out.roll}`);
+      });
+      get().sendCombined();
+    };
+
+    const elapsed = Date.now() - lastSend;
+    if (elapsed >= THROTTLE_MS) {
+      if (throttleTimer) clearTimeout(throttleTimer);
+      run();
+    } else if (!throttleTimer) {
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+        run();
+      }, THROTTLE_MS - elapsed);
+    }
+  },
+
+  setMaster: (value) => {
+    const v = clamp(Number(value), 0, 180);
+    set({ rot: v, tilt: v, roll: 180 - v });
+    if (get().connected) {
+      get().setNeck('rot', v, true);
+    }
+  },
+
+  centerHead: () => {
+    set({ hneck: 85, eye: 90, jaw: 8 });
+    if (get().connected) api.sendHead(85, 90, 8);
+    get().sendCombined();
+  },
+
+  centerNeck: () => {
+    set({ rot: 60, tilt: 50, roll: 120 });
+    if (get().connected) {
+      const out = applyInversions(get());
+      api.sendNeck(out.rot, out.tilt, out.roll);
+    }
+    get().sendCombined();
+  },
+
+  centerAll: () => {
+    get().centerHead();
+    get().centerNeck();
+  },
+
+  sendCombined: async () => {
+    const s = get();
+    const out = applyInversions(s);
+    const res = await api.sendCombined6({
+      headNeck: s.hneck,
+      headEye: s.eye,
+      headJaw: s.jaw,
+      neckRot: out.rot,
+      neckTilt: out.tilt,
+      neckRoll: out.roll,
+    });
+    if (res.ok && s.connected) {
+      get().log('send', `C,${s.hneck},${s.eye},${s.jaw},${out.rot},${out.tilt},${out.roll}`);
+    }
+  },
+}));

@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 35 40% 94%;
+    --foreground: 230 35% 12%;
+    --card: 40 50% 98%;
+    --card-foreground: 230 35% 12%;
+    --card-elevated: 38 45% 96%;
+    --primary: 8 78% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 35 30% 90%;
+    --secondary-foreground: 230 25% 25%;
+    --muted: 36 28% 91%;
+    --muted-foreground: 230 12% 42%;
+    --accent: 262 55% 52%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 35 22% 82%;
+    --input: 36 25% 88%;
+    --ring: 8 78% 56%;
+    --radius: 1rem;
+
+    --success: 152 55% 38%;
+    --warning: 42 96% 50%;
+    --info: 199 75% 45%;
+    --violet: 262 55% 52%;
+    --amber: 32 90% 48%;
+    --sky: 199 75% 45%;
+    --viewer: 35 35% 88%;
+    --viewer-deep: 30 30% 80%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 0% 0%, hsla(8, 78%, 56%, 0.09), transparent 55%),
+      radial-gradient(ellipse 60% 45% at 100% 0%, hsla(262, 55%, 52%, 0.07), transparent 50%),
+      radial-gradient(ellipse 70% 50% at 50% 100%, hsla(35, 40%, 80%, 0.35), transparent 55%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-[1400px] px-4 md:px-6;
+  }
+
+  .surface {
+    @apply rounded-2xl border border-border/60 bg-card text-card-foreground;
+    box-shadow: 0 1px 2px hsla(230, 35%, 12%, 0.04), 0 8px 32px hsla(230, 35%, 12%, 0.06);
+  }
+
+  .surface-hover {
+    @apply surface transition-all duration-200 hover:-translate-y-0.5;
+    box-shadow: 0 1px 2px hsla(230, 35%, 12%, 0.04), 0 8px 32px hsla(230, 35%, 12%, 0.06);
+  }
+  .surface-hover:hover {
+    box-shadow: 0 4px 24px hsla(8, 78%, 56%, 0.14), 0 12px 40px hsla(230, 35%, 12%, 0.08);
+  }
+
+  .surface-inset {
+    @apply rounded-xl border border-border/50 bg-muted/60 p-4;
+    box-shadow: inset 0 1px 3px hsla(230, 35%, 12%, 0.05);
+  }
+
+  .nav-pill {
+    @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all;
+  }
+
+  .nav-pill-active {
+    @apply nav-pill bg-primary text-primary-foreground shadow-md;
+  }
+
+  .nav-pill-idle {
+    @apply nav-pill text-muted-foreground hover:bg-card hover:text-foreground hover:shadow-sm;
+  }
+
+  .hero-gradient {
+    background: linear-gradient(
+      135deg,
+      hsla(8, 78%, 56%, 0.12) 0%,
+      hsla(262, 55%, 52%, 0.08) 50%,
+      hsla(40, 50%, 98%, 0.9) 100%
+    );
+  }
+
+  .bento {
+    @apply surface overflow-hidden;
+  }
+
+  .bento-lg {
+    @apply bento md:col-span-2;
+  }
+
+  .viewer-shell {
+    @apply relative overflow-hidden rounded-2xl;
+    background: linear-gradient(145deg, hsl(var(--viewer)) 0%, hsl(var(--viewer-deep)) 100%);
+    box-shadow: inset 0 2px 16px hsla(230, 35%, 12%, 0.08);
+  }
+
+  .viewer-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 2px solid hsla(8, 78%, 56%, 0.2);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .motor-card {
+    @apply surface-inset space-y-3;
+    border-left: 4px solid var(--motor-color, hsl(var(--primary)));
+  }
+
+  .stat-chip {
+    @apply surface flex items-center gap-3 p-3 transition-transform hover:scale-[1.02];
+  }
+
+  .page-hero {
+    @apply surface hero-gradient mb-6 flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between md:p-8;
+  }
+
+  .joystick-ring {
+    @apply relative cursor-crosshair rounded-full;
+    background: radial-gradient(circle, hsl(40 50% 98%) 0%, hsl(35 35% 88%) 100%);
+    box-shadow: inset 0 4px 20px hsla(230, 35%, 12%, 0.08), 0 4px 20px hsla(8, 78%, 56%, 0.1);
+  }
+
+  .joystick-ring.active {
+    box-shadow: inset 0 4px 20px hsla(230, 35%, 12%, 0.08), 0 0 0 4px hsla(8, 78%, 56%, 0.2);
+  }
+
+  .log-box {
+    @apply rounded-xl border border-border/50 bg-[hsl(36,28%,91%)] font-mono text-xs;
+    box-shadow: inset 0 2px 8px hsla(230, 35%, 12%, 0.04);
+  }
+
+  .preset-tile {
+    @apply surface-hover flex flex-col p-5;
+  }
+
+  .preset-tile.active {
+    @apply ring-2 ring-primary/40;
+    background: linear-gradient(145deg, hsla(8, 78%, 56%, 0.08), hsl(var(--card)));
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent;
+  }
+}

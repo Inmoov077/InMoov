@@ -63,11 +63,11 @@ class RobotViewer {
 
     // ─── Scene ──────────────────────────────────────────────────
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xe0e7ff); // Light lavender
-    this.scene.fog = new THREE.Fog(0xe0e7ff, 4, 12);
+    this.scene.background = new THREE.Color(0x060a10);
+    this.scene.fog = new THREE.Fog(0x060a10, 4, 14);
 
     // ─── Grid Floor ─────────────────────────────────────────────
-    const grid = new THREE.GridHelper(4, 20, 0x818cf8, 0xc7d2fe); // Indigo accents
+    const grid = new THREE.GridHelper(4, 20, 0xe87b35, 0x1a2434);
     grid.position.y = -0.55;
     this.scene.add(grid);
 
@@ -75,7 +75,7 @@ class RobotViewer {
     const ambient = new THREE.AmbientLight(0xffffff, 0.75);
     this.scene.add(ambient);
 
-    const dirLight = new THREE.DirectionalLight(0xffe4e6, 2.2); // Warm peach/rose key light
+    const dirLight = new THREE.DirectionalLight(0x99f6e4, 2.0);
     dirLight.position.set(2, 3, 2);
     dirLight.castShadow = true;
     this.scene.add(dirLight);

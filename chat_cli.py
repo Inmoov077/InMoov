@@ -20,60 +20,52 @@ except ImportError:
     vector_db = None
 
 def load_offline_commands():
-    """Dynamically parses and extracts the offline commands database from combined_dashboard.html
-    to ensure changes made in the dashboard are automatically reflected in the CLI.
-    """
+    """Load offline commands from shared JSON (React app source of truth)."""
+    import json
+
+    json_path = os.path.join(os.path.dirname(__file__), "shared", "offline_commands.json")
+    if os.path.exists(json_path):
+        with open(json_path, encoding="utf-8") as f:
+            return json.load(f)
+
+    # Legacy fallback: parse dashboard.html
     html_path = os.path.join(os.path.dirname(__file__), "dashboard.html")
     if not os.path.exists(html_path):
-        print(f"Warning: '{html_path}' not found. No predefined local database loaded.")
+        print("Warning: offline_commands.json and dashboard.html not found.")
         return []
-        
-    with open(html_path, "r", encoding="utf-8", errors="ignore") as f:
+
+    with open(html_path, encoding="utf-8", errors="ignore") as f:
         content = f.read()
-        
-    match = re.search(r"const OFFLINE_COMMANDS\s*=\s*\[(.*?)\]\s*; let offlineRecognition", content, re.DOTALL)
-    if not match:
-        match = re.search(r"const OFFLINE_COMMANDS\s*=\s*\[(.*?)\]\s*;", content, re.DOTALL)
-        
+
+    match = re.search(r"const OFFLINE_COMMANDS\s*=\s*\[(.*?)\]\s*;", content, re.DOTALL)
     if not match:
         print("Warning: Could not parse OFFLINE_COMMANDS from dashboard HTML.")
         return []
-        
+
     array_content = match.group(1)
-    
-    # Locate individual objects
-    objs = re.findall(r"\{\s*inputs:.*?\n\s*\}", array_content, re.DOTALL)
-    if not objs:
-        objs = re.findall(r"\{.*?\}", array_content, re.DOTALL)
-        
+    objs = re.findall(r"\{\s*inputs:.*?\n\s*\}", array_content, re.DOTALL) or re.findall(r"\{.*?\}", array_content, re.DOTALL)
+
     commands = []
     for obj in objs:
         inputs_match = re.search(r"inputs:\s*\[(.*?)\]", obj, re.DOTALL)
         response_match = re.search(r"response:\s*['\"](.*?)['\"],", obj, re.DOTALL)
         angles_match = re.search(r"angles:\s*\{(.*?)\}", obj, re.DOTALL)
         animation_match = re.search(r"animation:\s*['\"](.*?)['\"]", obj, re.DOTALL)
-        
+
         if inputs_match and response_match and angles_match:
-            inputs_str = inputs_match.group(1)
-            response = response_match.group(1)
-            angles_str = angles_match.group(1)
-            animation = animation_match.group(1) if animation_match else "none"
-            
-            inputs = [i.strip("'\" ") for i in inputs_str.split(",") if i.strip()]
-            
+            inputs = [i.strip("'\" ") for i in inputs_match.group(1).split(",") if i.strip()]
             angles = {}
-            for part in angles_str.split(","):
+            for part in angles_match.group(1).split(","):
                 if ":" in part:
                     k, v = part.split(":")
                     angles[k.strip()] = int(v.strip())
-                    
             commands.append({
                 "inputs": inputs,
-                "response": response,
+                "response": response_match.group(1),
                 "angles": angles,
-                "animation": animation
+                "animation": animation_match.group(1) if animation_match else "none",
             })
-            
+
     return commands
 
 def get_phrase_similarity(str1, str2):
