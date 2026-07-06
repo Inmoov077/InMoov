@@ -1,4 +1,4 @@
-"""Generate InMoov-style leg STL meshes (mm units, scaled 0.001 in URDF)."""
+"""Procedural InMoov leg fallback meshes — proportions from inmoov.fr official STLs."""
 from __future__ import annotations
 
 import math
@@ -7,6 +7,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "models" / "inmoov" / "meshes"
+
+# Official bounding boxes (mm) from ThighHighLeftV1, TibiaHighLeftV1, etc.
+THIGH_HIGH_Z = 121
+THIGH_MID_Z = 120
+THIGH_LOW_Z = 119
+KNEE_HIGH_Z = 78
+KNEE_LOW_Z = 97
+TIBIA_HIGH_Z = 134
+TIBIA_LOW_Z = 122
+ANKLE_Z = 46
+FOOT_L = 200
+HIP_Z = 130
 
 
 def _add_tri(tris: list, a, b, c) -> None:
@@ -22,18 +34,15 @@ def box_tris(cx: float, cy: float, cz: float, sx: float, sy: float, sz: float) -
         (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1),
     ]
     faces = [
-        (0, 2, 1), (0, 3, 2),
-        (4, 5, 6), (4, 6, 7),
-        (0, 1, 5), (0, 5, 4),
-        (2, 3, 7), (2, 7, 6),
-        (1, 2, 6), (1, 6, 5),
-        (3, 0, 4), (3, 4, 7),
+        (0, 2, 1), (0, 3, 2), (4, 5, 6), (4, 6, 7),
+        (0, 1, 5), (0, 5, 4), (2, 3, 7), (2, 7, 6),
+        (1, 2, 6), (1, 6, 5), (3, 0, 4), (3, 4, 7),
     ]
     return [(v[i], v[j], v[k]) for i, j, k in faces]
 
 
 def cylinder_tris(
-    cx: float, cy: float, z0: float, z1: float, r0: float, r1: float, segments: int = 24
+    cx: float, cy: float, z0: float, z1: float, r0: float, r1: float, segments: int = 28
 ) -> list:
     tris: list = []
     for i in range(segments):
@@ -47,7 +56,6 @@ def cylinder_tris(
         p3 = (cx + r1 * x1, cy + r1 * y1, z1)
         _add_tri(tris, p0, p1, p3)
         _add_tri(tris, p0, p3, p2)
-        # caps
         _add_tri(tris, (cx, cy, z0), p1, p0)
         _add_tri(tris, (cx, cy, z1), p2, p3)
     return tris
@@ -99,62 +107,69 @@ def write_binary_stl(path: Path, triangles: list) -> None:
 
 
 def hip_mesh() -> list:
-    """Origin at hip pan axis; geometry hangs below."""
     tris: list = []
-    tris.extend(box_tris(0, 0, -22, 72, 58, 44))
-    tris.extend(cylinder_tris(22, 0, -42, -8, 24, 24))
-    tris.extend(sphere_tris(0, 0, -48, 30))
+    tris.extend(box_tris(0, 0, -HIP_Z / 2, 80, 70, HIP_Z))
+    tris.extend(cylinder_tris(30, 0, -HIP_Z, -20, 28, 28))
+    tris.extend(sphere_tris(0, 0, -HIP_Z - 15, 32))
     return tris
 
 
 def thigh_mesh() -> list:
     tris: list = []
-    tris.extend(cylinder_tris(0, 0, 0, -360, 42, 34))
-    tris.extend(box_tris(-8, 0, -120, 25, 50, 80))
-    tris.extend(box_tris(5, 0, -200, 20, 45, 60))
+    z = 0
+    for seg_z, rx, ry in (
+        (THIGH_HIGH_Z, 82, 98),
+        (THIGH_MID_Z, 88, 78),
+        (THIGH_LOW_Z, 73, 65),
+    ):
+        tris.extend(box_tris(8, 0, z - seg_z / 2, rx, ry, seg_z * 0.92))
+        tris.extend(cylinder_tris(0, 0, z, z - seg_z, 38, 32))
+        z -= seg_z
     return tris
 
 
 def thigh_cover_mesh() -> list:
     tris: list = []
-    tris.extend(box_tris(18, 0, -150, 8, 55, 280))
-    tris.extend(box_tris(18, 0, -80, 6, 48, 120))
+    tris.extend(box_tris(22, 0, -(THIGH_HIGH_Z + THIGH_MID_Z) / 2, 10, 52, THIGH_HIGH_Z + THIGH_MID_Z))
     return tris
 
 
 def knee_mesh() -> list:
     tris: list = []
-    tris.extend(box_tris(0, 0, 0, 65, 55, 55))
-    tris.extend(sphere_tris(0, 28, 0, 22))
-    tris.extend(cylinder_tris(0, 0, -15, 15, 18, 18))
+    tris.extend(box_tris(0, 0, -KNEE_HIGH_Z / 2, 109, 86, KNEE_HIGH_Z))
+    tris.extend(box_tris(0, 0, -KNEE_HIGH_Z - KNEE_LOW_Z / 2, 104, 68, KNEE_LOW_Z))
+    tris.extend(sphere_tris(0, 30, -KNEE_HIGH_Z, 24))
     return tris
 
 
 def shin_mesh() -> list:
     tris: list = []
-    tris.extend(cylinder_tris(0, 0, 0, -320, 34, 28))
-    tris.extend(box_tris(-5, 0, -140, 18, 40, 50))
+    z = 0
+    for seg_z in (TIBIA_HIGH_Z, TIBIA_LOW_Z, TIBIA_LOW_Z - 3):
+        tris.extend(cylinder_tris(0, 0, z, z - seg_z, 34, 28))
+        tris.extend(box_tris(-6, 0, z - seg_z / 2, 20, 42, seg_z * 0.55))
+        z -= seg_z
     return tris
 
 
 def shin_cover_mesh() -> list:
     tris: list = []
-    tris.extend(box_tris(14, 0, -150, 7, 48, 260))
+    tris.extend(box_tris(16, 0, -(TIBIA_HIGH_Z + TIBIA_LOW_Z) / 2, 8, 48, TIBIA_HIGH_Z + TIBIA_LOW_Z))
     return tris
 
 
 def ankle_mesh() -> list:
     tris: list = []
-    tris.extend(box_tris(0, 0, 0, 55, 50, 40))
-    tris.extend(cylinder_tris(0, 0, -10, 10, 20, 20))
+    tris.extend(box_tris(0, 0, -ANKLE_Z / 2, 67, 67, ANKLE_Z))
+    tris.extend(cylinder_tris(0, 0, -ANKLE_Z, -ANKLE_Z - 10, 22, 22))
     return tris
 
 
 def foot_mesh() -> list:
     tris: list = []
-    tris.extend(box_tris(45, 0, -12, 200, 85, 35))
-    tris.extend(box_tris(130, 0, -5, 40, 70, 20))
-    tris.extend(box_tris(30, 0, 8, 60, 75, 15))
+    tris.extend(box_tris(FOOT_L / 2 - 10, 0, -18, FOOT_L, 90, 36))
+    tris.extend(box_tris(FOOT_L - 30, 0, -8, 50, 72, 22))
+    tris.extend(box_tris(35, 0, 6, 65, 78, 14))
     return tris
 
 
@@ -176,7 +191,7 @@ def main() -> None:
         tris = builder()
         write_binary_stl(path, tris)
         print(f"Wrote {path.name} ({len(tris)} tris, {path.stat().st_size} bytes)")
-    print(f"Done — {len(MESH_BUILDERS)} leg meshes in {OUT}")
+    print(f"Done — {len(MESH_BUILDERS)} procedural leg meshes in {OUT}")
 
 
 if __name__ == "__main__":

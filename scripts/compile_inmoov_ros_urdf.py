@@ -175,12 +175,17 @@ def rewrite_mesh_paths(text: str) -> str:
     return text.replace("package://inmoov_meshes/meshes/", f"{MESH_PKG}/")
 
 
+SCALE = "0.001 0.001 0.001"
+# Official STLs extend +Z; flip to hang downward in standing pose
+LEG_RPY = "3.14159 0 0"
+
+
 def _mesh_visual(
     stl: str,
     xyz: str = "0 0 0",
     rpy: str = "0 0 0",
     material: str = "grey",
-    scale: str = "0.001 0.001 0.001",
+    scale: str = SCALE,
 ) -> str:
     return f"""    <visual>
       <origin xyz="{xyz}" rpy="{rpy}"/>
@@ -189,16 +194,92 @@ def _mesh_visual(
     </visual>"""
 
 
+def _leg_visuals(parts: list[tuple[str, float, str]], *, flip: bool) -> str:
+    """Stack leg STLs; z_off is segment offset in metres along -Z."""
+    rpy = LEG_RPY if flip else "0 0 0"
+    return "\n".join(
+        _mesh_visual(stl, f"0 0 {-z_off:.4f}", rpy, mat) for stl, z_off, mat in parts
+    )
+
+
+def _official_leg_parts(side: str) -> dict[str, list[tuple[str, float, str]]]:
+    """Per-link visuals from inmoov.fr Legs-* gallery (mm offsets from Gael Langevin STLs)."""
+    lr = "Left" if side == "l" else "Right"
+    hip = [
+        (f"LegHolder{lr}.stl", 0.0, "grey"),
+        (f"ThighHighTemp{lr}V1.stl" if side == "l" else "ThighHighTempV1.stl", 0.0, "grey"),
+        (f"LegFixer{lr}V1.stl" if side == "l" else "LegFixerV1.stl", 0.0, "grey"),
+    ]
+    thigh = [
+        (f"ThighHigh{lr}V1.stl", 0.0, "grey"),
+        (f"ThighMid{lr}V1.stl", 0.121, "grey"),
+        (f"ThighLow{lr}V3.stl", 0.241, "grey"),
+        (f"ThighSideAccess{lr}V1.stl", 0.12, "cover"),
+    ]
+    knee = [
+        (f"KneeHigh{lr}V3.stl", 0.0, "grey"),
+        (f"KneeLow{lr}V3.stl", 0.078, "grey"),
+        (f"KneeClamp{lr}V1.stl", 0.04, "cover"),
+    ]
+    shin = [
+        (f"TibiaHigh{lr}V1.stl", 0.0, "grey"),
+        (f"TibiaLowS1{lr}V1.stl", 0.134, "grey"),
+        (f"TibiaLowS2{lr}V1.stl", 0.256, "cover"),
+    ]
+    if side == "l":
+        ankle = [
+            ("leftAnkleBaseV1.stl", 0.0, "grey"),
+            ("LeftAnkleDownV2.stl", 0.034, "grey"),
+            ("LeftAnkpartV1.stl", 0.05, "grey"),
+            ("LeftAnkHolderV1.stl", 0.06, "cover"),
+        ]
+        foot = [
+            ("LeftAnkMidleFootV1.stl", 0.0, "base"),
+            ("LeftAnkToesFootV2.stl", 0.02, "base"),
+            ("LeftAnkBackFootV1.stl", 0.01, "base"),
+        ]
+    else:
+        ankle = [
+            ("AnkleBaseV1.stl", 0.0, "grey"),
+            ("AnkleDownV2.stl", 0.034, "grey"),
+            ("AnkpartV1.stl", 0.05, "grey"),
+            ("AnkHolderV1.stl", 0.06, "cover"),
+        ]
+        foot = [
+            ("AnkMidleFootV1.stl", 0.0, "base"),
+            ("AnkToesFootV2.stl", 0.02, "base"),
+            ("AnkBackFootV1.stl", 0.01, "base"),
+        ]
+    return {"hip": hip, "thigh": thigh, "knee": knee, "shin": shin, "ankle": ankle, "foot": foot}
+
+
+def _procedural_leg_parts() -> dict[str, list[tuple[str, float, str]]]:
+    return {
+        "hip": [("leg_hip.stl", 0.0, "grey")],
+        "thigh": [("leg_thigh.stl", 0.18, "grey"), ("leg_thigh_cover.stl", 0.18, "cover")],
+        "knee": [("leg_knee.stl", 0.0, "grey")],
+        "shin": [("leg_shin.stl", 0.16, "grey"), ("leg_shin_cover.stl", 0.16, "cover")],
+        "ankle": [("leg_ankle.stl", 0.0, "grey")],
+        "foot": [("leg_foot.stl", 0.012, "base")],
+    }
+
+
+def _use_official_legs() -> bool:
+    marker = ROOT / "models" / "inmoov" / "meshes" / "ThighHighLeftV1.stl"
+    return marker.exists() and marker.stat().st_size > 500
+
+
 def _leg_side(side: str, y_sign: int) -> str:
     s = side
     y = y_sign * 0.092
-    # Mirror right-leg meshes on Y (cleaner than 180° body flip)
-    scale = "0.001 0.001 0.001" if y_sign > 0 else "0.001 -0.001 0.001"
-    cover_scale = scale
+    official = _use_official_legs()
+    parts = _official_leg_parts(s) if official else _procedural_leg_parts()
+    vis = lambda p: _leg_visuals(p, flip=official)
+    label = "official InMoov STL" if official else "procedural fallback"
     return f"""
-  <!-- {s.upper()} leg — hip 92mm spacing, joint origins match STL mm geometry -->
+  <!-- {s.upper()} leg — {label} segments -->
   <link name="{s}_hip_link">
-{_mesh_visual("leg_hip.stl", "0 0 0", "0 0 0", "grey", scale)}
+{vis(parts["hip"])}
   </link>
   <joint name="{s}_hip_pan_joint" type="revolute">
     <parent link="pelvis_link"/><child link="{s}_hip_link"/>
@@ -206,22 +287,15 @@ def _leg_side(side: str, y_sign: int) -> str:
     <limit lower="-0.785" upper="0.785" effort="1000" velocity="1"/>
   </joint>
   <link name="{s}_thigh_link">
-{_mesh_visual("leg_thigh.stl", "0 0 -0.18", "0 0 0", "grey", scale)}
+{vis(parts["thigh"])}
   </link>
   <joint name="{s}_hip_lift_joint" type="revolute">
     <parent link="{s}_hip_link"/><child link="{s}_thigh_link"/>
-    <origin xyz="0 0 -0.048" rpy="0 0 0"/><axis xyz="1 0 0"/>
+    <origin xyz="0 0 -0.130" rpy="0 0 0"/><axis xyz="1 0 0"/>
     <limit lower="-1.2" upper="1.2" effort="1000" velocity="1"/>
   </joint>
-  <link name="{s}_thigh_cover_link">
-{_mesh_visual("leg_thigh_cover.stl", "0 0 -0.18", "0 0 0", "cover", cover_scale)}
-  </link>
-  <joint name="{s}_thigh_cover_joint" type="fixed">
-    <parent link="{s}_thigh_link"/><child link="{s}_thigh_cover_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
   <link name="{s}_knee_link">
-{_mesh_visual("leg_knee.stl", "0 0 0", "0 0 0", "grey", scale)}
+{vis(parts["knee"])}
   </link>
   <joint name="{s}_knee_joint" type="revolute">
     <parent link="{s}_thigh_link"/><child link="{s}_knee_link"/>
@@ -229,46 +303,50 @@ def _leg_side(side: str, y_sign: int) -> str:
     <limit lower="0" upper="2.27" effort="1000" velocity="1"/>
   </joint>
   <link name="{s}_shin_link">
-{_mesh_visual("leg_shin.stl", "0 0 -0.16", "0 0 0", "cover", cover_scale)}
+{vis(parts["shin"])}
   </link>
   <joint name="{s}_shin_attach_joint" type="fixed">
     <parent link="{s}_knee_link"/><child link="{s}_shin_link"/>
-    <origin xyz="0 0 -0.028" rpy="0 0 0"/>
-  </joint>
-  <link name="{s}_shin_cover_link">
-{_mesh_visual("leg_shin_cover.stl", "0 0 -0.16", "0 0 0", "cover", cover_scale)}
-  </link>
-  <joint name="{s}_shin_cover_joint" type="fixed">
-    <parent link="{s}_shin_link"/><child link="{s}_shin_cover_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.095" rpy="0 0 0"/>
   </joint>
   <link name="{s}_ankle_link">
-{_mesh_visual("leg_ankle.stl", "0 0 0", "0 0 0", "grey", scale)}
+{vis(parts["ankle"])}
   </link>
   <joint name="{s}_ankle_joint" type="revolute">
     <parent link="{s}_shin_link"/><child link="{s}_ankle_link"/>
-    <origin xyz="0 0 -0.32" rpy="0 0 0"/><axis xyz="1 0 0"/>
+    <origin xyz="0 0 -0.340" rpy="0 0 0"/><axis xyz="1 0 0"/>
     <limit lower="-0.52" upper="0.52" effort="1000" velocity="1"/>
   </joint>
   <link name="{s}_foot_roll_link">
-{_mesh_visual("leg_foot.stl", "0.045 0 -0.012", "0 0 0", "base", scale)}
+{vis(parts["foot"])}
   </link>
   <joint name="{s}_foot_roll_joint" type="revolute">
     <parent link="{s}_ankle_link"/><child link="{s}_foot_roll_link"/>
-    <origin xyz="0 0 -0.022" rpy="0 0 0"/><axis xyz="0 0 1"/>
+    <origin xyz="0 0 -0.070" rpy="0 0 0"/><axis xyz="0 0 1"/>
     <limit lower="-0.44" upper="0.44" effort="1000" velocity="1"/>
   </joint>"""
 
 
 def pelvis_block() -> str:
-    return """
-  <!-- Pelvis hub — legs attach here (below mid_stomach) -->
-  <link name="pelvis_link">
-    <visual>
+    if _use_official_legs():
+        visuals = "\n".join(
+            [
+                _mesh_visual("StomSupportLeftV1.stl", "0.06 0.08 -0.02", "0 0 0", "grey"),
+                _mesh_visual("StomSupportRightV1.stl", "0.06 -0.08 -0.02", "0 0 0", "grey"),
+                _mesh_visual("TStoLowLeftV1.stl", "-0.04 0.09 -0.05", LEG_RPY, "grey"),
+                _mesh_visual("TStoLowRightV1.stl", "-0.04 -0.09 -0.05", LEG_RPY, "grey"),
+            ]
+        )
+    else:
+        visuals = """    <visual>
       <origin xyz="0 0 -0.03" rpy="0 0 0"/>
       <geometry><box size="0.22 0.20 0.08"/></geometry>
       <material name="grey"/>
-    </visual>
+    </visual>"""
+    return f"""
+  <!-- Pelvis — official StomSupport + TStoLow (inmoov.fr Low-Stomach) -->
+  <link name="pelvis_link">
+{visuals}
   </link>
   <joint name="pelvis_fixed_joint" type="fixed">
     <parent link="mid_stomach_link"/><child link="pelvis_link"/>
@@ -289,10 +367,15 @@ def add_legs(text: str) -> str:
 
 
 def ensure_leg_meshes() -> None:
-    marker = ROOT / "models" / "inmoov" / "meshes" / "leg_hip.stl"
-    if marker.exists() and marker.stat().st_size > 500:
+    official = ROOT / "models" / "inmoov" / "meshes" / "ThighHighLeftV1.stl"
+    if official.exists() and official.stat().st_size > 500:
         return
-    print("Generating leg STL meshes...")
+    print("Downloading official InMoov leg STLs from inmoov.fr...")
+    import_script = ROOT / "scripts" / "import_official_leg_stls.py"
+    result = subprocess.run([sys.executable, str(import_script)], check=False)
+    if official.exists() and official.stat().st_size > 500:
+        return
+    print("Official download incomplete — generating procedural fallback meshes...")
     subprocess.run([sys.executable, str(ROOT / "scripts" / "generate_inmoov_leg_meshes.py")], check=True)
 
 

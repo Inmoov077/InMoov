@@ -86,15 +86,43 @@ function classifyByLink(linkName: string): THREE.MeshStandardMaterial {
     n.includes('thigh') ||
     n.includes('knee') ||
     n.includes('ankle') ||
+    n.includes('tibia') ||
     n.includes('leg_hip') ||
     n.includes('leg_thigh') ||
     n.includes('leg_knee') ||
-    n.includes('leg_ankle')
+    n.includes('leg_ankle') ||
+    n.includes('thighhigh') ||
+    n.includes('thighmid') ||
+    n.includes('thighlow') ||
+    n.includes('kneehigh') ||
+    n.includes('kneelow') ||
+    n.includes('legholder') ||
+    n.includes('legfixer') ||
+    n.includes('ankpart') ||
+    n.includes('anklebase') ||
+    n.includes('ankledown') ||
+    n.includes('stomsupport') ||
+    n.includes('tstolow')
   ) {
     return cached('grey', () => mat(PALETTE.grey));
   }
-  if (n.includes('shin') || n.includes('leg_shin')) {
+  if (
+    n.includes('shin') ||
+    n.includes('leg_shin') ||
+    n.includes('tibialow') ||
+    n.includes('thighside') ||
+    n.includes('kneeclamp') ||
+    n.includes('ankholder')
+  ) {
     return cached('cover', () => mat(PALETTE.cover));
+  }
+  if (
+    n.includes('ankfoot') ||
+    n.includes('anktoes') ||
+    n.includes('ankback') ||
+    n.includes('ankmidle')
+  ) {
+    return cached('base', () => mat(PALETTE.base));
   }
   if (n.includes('tilt_link') || n.includes('shoulder_base') || n.includes('virtual')) {
     return cached('joint', () => mat(PALETTE.joint));

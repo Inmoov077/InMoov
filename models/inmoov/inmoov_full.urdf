@@ -1466,11 +1466,26 @@
     <child link="l_hand_link"/>
   </joint>
 
-  <!-- Pelvis hub — legs attach here (below mid_stomach) -->
+  <!-- Pelvis — official StomSupport + TStoLow (inmoov.fr Low-Stomach) -->
   <link name="pelvis_link">
     <visual>
-      <origin xyz="0 0 -0.03" rpy="0 0 0"/>
-      <geometry><box size="0.22 0.20 0.08"/></geometry>
+      <origin xyz="0.06 0.08 -0.02" rpy="0 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/StomSupportLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0.06 -0.08 -0.02" rpy="0 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/StomSupportRightV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="-0.04 0.09 -0.05" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/TStoLowLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="-0.04 -0.09 -0.05" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/TStoLowRightV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
     </visual>
   </link>
@@ -1479,11 +1494,21 @@
     <origin xyz="0 0 -0.04" rpy="0 0 0"/>
   </joint>
 
-  <!-- L leg — hip 92mm spacing, joint origins match STL mm geometry -->
+  <!-- L leg — official InMoov STL segments -->
   <link name="l_hip_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_hip.stl" scale="0.001 0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LegHolderLeft.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighHighTempLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LegFixerLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
     </visual>
   </link>
@@ -1494,32 +1519,46 @@
   </joint>
   <link name="l_thigh_link">
     <visual>
-      <origin xyz="0 0 -0.18" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_thigh.stl" scale="0.001 0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighHighLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.1210" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighMidLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.2410" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighLowLeftV3.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.1200" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighSideAccessLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
     </visual>
   </link>
   <joint name="l_hip_lift_joint" type="revolute">
     <parent link="l_hip_link"/><child link="l_thigh_link"/>
-    <origin xyz="0 0 -0.048" rpy="0 0 0"/><axis xyz="1 0 0"/>
+    <origin xyz="0 0 -0.130" rpy="0 0 0"/><axis xyz="1 0 0"/>
     <limit lower="-1.2" upper="1.2" effort="1000" velocity="1"/>
-  </joint>
-  <link name="l_thigh_cover_link">
-    <visual>
-      <origin xyz="0 0 -0.18" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_thigh_cover.stl" scale="0.001 0.001 0.001"/></geometry>
-      <material name="cover"/>
-    </visual>
-  </link>
-  <joint name="l_thigh_cover_joint" type="fixed">
-    <parent link="l_thigh_link"/><child link="l_thigh_cover_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
   <link name="l_knee_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_knee.stl" scale="0.001 0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/KneeHighLeftV3.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0780" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/KneeLowLeftV3.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0400" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/KneeClampLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
     </visual>
   </link>
   <joint name="l_knee_joint" type="revolute">
@@ -1529,55 +1568,89 @@
   </joint>
   <link name="l_shin_link">
     <visual>
-      <origin xyz="0 0 -0.16" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_shin.stl" scale="0.001 0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/TibiaHighLeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.1340" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/TibiaLowS1LeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.2560" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/TibiaLowS2LeftV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="cover"/>
     </visual>
   </link>
   <joint name="l_shin_attach_joint" type="fixed">
     <parent link="l_knee_link"/><child link="l_shin_link"/>
-    <origin xyz="0 0 -0.028" rpy="0 0 0"/>
-  </joint>
-  <link name="l_shin_cover_link">
-    <visual>
-      <origin xyz="0 0 -0.16" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_shin_cover.stl" scale="0.001 0.001 0.001"/></geometry>
-      <material name="cover"/>
-    </visual>
-  </link>
-  <joint name="l_shin_cover_joint" type="fixed">
-    <parent link="l_shin_link"/><child link="l_shin_cover_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.095" rpy="0 0 0"/>
   </joint>
   <link name="l_ankle_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_ankle.stl" scale="0.001 0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/leftAnkleBaseV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0340" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LeftAnkleDownV2.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0500" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LeftAnkpartV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0600" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LeftAnkHolderV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
     </visual>
   </link>
   <joint name="l_ankle_joint" type="revolute">
     <parent link="l_shin_link"/><child link="l_ankle_link"/>
-    <origin xyz="0 0 -0.32" rpy="0 0 0"/><axis xyz="1 0 0"/>
+    <origin xyz="0 0 -0.340" rpy="0 0 0"/><axis xyz="1 0 0"/>
     <limit lower="-0.52" upper="0.52" effort="1000" velocity="1"/>
   </joint>
   <link name="l_foot_roll_link">
     <visual>
-      <origin xyz="0.045 0 -0.012" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_foot.stl" scale="0.001 0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LeftAnkMidleFootV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="base"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0200" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LeftAnkToesFootV2.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="base"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0100" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LeftAnkBackFootV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="base"/>
     </visual>
   </link>
   <joint name="l_foot_roll_joint" type="revolute">
     <parent link="l_ankle_link"/><child link="l_foot_roll_link"/>
-    <origin xyz="0 0 -0.022" rpy="0 0 0"/><axis xyz="0 0 1"/>
+    <origin xyz="0 0 -0.070" rpy="0 0 0"/><axis xyz="0 0 1"/>
     <limit lower="-0.44" upper="0.44" effort="1000" velocity="1"/>
   </joint>
-  <!-- R leg — hip 92mm spacing, joint origins match STL mm geometry -->
+  <!-- R leg — official InMoov STL segments -->
   <link name="r_hip_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_hip.stl" scale="0.001 -0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LegHolderRight.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighHighTempV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/LegFixerV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
     </visual>
   </link>
@@ -1588,32 +1661,46 @@
   </joint>
   <link name="r_thigh_link">
     <visual>
-      <origin xyz="0 0 -0.18" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_thigh.stl" scale="0.001 -0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighHighRightV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.1210" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighMidRightV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.2410" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighLowRightV3.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.1200" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/ThighSideAccessRightV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
     </visual>
   </link>
   <joint name="r_hip_lift_joint" type="revolute">
     <parent link="r_hip_link"/><child link="r_thigh_link"/>
-    <origin xyz="0 0 -0.048" rpy="0 0 0"/><axis xyz="1 0 0"/>
+    <origin xyz="0 0 -0.130" rpy="0 0 0"/><axis xyz="1 0 0"/>
     <limit lower="-1.2" upper="1.2" effort="1000" velocity="1"/>
-  </joint>
-  <link name="r_thigh_cover_link">
-    <visual>
-      <origin xyz="0 0 -0.18" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_thigh_cover.stl" scale="0.001 -0.001 0.001"/></geometry>
-      <material name="cover"/>
-    </visual>
-  </link>
-  <joint name="r_thigh_cover_joint" type="fixed">
-    <parent link="r_thigh_link"/><child link="r_thigh_cover_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
   <link name="r_knee_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_knee.stl" scale="0.001 -0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/KneeHighRightV3.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0780" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/KneeLowRightV3.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0400" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/KneeClampRightV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
     </visual>
   </link>
   <joint name="r_knee_joint" type="revolute">
@@ -1623,48 +1710,72 @@
   </joint>
   <link name="r_shin_link">
     <visual>
-      <origin xyz="0 0 -0.16" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_shin.stl" scale="0.001 -0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/TibiaHighRightV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.1340" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/TibiaLowS1RightV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.2560" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/TibiaLowS2RightV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="cover"/>
     </visual>
   </link>
   <joint name="r_shin_attach_joint" type="fixed">
     <parent link="r_knee_link"/><child link="r_shin_link"/>
-    <origin xyz="0 0 -0.028" rpy="0 0 0"/>
-  </joint>
-  <link name="r_shin_cover_link">
-    <visual>
-      <origin xyz="0 0 -0.16" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_shin_cover.stl" scale="0.001 -0.001 0.001"/></geometry>
-      <material name="cover"/>
-    </visual>
-  </link>
-  <joint name="r_shin_cover_joint" type="fixed">
-    <parent link="r_shin_link"/><child link="r_shin_cover_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 -0.095" rpy="0 0 0"/>
   </joint>
   <link name="r_ankle_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_ankle.stl" scale="0.001 -0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/AnkleBaseV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0340" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/AnkleDownV2.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0500" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/AnkpartV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0600" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/AnkHolderV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="cover"/>
     </visual>
   </link>
   <joint name="r_ankle_joint" type="revolute">
     <parent link="r_shin_link"/><child link="r_ankle_link"/>
-    <origin xyz="0 0 -0.32" rpy="0 0 0"/><axis xyz="1 0 0"/>
+    <origin xyz="0 0 -0.340" rpy="0 0 0"/><axis xyz="1 0 0"/>
     <limit lower="-0.52" upper="0.52" effort="1000" velocity="1"/>
   </joint>
   <link name="r_foot_roll_link">
     <visual>
-      <origin xyz="0.045 0 -0.012" rpy="0 0 0"/>
-      <geometry><mesh filename="package://inmoov_meshes/meshes/leg_foot.stl" scale="0.001 -0.001 0.001"/></geometry>
+      <origin xyz="0 0 -0.0000" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/AnkMidleFootV1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="base"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0200" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/AnkToesFootV2.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="base"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.0100" rpy="3.14159 0 0"/>
+      <geometry><mesh filename="package://inmoov_meshes/meshes/AnkBackFootV1.stl" scale="0.001 0.001 0.001"/></geometry>
       <material name="base"/>
     </visual>
   </link>
   <joint name="r_foot_roll_joint" type="revolute">
     <parent link="r_ankle_link"/><child link="r_foot_roll_link"/>
-    <origin xyz="0 0 -0.022" rpy="0 0 0"/><axis xyz="0 0 1"/>
+    <origin xyz="0 0 -0.070" rpy="0 0 0"/><axis xyz="0 0 1"/>
     <limit lower="-0.44" upper="0.44" effort="1000" velocity="1"/>
   </joint>
 </robot>

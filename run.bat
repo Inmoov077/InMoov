@@ -8,7 +8,8 @@ if not exist "models\inmoov\meshes\l_thumb5_1.stl" (
   echo Downloading official InMoov meshes from MyRobotLab/inmoov_ros...
   python scripts\download_inmoov_meshes.py
 )
-echo Generating leg meshes + compiling full URDF...
+echo Downloading official InMoov legs + compiling full URDF...
+python scripts\import_official_leg_stls.py
 python scripts\compile_inmoov_ros_urdf.py
 
 if not exist "frontend\node_modules\" (
