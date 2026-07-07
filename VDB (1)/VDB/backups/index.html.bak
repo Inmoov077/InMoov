@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InMoov Upper Body — Dashboard</title>
+  <meta name="description" content="Control dashboard for InMoov humanoid robot upper body with 10 movement patterns">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════ HEADER ═══════════════════ -->
+  <header id="app-header">
+    <div class="header-left">
+      <div class="logo-icon">🤖</div>
+      <div class="header-titles">
+        <h1>InMoov Upper Body</h1>
+        <span class="subtitle">Movement Controller Dashboard</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="connection-badge" class="badge badge-disconnected">
+        <span class="badge-dot"></span>
+        <span id="connection-text">Disconnected</span>
+      </div>
+      <button id="btn-connect" class="btn btn-primary" onclick="toggleConnection()">
+        <span class="btn-icon">⚡</span> Connect
+      </button>
+      <button class="btn btn-secondary" onclick="togglePinConfig()" title="Pin Configuration">
+        <span class="btn-icon">⚙️</span> Pins
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ MAIN GRID ═══════════════════ -->
+  <main id="dashboard">
+
+    <!-- ─── LEFT: ARM VISUALIZATION ─── -->
+    <section id="arm-visual-section" class="card">
+      <div class="card-header">
+        <span class="card-icon">🦾</span>
+        <span class="card-title">Body Preview</span>
+      </div>
+      <div id="arm-canvas">
+        <svg id="arm-svg" viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg">
+          <!-- Torso -->
+          <rect x="145" y="50" width="110" height="140" rx="20" fill="rgba(56,189,248,0.05)" stroke="rgba(56,189,248,0.2)" stroke-width="1.5"/>
+          <text x="200" y="130" text-anchor="middle" fill="rgba(148,163,184,0.5)" font-size="9" font-family="Inter">TORSO</text>
+
+          <!-- ═══ RIGHT ARM ═══ -->
+          <g id="svg-r-shoulder-group" style="transform-origin: 145px 80px;">
+            <circle cx="145" cy="80" r="12" class="joint-circle" id="svg-joint-r_shoulder"/>
+            <text x="145" y="64" text-anchor="middle" class="joint-label">R.Shoulder</text>
+
+            <!-- Upper arm -->
+            <rect id="svg-r-upper-arm" x="129" y="92" width="14" height="85" rx="7" class="bone"/>
+
+            <!-- Omoplate -->
+            <circle cx="122" cy="80" r="5" class="joint-circle-sm" id="svg-joint-r_omoplate"/>
+            <text x="106" y="83" text-anchor="middle" class="joint-label-sm">Omo</text>
+
+            <!-- Rotate indicator -->
+            <circle cx="130" cy="130" r="3" class="joint-circle-sm" id="svg-joint-r_rotate"/>
+
+            <!-- Elbow -->
+            <g id="svg-r-bicep-group" style="transform-origin: 136px 177px;">
+              <circle cx="136" cy="177" r="9" class="joint-circle" id="svg-joint-r_bicep"/>
+              <text x="115" y="180" class="joint-label">Elbow</text>
+
+              <!-- Forearm -->
+              <rect id="svg-r-forearm" x="130" y="186" width="12" height="75" rx="6" class="bone"/>
+
+              <!-- Wrist -->
+              <g id="svg-r-wrist-group" style="transform-origin: 136px 261px;">
+                <circle cx="136" cy="261" r="7" class="joint-circle" id="svg-joint-r_wrist"/>
+
+                <!-- Hand -->
+                <rect x="124" y="268" width="24" height="18" rx="4" class="bone" style="opacity:0.7"/>
+
+                <!-- Fingers -->
+                <g id="svg-r-fingers-group">
+                  <rect x="122" y="286" width="4" height="18" rx="2" class="finger" id="svg-finger-r_thumb"/>
+                  <rect x="127" y="286" width="3.5" height="22" rx="1.75" class="finger" id="svg-finger-r_index"/>
+                  <rect x="132" y="286" width="3.5" height="24" rx="1.75" class="finger" id="svg-finger-r_middle"/>
+                  <rect x="137" y="286" width="3.5" height="22" rx="1.75" class="finger" id="svg-finger-r_ring"/>
+                  <rect x="142" y="286" width="3.5" height="18" rx="1.75" class="finger" id="svg-finger-r_pinky"/>
+                </g>
+
+                <!-- Flag -->
+                <g id="svg-flag-group">
+                  <line x1="136" y1="265" x2="136" y2="195" stroke="rgba(148,163,184,0.4)" stroke-width="2" stroke-linecap="round" id="svg-flagpole"/>
+                  <path id="svg-flag-cloth" d="M136,200 Q155,210 140,220 Q160,230 136,240" fill="rgba(255,153,51,0.5)" stroke="rgba(255,153,51,0.7)" stroke-width="1"/>
+                </g>
+              </g>
+            </g>
+          </g>
+
+          <!-- ═══ LEFT ARM ═══ -->
+          <g id="svg-l-shoulder-group" style="transform-origin: 255px 80px;">
+            <circle cx="255" cy="80" r="12" class="joint-circle joint-left" id="svg-joint-l_shoulder"/>
+            <text x="255" y="64" text-anchor="middle" class="joint-label">L.Shoulder</text>
+
+            <!-- Upper arm -->
+            <rect id="svg-l-upper-arm" x="257" y="92" width="14" height="85" rx="7" class="bone bone-left"/>
+
+            <!-- Omoplate -->
+            <circle cx="278" cy="80" r="5" class="joint-circle-sm joint-left-sm" id="svg-joint-l_omoplate"/>
+            <text x="294" y="83" text-anchor="middle" class="joint-label-sm">Omo</text>
+
+            <!-- Rotate indicator -->
+            <circle cx="270" cy="130" r="3" class="joint-circle-sm joint-left-sm" id="svg-joint-l_rotate"/>
+
+            <!-- Elbow -->
+            <g id="svg-l-bicep-group" style="transform-origin: 264px 177px;">
+              <circle cx="264" cy="177" r="9" class="joint-circle joint-left" id="svg-joint-l_bicep"/>
+              <text x="285" y="180" class="joint-label">Elbow</text>
+
+              <!-- Forearm -->
+              <rect id="svg-l-forearm" x="258" y="186" width="12" height="75" rx="6" class="bone bone-left"/>
+
+              <!-- Wrist -->
+              <g id="svg-l-wrist-group" style="transform-origin: 264px 261px;">
+                <circle cx="264" cy="261" r="7" class="joint-circle joint-left" id="svg-joint-l_wrist"/>
+
+                <!-- Hand -->
+                <rect x="252" y="268" width="24" height="18" rx="4" class="bone bone-left" style="opacity:0.7"/>
+
+                <!-- Fingers -->
+                <g id="svg-l-fingers-group">
+                  <rect x="254" y="286" width="3.5" height="18" rx="1.75" class="finger finger-left" id="svg-finger-l_thumb"/>
+                  <rect x="258.5" y="286" width="3.5" height="22" rx="1.75" class="finger finger-left" id="svg-finger-l_index"/>
+                  <rect x="263" y="286" width="3.5" height="24" rx="1.75" class="finger finger-left" id="svg-finger-l_middle"/>
+                  <rect x="267.5" y="286" width="3.5" height="22" rx="1.75" class="finger finger-left" id="svg-finger-l_ring"/>
+                  <rect x="272" y="286" width="3.5" height="18" rx="1.75" class="finger finger-left" id="svg-finger-l_pinky"/>
+                </g>
+              </g>
+            </g>
+          </g>
+
+          <!-- Angle readouts -->
+          <g id="svg-readouts">
+            <text x="10" y="400" class="readout-label">Right Arm</text>
+            <text x="10" y="415" class="readout" id="svg-r-sh">SH:30°</text>
+            <text x="10" y="428" class="readout" id="svg-r-bi">BI:5°</text>
+            <text x="10" y="441" class="readout" id="svg-r-wr">WR:90°</text>
+            <text x="10" y="454" class="readout" id="svg-r-gr">GRIP:0%</text>
+
+            <text x="310" y="400" class="readout-label">Left Arm</text>
+            <text x="310" y="415" class="readout" id="svg-l-sh">SH:30°</text>
+            <text x="310" y="428" class="readout" id="svg-l-bi">BI:5°</text>
+            <text x="310" y="441" class="readout" id="svg-l-wr">WR:90°</text>
+            <text x="310" y="454" class="readout" id="svg-l-gr">GRIP:0%</text>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ─── CENTER: CONTROLS ─── -->
+    <section id="center-controls">
+
+      <!-- Body Part Toggles -->
+      <div class="card" id="toggles-card">
+        <div class="card-header">
+          <span class="card-icon">🎛️</span>
+          <span class="card-title">Body Parts</span>
+        </div>
+        <div class="card-body toggle-grid">
+          <label class="toggle-item">
+            <input type="checkbox" id="toggle-r_arm" checked onchange="togglePart('r_arm', this.checked)">
+            <span class="toggle-switch"></span>
+            <span class="toggle-label">Right Arm</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" id="toggle-r_hand" checked onchange="togglePart('r_hand', this.checked)">
+            <span class="toggle-switch"></span>
+            <span class="toggle-label">Right Hand</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" id="toggle-l_arm" checked onchange="togglePart('l_arm', this.checked)">
+            <span class="toggle-switch"></span>
+            <span class="toggle-label">Left Arm</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" id="toggle-l_hand" checked onchange="togglePart('l_hand', this.checked)">
+            <span class="toggle-switch"></span>
+            <span class="toggle-label">Left Hand</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Wave Control Card -->
+      <div class="card card-accent" id="wave-card">
+        <div class="card-header">
+          <span class="card-icon">🏁</span>
+          <span class="card-title">Movement Patterns</span>
+          <span id="wave-status-badge" class="badge badge-idle">Idle</span>
+        </div>
+        <div class="card-body">
+          <!-- Pattern Selector -->
+          <div class="control-group">
+            <label class="control-label">Pattern</label>
+            <div class="pattern-grid" id="pattern-grid">
+              <button class="pattern-btn active" data-pattern="gentle" onclick="selectPattern(this)">
+                <span class="pattern-icon">🌊</span>
+                <span class="pattern-name">Gentle</span>
+              </button>
+              <button class="pattern-btn" data-pattern="vigorous" onclick="selectPattern(this)">
+                <span class="pattern-icon">💪</span>
+                <span class="pattern-name">Vigorous</span>
+              </button>
+              <button class="pattern-btn" data-pattern="sideway" onclick="selectPattern(this)">
+                <span class="pattern-icon">↔️</span>
+                <span class="pattern-name">Side-to-Side</span>
+              </button>
+              <button class="pattern-btn" data-pattern="figure8" onclick="selectPattern(this)">
+                <span class="pattern-icon">∞</span>
+                <span class="pattern-name">Figure-8</span>
+              </button>
+              <button class="pattern-btn" data-pattern="greeting" onclick="selectPattern(this)">
+                <span class="pattern-icon">👋</span>
+                <span class="pattern-name">Greeting</span>
+              </button>
+              <button class="pattern-btn" data-pattern="salute" onclick="selectPattern(this)">
+                <span class="pattern-icon">🫡</span>
+                <span class="pattern-name">Salute</span>
+              </button>
+              <button class="pattern-btn" data-pattern="pride" onclick="selectPattern(this)">
+                <span class="pattern-icon">🇮🇳</span>
+                <span class="pattern-name">Pride</span>
+              </button>
+              <button class="pattern-btn" data-pattern="celebrate" onclick="selectPattern(this)">
+                <span class="pattern-icon">🎉</span>
+                <span class="pattern-name">Celebrate</span>
+              </button>
+              <button class="pattern-btn" data-pattern="drstrange" onclick="selectPattern(this)">
+                <span class="pattern-icon">🔮</span>
+                <span class="pattern-name">Dr. Strange</span>
+              </button>
+              <button class="pattern-btn" data-pattern="gunshoot" onclick="selectPattern(this)">
+                <span class="pattern-icon">🔫</span>
+                <span class="pattern-name">Gun Shoot</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Speed -->
+          <div class="control-group">
+            <label class="control-label">Speed <span id="speed-val" class="val-badge">50%</span></label>
+            <input type="range" id="wave-speed" class="slider slider-cyan" min="1" max="100" value="50" oninput="updateWaveParam()">
+          </div>
+
+          <!-- Amplitude -->
+          <div class="control-group">
+            <label class="control-label">Power <span id="amp-val" class="val-badge">50%</span></label>
+            <input type="range" id="wave-amplitude" class="slider slider-cyan" min="1" max="100" value="50" oninput="updateWaveParam()">
+          </div>
+
+          <!-- Wave Buttons -->
+          <div class="button-row">
+            <button id="btn-wave" class="btn btn-wave" onclick="startWave()">
+              <span class="btn-icon">▶</span> Start
+            </button>
+            <button id="btn-stop-wave" class="btn btn-secondary" onclick="stopWave()">
+              <span class="btn-icon">⏹</span> Stop
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card" id="actions-card">
+        <div class="card-header">
+          <span class="card-icon">⚡</span>
+          <span class="card-title">Quick Actions</span>
+        </div>
+        <div class="card-body">
+          <!-- Grip -->
+          <div class="control-group">
+            <label class="control-label">Right Grip <span id="grip-r-val" class="val-badge">0%</span></label>
+            <input type="range" id="grip-r-slider" class="slider slider-amber" min="0" max="100" value="0" oninput="updateGrip('right')">
+          </div>
+          <div class="control-group">
+            <label class="control-label">Left Grip <span id="grip-l-val" class="val-badge">0%</span></label>
+            <input type="range" id="grip-l-slider" class="slider slider-amber" min="0" max="100" value="0" oninput="updateGrip('left')">
+          </div>
+          <div class="button-row">
+            <button class="btn btn-home" onclick="goHome()">
+              <span class="btn-icon">🏠</span> Home Position
+            </button>
+          </div>
+          <button id="btn-estop" class="btn btn-estop" onclick="emergencyStop()">
+            🔴 EMERGENCY STOP
+          </button>
+        </div>
+      </div>
+
+      <!-- Serial Log -->
+      <div class="card card-compact" id="log-card">
+        <div class="card-header">
+          <span class="card-icon">📡</span>
+          <span class="card-title">Serial Monitor</span>
+          <button class="btn-icon-sm" onclick="clearLog()" title="Clear log">✕</button>
+        </div>
+        <div id="serial-log" class="serial-log">
+          <div class="log-entry log-system">Waiting for connection...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── RIGHT: SERVO SLIDERS ─── -->
+    <section id="servo-controls">
+
+      <!-- Right Arm Joints -->
+      <div class="card" id="r-arm-card">
+        <div class="card-header">
+          <span class="card-icon">💪</span>
+          <span class="card-title">Right Arm</span>
+          <span class="card-tag">DS5160 · 60kg</span>
+        </div>
+        <div class="card-body">
+          <div class="servo-slider" id="slider-r_shoulder">
+            <div class="servo-header">
+              <span class="servo-name">Shoulder</span>
+              <span class="servo-info">Pin <span class="pin-display" id="pin-r_shoulder">23</span> · <span class="servo-angle" id="angle-r_shoulder">30°</span></span>
+            </div>
+            <div class="slider-track-wrapper">
+              <span class="slider-limit">0°</span>
+              <input type="range" class="slider slider-blue" data-servo="r_shoulder" min="0" max="150" value="30" oninput="moveServo(this)">
+              <span class="slider-limit">150°</span>
+            </div>
+          </div>
+          <div class="servo-slider" id="slider-r_omoplate">
+            <div class="servo-header">
+              <span class="servo-name">Omoplate</span>
+              <span class="servo-info">Pin <span class="pin-display" id="pin-r_omoplate">25</span> · <span class="servo-angle" id="angle-r_omoplate">10°</span></span>
+            </div>
+            <div class="slider-track-wrapper">
+              <span class="slider-limit">10°</span>
+              <input type="range" class="slider slider-blue" data-servo="r_omoplate" min="10" max="70" value="10" oninput="moveServo(this)">
+              <span class="slider-limit">70°</span>
+            </div>
+          </div>
+          <div class="servo-slider" id="slider-r_bicep">
+            <div class="servo-header">
+              <span class="servo-name">Bicep / Elbow</span>
+              <span class="servo-info">Pin <span class="pin-display" id="pin-r_bicep">27</span> · <span class="servo-angle" id="angle-r_bicep">5°</span></span>
+            </div>
+            <div class="slider-track-wrapper">
+              <span class="slider-limit">0°</span>
+              <input type="range" class="slider slider-blue" data-servo="r_bicep" min="0" max="85" value="5" oninput="moveServo(this)">
+              <span class="slider-limit">85°</span>
+            </div>
+          </div>
+          <div class="servo-slider" id="slider-r_rotate">
+            <div class="servo-header">
+              <span class="servo-name">Rotate</span>
+              <span class="servo-info">Pin <span class="pin-display" id="pin-r_rotate">29</span> · <span class="servo-angle" id="angle-r_rotate">90°</span></span>
+            </div>
+            <div class="slider-track-wrapper">
+              <span class="slider-limit">40°</span>
+              <input type="range" class="slider slider-blue" data-servo="r_rotate" min="40" max="150" value="90" oninput="moveServo(this)">
+              <span class="slider-limit">150°</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Hand -->
+      <div class="card" id="r-hand-card">
+        <div class="card-header">
+          <span class="card-icon">🤚</span>
+          <span class="card-title">Right Hand</span>
+          <span class="card-tag">MG996R · PCA9685</span>
+        </div>
+        <div class="card-body" id="r-hand-sliders">
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Thumb</span><span class="servo-info">Ch <span class="pin-display" id="pin-r_thumb">0</span> · <span class="servo-angle" id="angle-r_thumb">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="r_thumb" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Index</span><span class="servo-info">Ch <span class="pin-display" id="pin-r_index">1</span> · <span class="servo-angle" id="angle-r_index">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="r_index" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Middle</span><span class="servo-info">Ch <span class="pin-display" id="pin-r_middle">2</span> · <span class="servo-angle" id="angle-r_middle">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="r_middle" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Ring</span><span class="servo-info">Ch <span class="pin-display" id="pin-r_ring">3</span> · <span class="servo-angle" id="angle-r_ring">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="r_ring" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Pinky</span><span class="servo-info">Ch <span class="pin-display" id="pin-r_pinky">4</span> · <span class="servo-angle" id="angle-r_pinky">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="r_pinky" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider servo-slider-accent"><div class="servo-header"><span class="servo-name">Wrist</span><span class="servo-info">Ch <span class="pin-display" id="pin-r_wrist">5</span> · <span class="servo-angle" id="angle-r_wrist">90°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-purple" data-servo="r_wrist" min="10" max="160" value="90" oninput="moveServo(this)"><span class="slider-limit">160°</span></div></div>
+        </div>
+      </div>
+
+      <!-- Left Arm Joints -->
+      <div class="card" id="l-arm-card">
+        <div class="card-header">
+          <span class="card-icon">💪</span>
+          <span class="card-title">Left Arm</span>
+          <span class="card-tag">DS5160 · 60kg</span>
+        </div>
+        <div class="card-body">
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Shoulder</span><span class="servo-info">Pin <span class="pin-display" id="pin-l_shoulder">22</span> · <span class="servo-angle" id="angle-l_shoulder">30°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">0°</span><input type="range" class="slider slider-blue" data-servo="l_shoulder" min="0" max="150" value="30" oninput="moveServo(this)"><span class="slider-limit">150°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Omoplate</span><span class="servo-info">Pin <span class="pin-display" id="pin-l_omoplate">24</span> · <span class="servo-angle" id="angle-l_omoplate">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-blue" data-servo="l_omoplate" min="10" max="70" value="10" oninput="moveServo(this)"><span class="slider-limit">70°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Bicep / Elbow</span><span class="servo-info">Pin <span class="pin-display" id="pin-l_bicep">26</span> · <span class="servo-angle" id="angle-l_bicep">5°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">0°</span><input type="range" class="slider slider-blue" data-servo="l_bicep" min="0" max="85" value="5" oninput="moveServo(this)"><span class="slider-limit">85°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Rotate</span><span class="servo-info">Pin <span class="pin-display" id="pin-l_rotate">28</span> · <span class="servo-angle" id="angle-l_rotate">90°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">40°</span><input type="range" class="slider slider-blue" data-servo="l_rotate" min="40" max="150" value="90" oninput="moveServo(this)"><span class="slider-limit">150°</span></div></div>
+        </div>
+      </div>
+
+      <!-- Left Hand -->
+      <div class="card" id="l-hand-card">
+        <div class="card-header">
+          <span class="card-icon">🤚</span>
+          <span class="card-title">Left Hand</span>
+          <span class="card-tag">MG996R · PCA9685</span>
+        </div>
+        <div class="card-body" id="l-hand-sliders">
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Thumb</span><span class="servo-info">Ch <span class="pin-display" id="pin-l_thumb">6</span> · <span class="servo-angle" id="angle-l_thumb">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="l_thumb" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Index</span><span class="servo-info">Ch <span class="pin-display" id="pin-l_index">7</span> · <span class="servo-angle" id="angle-l_index">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="l_index" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Middle</span><span class="servo-info">Ch <span class="pin-display" id="pin-l_middle">8</span> · <span class="servo-angle" id="angle-l_middle">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="l_middle" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Ring</span><span class="servo-info">Ch <span class="pin-display" id="pin-l_ring">9</span> · <span class="servo-angle" id="angle-l_ring">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="l_ring" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider"><div class="servo-header"><span class="servo-name">Pinky</span><span class="servo-info">Ch <span class="pin-display" id="pin-l_pinky">10</span> · <span class="servo-angle" id="angle-l_pinky">10°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-green" data-servo="l_pinky" min="10" max="130" value="10" oninput="moveServo(this)"><span class="slider-limit">130°</span></div></div>
+          <div class="servo-slider servo-slider-accent"><div class="servo-header"><span class="servo-name">Wrist</span><span class="servo-info">Ch <span class="pin-display" id="pin-l_wrist">11</span> · <span class="servo-angle" id="angle-l_wrist">90°</span></span></div><div class="slider-track-wrapper"><span class="slider-limit">10°</span><input type="range" class="slider slider-purple" data-servo="l_wrist" min="10" max="160" value="90" oninput="moveServo(this)"><span class="slider-limit">160°</span></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════════════════ PIN CONFIG MODAL ═══════════════════ -->
+  <div id="pin-config-overlay" class="modal-overlay" style="display:none;" onclick="closePinConfigOutside(event)">
+    <div class="modal-content card" id="pin-config-modal">
+      <div class="card-header">
+        <span class="card-icon">⚙️</span>
+        <span class="card-title">Pin Configuration</span>
+        <button class="btn-icon-sm" onclick="togglePinConfig()" title="Close">✕</button>
+      </div>
+      <div class="card-body pin-config-body">
+        <p class="pin-config-info">Change Arduino pin or PCA9685 channel for each servo. Changes take effect immediately.</p>
+
+        <div class="pin-config-section">
+          <h3 class="pin-section-title">Right Arm <span class="pin-section-tag">DS5160 → Digital Pins</span></h3>
+          <div class="pin-row"><label>R.Shoulder</label><input type="number" class="pin-input" data-servo="r_shoulder" value="23" min="2" max="53" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>R.Omoplate</label><input type="number" class="pin-input" data-servo="r_omoplate" value="25" min="2" max="53" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>R.Bicep</label><input type="number" class="pin-input" data-servo="r_bicep" value="27" min="2" max="53" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>R.Rotate</label><input type="number" class="pin-input" data-servo="r_rotate" value="29" min="2" max="53" onchange="setPinConfig(this)"></div>
+        </div>
+
+        <div class="pin-config-section">
+          <h3 class="pin-section-title">Right Hand <span class="pin-section-tag">MG996R → PCA9685 Channels</span></h3>
+          <div class="pin-row"><label>R.Thumb</label><input type="number" class="pin-input" data-servo="r_thumb" value="0" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>R.Index</label><input type="number" class="pin-input" data-servo="r_index" value="1" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>R.Middle</label><input type="number" class="pin-input" data-servo="r_middle" value="2" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>R.Ring</label><input type="number" class="pin-input" data-servo="r_ring" value="3" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>R.Pinky</label><input type="number" class="pin-input" data-servo="r_pinky" value="4" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>R.Wrist</label><input type="number" class="pin-input" data-servo="r_wrist" value="5" min="0" max="15" onchange="setPinConfig(this)"></div>
+        </div>
+
+        <div class="pin-config-section">
+          <h3 class="pin-section-title">Left Arm <span class="pin-section-tag">DS5160 → Digital Pins</span></h3>
+          <div class="pin-row"><label>L.Shoulder</label><input type="number" class="pin-input" data-servo="l_shoulder" value="22" min="2" max="53" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>L.Omoplate</label><input type="number" class="pin-input" data-servo="l_omoplate" value="24" min="2" max="53" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>L.Bicep</label><input type="number" class="pin-input" data-servo="l_bicep" value="26" min="2" max="53" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>L.Rotate</label><input type="number" class="pin-input" data-servo="l_rotate" value="28" min="2" max="53" onchange="setPinConfig(this)"></div>
+        </div>
+
+        <div class="pin-config-section">
+          <h3 class="pin-section-title">Left Hand <span class="pin-section-tag">MG996R → PCA9685 Channels</span></h3>
+          <div class="pin-row"><label>L.Thumb</label><input type="number" class="pin-input" data-servo="l_thumb" value="6" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>L.Index</label><input type="number" class="pin-input" data-servo="l_index" value="7" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>L.Middle</label><input type="number" class="pin-input" data-servo="l_middle" value="8" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>L.Ring</label><input type="number" class="pin-input" data-servo="l_ring" value="9" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>L.Pinky</label><input type="number" class="pin-input" data-servo="l_pinky" value="10" min="0" max="15" onchange="setPinConfig(this)"></div>
+          <div class="pin-row"><label>L.Wrist</label><input type="number" class="pin-input" data-servo="l_wrist" value="11" min="0" max="15" onchange="setPinConfig(this)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ SCRIPTS ═══════════════════ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

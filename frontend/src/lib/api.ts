@@ -129,6 +129,97 @@ export async function getConfig() {
   return res.json();
 }
 
+export async function getServoConfig() {
+  const res = await fetch('/api/servo/config');
+  return res.json();
+}
+
+export async function runFirmwarePattern(name: string) {
+  const res = await fetch('/api/servo/pattern', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ name }),
+  });
+  return res.json();
+}
+
+export async function getServoPins() {
+  const res = await fetch('/api/servo/pins');
+  return res.json();
+}
+
+export async function saveServoPins(pins: Record<string, number>, applyToFirmware = true) {
+  const res = await fetch('/api/servo/pins', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ pins, applyToFirmware }),
+  });
+  return res.json();
+}
+
+export async function setServoPin(key: string, pin: number) {
+  const res = await fetch('/api/servo/pin', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ key, pin }),
+  });
+  return res.json();
+}
+
+export async function getServoCalibration() {
+  const res = await fetch('/api/servo/calibration');
+  return res.json();
+}
+
+export async function saveServoCalibration(
+  calibration: Record<string, { min?: number; max?: number; rest?: number }>,
+  applyToFirmware = true,
+) {
+  const res = await fetch('/api/servo/calibration', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ calibration, applyToFirmware }),
+  });
+  return res.json();
+}
+
+export async function setServoLimits(key: string, limits: { min: number; max: number; rest: number }) {
+  const res = await fetch('/api/servo/limits', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ key, ...limits }),
+  });
+  return res.json();
+}
+
+export async function sendGrip(side: 'L' | 'R' | 'B', percent: number) {
+  const res = await fetch('/api/servo/grip', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ side, percent }),
+  });
+  return res.json();
+}
+
+export async function setBodyPartEnable(enabled: Record<string, boolean>) {
+  const res = await fetch('/api/servo/enable', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ enabled }),
+  });
+  return res.json();
+}
+
+export async function getWavePatterns() {
+  const res = await fetch('/api/servo/wave-patterns');
+  return res.json();
+}
+
+export async function applyVdbPinProfile() {
+  const res = await fetch('/api/servo/apply-vdb-pins', { method: 'POST' });
+  return res.json();
+}
+
 export async function getStatus() {
   const res = await fetch('/api/status');
   return res.json();

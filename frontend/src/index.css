@@ -154,6 +154,27 @@
     @apply ring-2 ring-primary/40;
     background: linear-gradient(145deg, hsla(8, 78%, 56%, 0.08), hsl(var(--card)));
   }
+
+  .camera-feed-wrap {
+    @apply relative overflow-hidden rounded-xl bg-muted;
+    aspect-ratio: 4 / 3;
+    max-height: 480px;
+  }
+
+  .camera-video,
+  .camera-overlay {
+    @apply absolute inset-0 h-full w-full object-cover;
+    transform: scaleX(-1);
+  }
+
+  .camera-video:not(.active),
+  .camera-overlay:not(.active) {
+    @apply hidden;
+  }
+
+  .camera-placeholder {
+    @apply absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/80;
+  }
 }
 
 @layer utilities {

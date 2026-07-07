@@ -801,5 +801,1559 @@
       "neckRoll": 120
     },
     "animation": "scan"
+  },
+  {
+    "inputs": [
+      "rest"
+    ],
+    "response": "Ah, relaxing.",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-rest"
+  },
+  {
+    "inputs": [
+      "open hand"
+    ],
+    "response": "Opening my hand.\n        pythonexechandopen()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-handopen"
+  },
+  {
+    "inputs": [
+      "close hand"
+    ],
+    "response": "Closing my hand.\n        pythonexechandclose()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-handclose"
+  },
+  {
+    "inputs": [
+      "close hands"
+    ],
+    "response": "Closing my hands.\n        pythonexechandsclose()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-handsclose"
+  },
+  {
+    "inputs": [
+      "open hands"
+    ],
+    "response": "Opening my hands.\n        pythonexechandsopen()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-handsopen"
+  },
+  {
+    "inputs": [
+      "giving"
+    ],
+    "response": "Giving.\n        i01execGesturegiving()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-giving"
+  },
+  {
+    "inputs": [
+      "fighter"
+    ],
+    "response": "I can pose like a boxer",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-fighter"
+  },
+  {
+    "inputs": [
+      "fist hips"
+    ],
+    "response": "Putting my fists on my hips.\n        pythonexecfistHips()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-fistHips"
+  },
+  {
+    "inputs": [
+      "look at this"
+    ],
+    "response": "What do you have there?  I'm looking.\n        pythonexeclookAtThis()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-lookAtThis"
+  },
+  {
+    "inputs": [
+      "victory"
+    ],
+    "response": "It's good to win.\n        pythonexecvictory()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-victory"
+  },
+  {
+    "inputs": [
+      "arms up"
+    ],
+    "response": "I've got my arms up.",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-armsUp"
+  },
+  {
+    "inputs": [
+      "arms front"
+    ],
+    "response": "Holding my arms in front of me.\n        pythonexecarmsFront()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-armsFront"
+  },
+  {
+    "inputs": [
+      "da vinci"
+    ],
+    "response": "This is the pose from Leonardo Da Vinci's drawings.\n        pythonexecdaVinci()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-daVinci"
+  },
+  {
+    "inputs": [
+      "grab the bottle"
+    ],
+    "response": "Let me take that bottle.\n        pythonexecgrabthebottle()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-grabthebottle"
+  },
+  {
+    "inputs": [
+      "take the glass"
+    ],
+    "response": "Give me that glass.\n        pythonexecgrabtheglass()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-grabtheglass"
+  },
+  {
+    "inputs": [
+      "poor the bottle"
+    ],
+    "response": "Here, I can pour you a drink.\n        pythonexecpoorbottle()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-poorbottle"
+  },
+  {
+    "inputs": [
+      "give the bottle"
+    ],
+    "response": "Here's the bottle.\n        pythonexecgivethebottle()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-givethebottle"
+  },
+  {
+    "inputs": [
+      "give the glass"
+    ],
+    "response": "Take the glass from me.\n        pythonexecgivetheglass()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-givetheglass"
+  },
+  {
+    "inputs": [
+      "take the ball"
+    ],
+    "response": "Taking the ball.\n        pythonexectakeball()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-takeball"
+  },
+  {
+    "inputs": [
+      "reach the ball"
+    ],
+    "response": "REACH THE BALL\n        pythonexecgetball()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-getball"
+  },
+  {
+    "inputs": [
+      "keep the ball"
+    ],
+    "response": "KEEP THE BALL\n        pythonexeckeepball()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-keepball"
+  },
+  {
+    "inputs": [
+      "approach the left hand"
+    ],
+    "response": "APPROACH THE LEFT HAND\n        pythonexecapproachlefthand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-approachlefthand"
+  },
+  {
+    "inputs": [
+      "use the left hand"
+    ],
+    "response": "USE THE LEFT HAND\n        pythonexecuselefthand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-uselefthand"
+  },
+  {
+    "inputs": [
+      "more"
+    ],
+    "response": "MORE\n        pythonexecmore()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-more"
+  },
+  {
+    "inputs": [
+      "hand down"
+    ],
+    "response": "HAND DOWN\n        pythonexechanddown()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-handdown"
+  },
+  {
+    "inputs": [
+      "what is it"
+    ],
+    "response": "Let me check.\n        pythonexecstudyball()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-studyball"
+  },
+  {
+    "inputs": [
+      "is it a ball"
+    ],
+    "response": "IS IT A BALL\n        pythonexecisitaball()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-isitaball"
+  },
+  {
+    "inputs": [
+      "put it down"
+    ],
+    "response": "Putting it down.\n        pythonexecputitdown()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-putitdown"
+  },
+  {
+    "inputs": [
+      "drop it"
+    ],
+    "response": "Dropping.\n        pythonexecdropit()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-dropit"
+  },
+  {
+    "inputs": [
+      "remove your left arm"
+    ],
+    "response": "Removing my left arm.\n        pythonexecremoveleftarm()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-removeleftarm"
+  },
+  {
+    "inputs": [
+      "# raise your arm"
+    ],
+    "response": "Raising my arm.\n        pythonexecraiserightarm()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-raiserightarm"
+  },
+  {
+    "inputs": [
+      "relax"
+    ],
+    "response": "Relax.\n        pythonexecrelax()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-relax"
+  },
+  {
+    "inputs": [
+      "perfect"
+    ],
+    "response": "Perfect.APPACCOMPLICE\n        pythonexecperfect()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-perfect"
+  },
+  {
+    "inputs": [
+      "delicate grab"
+    ],
+    "response": "Delicate grab.\n        pythonexecdelicategrab()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-delicategrab"
+  },
+  {
+    "inputs": [
+      "release delicate"
+    ],
+    "response": "Release delicate.\n        pythonexecreleasedelicate()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-releasedelicate"
+  },
+  {
+    "inputs": [
+      "open your right hand"
+    ],
+    "response": "Opening my right hand.\n        pythonexecopenrighthand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-openrighthand"
+  },
+  {
+    "inputs": [
+      "open your left hand"
+    ],
+    "response": "Opening my left hand.\n        pythonexecopenlefthand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-openlefthand"
+  },
+  {
+    "inputs": [
+      "close your right hand"
+    ],
+    "response": "Closing my right hand.\n        pythonexeccloserighthand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-closerighthand"
+  },
+  {
+    "inputs": [
+      "close your left hand"
+    ],
+    "response": "Closing my left hand.\n        pythonexeccloselefthand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-closelefthand"
+  },
+  {
+    "inputs": [
+      "slowly close your right hand"
+    ],
+    "response": "Slowly closing my right hand.\n        pythonexecslowlycloserighthand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-slowlycloserighthand"
+  },
+  {
+    "inputs": [
+      "surrender"
+    ],
+    "response": "Surrender.APPFEAR\n        pythonexecsurrender()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-surrender"
+  },
+  {
+    "inputs": [
+      "picture on the right side"
+    ],
+    "response": "Picture on the right side.\n        pythonexecpicturerightside()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-picturerightside"
+  },
+  {
+    "inputs": [
+      "picture on the left side"
+    ],
+    "response": "Picture on the left side.\n        pythonexecpictureleftside()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-pictureleftside"
+  },
+  {
+    "inputs": [
+      "picture on both sides"
+    ],
+    "response": "Picture on both sides.\n        pythonexecpicturebothside()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-picturebothside"
+  },
+  {
+    "inputs": [
+      "look on your right side"
+    ],
+    "response": "Looking on my right side.\n        pythonexeclookrightside()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-lookrightside"
+  },
+  {
+    "inputs": [
+      "look on your left side"
+    ],
+    "response": "Looking on my left side.\n        pythonexeclookleftside()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-lookleftside"
+  },
+  {
+    "inputs": [
+      "tilt your head on the right side"
+    ],
+    "response": "Tilting my head to the right.\n        pythonexectiltHeadRightSide()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-tiltHeadRightSide"
+  },
+  {
+    "inputs": [
+      "tilt your head on the left side"
+    ],
+    "response": "Tilting my head to the left.\n        pythonexectiltHeadLeftSide()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-tiltHeadLeftSide"
+  },
+  {
+    "inputs": [
+      "before happy"
+    ],
+    "response": "BEFORE HAPPY\n        pythonexecbeforehappy()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-beforehappy"
+  },
+  {
+    "inputs": [
+      "photo"
+    ],
+    "response": "Photo.\n        pythonexecphoto()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-photo"
+  },
+  {
+    "inputs": [
+      "about"
+    ],
+    "response": "ABOUT\n        pythonexecabout()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-about"
+  },
+  {
+    "inputs": [
+      "how many motors do you have"
+    ],
+    "response": "python\n            exec\n            servos()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-servos"
+  },
+  {
+    "inputs": [
+      "how many fingers do you have"
+    ],
+    "response": "Let see how many fingers do I have.\n        pythonexechowmanyfingersdoihave()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-howmanyfingersdoihave"
+  },
+  {
+    "inputs": [
+      "who's there"
+    ],
+    "response": "WHO'S THERE\n        pythonexecwelcome()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-welcome"
+  },
+  {
+    "inputs": [
+      "movement number 3"
+    ],
+    "response": "CYCLE GESTURE THREE\n        pythonexeccyclegesture3()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-cyclegesture3"
+  },
+  {
+    "inputs": [
+      "movement for london number 3"
+    ],
+    "response": "python\n            exec\n            gestureforlondon3()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-gestureforlondon3"
+  },
+  {
+    "inputs": [
+      "movement number 4"
+    ],
+    "response": "python\n            exec\n            gestureforlondon4()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-gestureforlondon4"
+  },
+  {
+    "inputs": [
+      "right clothes"
+    ],
+    "response": "python\n            exec\n            rightclothes()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-rightclothes"
+  },
+  {
+    "inputs": [
+      "release your clothes"
+    ],
+    "response": "python\n            exec\n            releaseleftclothes()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-releaseleftclothes"
+  },
+  {
+    "inputs": [
+      "show your muscles"
+    ],
+    "response": "Let me show you my muscles.\n        pythonexecmuscle()APPACCOMPLICE",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-muscle"
+  },
+  {
+    "inputs": [
+      "shake hand"
+    ],
+    "response": "Shall we shake hand.\n        pythonexecshakehand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-shakehand"
+  },
+  {
+    "inputs": [
+      "unhappy"
+    ],
+    "response": "UNHAPPYAPPANGER\n        pythonexecunhappy()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-unhappy"
+  },
+  {
+    "inputs": [
+      "take this"
+    ],
+    "response": "Taking this object.\n        pythonexectakethis()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-takethis"
+  },
+  {
+    "inputs": [
+      "ready"
+    ],
+    "response": "Ready.\n        pythonexecready()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-ready"
+  },
+  {
+    "inputs": [
+      "that was fun"
+    ],
+    "response": "That was fun.APPACCOMPLICE\n        pythonexecthatwasfun()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-thatwasfun"
+  },
+  {
+    "inputs": [
+      "finger right"
+    ],
+    "response": "Finger right.\n        pythonexecfingerright()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-fingerright"
+  },
+  {
+    "inputs": [
+      "finger left"
+    ],
+    "response": "Finger left.\n        pythonexecfingerleft()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-fingerleft"
+  },
+  {
+    "inputs": [
+      "come here"
+    ],
+    "response": "APPSUSPICIOUS\n          \n            python\n            exec\n            comehere()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-comehere"
+  },
+  {
+    "inputs": [
+      "approach"
+    ],
+    "response": "APPROACH\n        pythonexecapproach()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-approach"
+  },
+  {
+    "inputs": [
+      "brake"
+    ],
+    "response": "Shall I brake this.\n        pythonexecbrake()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-brake"
+  },
+  {
+    "inputs": [
+      "made by"
+    ],
+    "response": "MADE BY\n        pythonexecmadeby()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-madeby"
+  },
+  {
+    "inputs": [
+      "made by in french"
+    ],
+    "response": "Made by in french.\n        pythonexecmadebyfrench()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-madebyfrench"
+  },
+  {
+    "inputs": [
+      "phone home"
+    ],
+    "response": "python\n            exec\n            phonehome()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-phonehome"
+  },
+  {
+    "inputs": [
+      "how do you feel"
+    ],
+    "response": "python\n            exec\n            newyork()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-newyork"
+  },
+  {
+    "inputs": [
+      "play your song"
+    ],
+    "response": "python\n            exec\n            playsong()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-playsong"
+  },
+  {
+    "inputs": [
+      "carry the baby"
+    ],
+    "response": "Carry baby.\n        pythonexeccarrybaby()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-carrybaby"
+  },
+  {
+    "inputs": [
+      "demonstrate your balance"
+    ],
+    "response": "I will demonstrate my balance.\n        pythonexecbalance()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-balance"
+  },
+  {
+    "inputs": [
+      "what about star wars"
+    ],
+    "response": "python\n            exec\n            whataboutstarwars()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-whataboutstarwars"
+  },
+  {
+    "inputs": [
+      "can you give me the time"
+    ],
+    "response": "python\n            exec\n            canyougivemethetime()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-canyougivemethetime"
+  },
+  {
+    "inputs": [
+      "alessandro"
+    ],
+    "response": "python\n            exec\n            alessandro()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-alessandro"
+  },
+  {
+    "inputs": [
+      "no worry"
+    ],
+    "response": "python\n            exec\n            dontworry()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-dontworry"
+  },
+  {
+    "inputs": [
+      "make a signature"
+    ],
+    "response": "Okay give the paper - I will do that for you pythonexecsignature()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-signature"
+  },
+  {
+    "inputs": [
+      "are you alright"
+    ],
+    "response": "pythonexecareyoualright()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-areyoualright"
+  },
+  {
+    "inputs": [
+      "show your back"
+    ],
+    "response": "You know I don't like to show my back because it is not finished\n        pythonexecpassiveanswer()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-passiveanswer"
+  },
+  {
+    "inputs": [
+      "not true it is finished"
+    ],
+    "response": ".\n        pythonexecnotTrue()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-notTrue"
+  },
+  {
+    "inputs": [
+      "it's an object"
+    ],
+    "response": "Definition of an object, anything that is visible or tangible and relatively stable in form.\n        pythonexecagreeanswersmall()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-agreeanswersmall"
+  },
+  {
+    "inputs": [
+      "do you like to eat indian food"
+    ],
+    "response": "pythonexeceatindianfood()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-eatindianfood"
+  },
+  {
+    "inputs": [
+      "do you speak indi"
+    ],
+    "response": "pythonexecspeakhindi()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-speakhindi"
+  },
+  {
+    "inputs": [
+      "i know"
+    ],
+    "response": "yes, me too.",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-agreeanswer"
+  },
+  {
+    "inputs": [
+      "i am sorry"
+    ],
+    "response": "No problems.",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-tiltHeadAgree"
+  },
+  {
+    "inputs": [
+      "how do you do"
+    ],
+    "response": "pythonexechowdoyoudo()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-howdoyoudo"
+  },
+  {
+    "inputs": [
+      "i love you"
+    ],
+    "response": "APPSURPRISEI love you too.\n        pythonexeciloveyou()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-iloveyou"
+  },
+  {
+    "inputs": [
+      "what do you think about artificial intelligence"
+    ],
+    "response": "I will always love you.\n        pythonexeciloveyou()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-iloveyou"
+  },
+  {
+    "inputs": [
+      "what is this color"
+    ],
+    "response": "pythonexecwhatisthecolor()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-whatisthecolor"
+  },
+  {
+    "inputs": [
+      "guess who is here"
+    ],
+    "response": "pythonexecmissedYou()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-missedYou"
+  },
+  {
+    "inputs": [
+      "please check your neck"
+    ],
+    "response": "Thanks, it feels great. doctor.\n    pythonexecrollHead()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-rollHead"
+  },
+  {
+    "inputs": [
+      "shall we read the cat book"
+    ],
+    "response": "Sure it's a good idea.\n        pythonexecbookcat()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-bookcat"
+  },
+  {
+    "inputs": [
+      "would you like to dance"
+    ],
+    "response": "Come and join me",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-welcomeToDance1"
+  },
+  {
+    "inputs": [
+      "# christmas song"
+    ],
+    "response": "I can do this for exemple\n          \n           \n             python\n                execchristmasCarols()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-christmasCarols"
+  },
+  {
+    "inputs": [
+      "# for travelling"
+    ],
+    "response": "Okay I get ready for travelling\n          pythonexectravel()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-travel"
+  },
+  {
+    "inputs": [
+      "stop travelling"
+    ],
+    "response": "Okay I will get into rest position\n          pythonexecstopTravel()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-stopTravel"
+  },
+  {
+    "inputs": [
+      "can i hurt you"
+    ],
+    "response": "APPFEARpythonexeccall_911()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-call_911"
+  },
+  {
+    "inputs": [
+      "bonjour"
+    ],
+    "response": "Bonjour\n          \n           \n             python\n                execagreeanswersmall()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-agreeanswersmall"
+  },
+  {
+    "inputs": [
+      "come on sava"
+    ],
+    "response": "I rather speak English if you don't mind",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-tiltHeadAgree"
+  },
+  {
+    "inputs": [
+      "can i tell your story"
+    ],
+    "response": "Sure don't be shy\n          \n           \n             python\n                execYes()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-Yes"
+  },
+  {
+    "inputs": [
+      "catch ball right"
+    ],
+    "response": "pythonexeccatchBallRight()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-catchBallRight"
+  },
+  {
+    "inputs": [
+      "catch ball left"
+    ],
+    "response": "pythonexeccatchBallLeft()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-catchBallLeft"
+  },
+  {
+    "inputs": [
+      "# juggle"
+    ],
+    "response": "pythonexecjuggle()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-juggle"
+  },
+  {
+    "inputs": [
+      "# juggle version two"
+    ],
+    "response": "pythonexecjuggle2()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-juggle2"
+  },
+  {
+    "inputs": [
+      "# juggle and close hand"
+    ],
+    "response": "pythonexecjuggleCloseHand()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-juggleCloseHand"
+  },
+  {
+    "inputs": [
+      "close both hands slowly"
+    ],
+    "response": "pythonexecCloseBothHandSlow()",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "mrl-CloseBothHandSlow"
   }
 ]

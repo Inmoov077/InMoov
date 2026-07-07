@@ -7,7 +7,12 @@ import { HelpTip } from '@/components/ux/HelpTip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { servoByKey } from '@/lib/servoConfig';
 import { useServoStore } from '@/store/servoStore';
+
+const HEAD_NECK = servoByKey('head_neck');
+const HEAD_EYE = servoByKey('head_eye');
+const HEAD_JAW = servoByKey('head_jaw');
 
 export function HeadPage() {
   const hneck = useServoStore((s) => s.hneck);
@@ -93,8 +98,10 @@ export function HeadPage() {
             <ServoControl
               label="Turn head"
               hint="Pan the head left or right."
-              pin={3}
+              pin={HEAD_NECK?.pin ?? 3}
               value={hneck}
+              min={HEAD_NECK?.min}
+              max={HEAD_NECK?.max}
               onChange={(v) => setHead('hneck', v)}
               presets={[0, 45, 85, 135, 180]}
               presetLabels={{ 85: 'Center' }}
@@ -103,18 +110,20 @@ export function HeadPage() {
             <ServoControl
               label="Eyes"
               hint="Look up or down."
-              pin={4}
+              pin={HEAD_EYE?.pin ?? 4}
               value={eye}
+              min={HEAD_EYE?.min}
+              max={HEAD_EYE?.max}
               onChange={(v) => setHead('eye', v)}
               accent="signal"
             />
             <ServoControl
               label="Jaw"
               hint="0° = closed, higher = more open."
-              pin={5}
+              pin={HEAD_JAW?.pin ?? 5}
               value={jaw}
-              min={0}
-              max={40}
+              min={HEAD_JAW?.min ?? 0}
+              max={HEAD_JAW?.max ?? 40}
               onChange={(v) => setHead('jaw', v)}
               presets={[0, 8, 20, 30, 40]}
               presetLabels={{ 0: 'Closed', 8: 'Rest', 40: 'Open' }}

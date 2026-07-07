@@ -1,0 +1,184 @@
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+export interface MrlStatus {
+  ok: boolean;
+  online: boolean;
+  url: string;
+  version?: string;
+  serviceCount?: number;
+  services?: string[];
+  i01State?: string;
+  error?: string;
+}
+
+export interface MrlServoState {
+  service: string;
+  getPin?: string | number;
+  getMin?: number;
+  getMax?: number;
+  getRest?: number;
+  getSpeed?: number;
+  getPosition?: number | string | null;
+  isAttached?: boolean;
+  isSweeping?: boolean;
+  ok?: boolean;
+}
+
+export interface MrlI01Servo {
+  service: string;
+  label: string;
+  group: string;
+}
+
+export interface MrlGesture {
+  id: string;
+  mrlName: string;
+  name: string;
+  category: string;
+  icon: string;
+}
+
+export interface MrlCallResult<T = unknown> {
+  ok: boolean;
+  status?: number;
+  data?: T;
+  error?: string;
+}
+
+async function parseJson<T>(res: Response): Promise<T> {
+  return res.json() as Promise<T>;
+}
+
+export async function getMrlStatus(): Promise<MrlStatus> {
+  const res = await fetch('/api/mrl/status');
+  return parseJson(res);
+}
+
+export async function getMrlServices() {
+  const res = await fetch('/api/mrl/services');
+  return parseJson<{ ok: boolean; services: string[]; grouped: Record<string, string[]>; count: number }>(res);
+}
+
+export async function getMrlI01Servos() {
+  const res = await fetch('/api/mrl/i01/servos');
+  return parseJson<{ ok: boolean; servos: MrlI01Servo[] }>(res);
+}
+
+export async function getMrlGestures() {
+  const res = await fetch('/api/mrl/gestures');
+  return parseJson<{ ok: boolean; gestures: MrlGesture[]; count: number }>(res);
+}
+
+export async function getMrlServoState(service: string): Promise<MrlServoState> {
+  const res = await fetch(`/api/mrl/servo/${encodeURIComponent(service)}/state`);
+  return parseJson(res);
+}
+
+export async function mrlCall<T = unknown>(
+  service: string,
+  method: string,
+  ...args: (string | number)[]
+): Promise<MrlCallResult<T>> {
+  const base = `/api/mrl/call/${encodeURIComponent(service)}/${encodeURIComponent(method)}`;
+  const path = args.length ? `${base}/${args.map(encodeURIComponent).join('/')}` : base;
+  const res = await fetch(path);
+  return parseJson(res);
+}
+
+export async function mrlExec(gesture: string) {
+  const res = await fetch('/api/mrl/exec', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ gesture }),
+  });
+  return parseJson<{ ok: boolean; gesture: string; script: string; error?: string }>(res);
+}
+
+export async function mrlMoveTo(service: string, angle: number) {
+  return mrlCall(service, 'moveTo', angle);
+}
+
+export async function mrlSetPin(service: string, pin: number) {
+  return mrlCall(service, 'setPin', pin);
+}
+
+export async function mrlSetSpeed(service: string, speed: number) {
+  return mrlCall(service, 'setSpeed', speed);
+}
+
+export async function mrlRest(service: string) {
+  return mrlCall(service, 'rest');
+}
+
+export async function mrlSweep(service: string, enable: boolean) {
+  return mrlCall(service, enable ? 'sweep' : 'stop');
+}
+
+export async function mrlAttach(service: string) {
+  return mrlCall(service, 'attach');
+}
+
+export async function mrlDetach(service: string) {
+  return mrlCall(service, 'detach');
+}
+
+export async function mrlEnable(service: string) {
+  return mrlCall(service, 'enable');
+}
+
+export async function mrlDisable(service: string) {
+  return mrlCall(service, 'disable');
+}
+
+export async function mrlSetInverted(service: string, inverted: boolean) {
+  return mrlCall(service, 'setInverted', inverted ? 'true' : 'false');
+}
+
+export async function mrlSetLimits(service: string, min: number, max: number) {
+  return mrlCall(service, 'setMinMax', min, max);
+}
+
+export const MRL_WEBUI_URL = 'http://localhost:8888';
+
+export async function mrlStartPeer(peer: string) {
+  const res = await fetch(`/api/mrl/i01/peer/startPeer/${encodeURIComponent(peer)}`, { method: 'POST' });
+  return parseJson<{ ok: boolean; error?: string }>(res);
+}
+
+export async function mrlReleasePeer(peer: string) {
+  const res = await fetch(`/api/mrl/i01/peer/releasePeer/${encodeURIComponent(peer)}`, { method: 'POST' });
+  return parseJson<{ ok: boolean; error?: string }>(res);
+}
+
+export async function mrlSpeak(text: string) {
+  const res = await fetch('/api/mrl/i01/speak', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ text }),
+  });
+  return parseJson<{ ok: boolean; error?: string }>(res);
+}
+
+export async function mrlPythonExec(script: string) {
+  const res = await fetch('/api/mrl/python/exec', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ script }),
+  });
+  return parseJson<{ ok: boolean; script: string; result?: unknown; error?: string }>(res);
+}
+
+export async function getMrlI01Config() {
+  const res = await fetch('/api/mrl/i01/config');
+  return parseJson<{ ok: boolean; data?: { peers?: Record<string, unknown> } }>(res);
+}
+
+export const MRL_BODY_PARTS = [
+  { id: 'head', label: 'Head', services: ['i01.head'] },
+  { id: 'leftArm', label: 'Left arm', services: ['i01.leftArm'] },
+  { id: 'rightArm', label: 'Right arm', services: ['i01.rightArm'] },
+  { id: 'torso', label: 'Torso', services: ['i01.torso'] },
+  { id: 'brain', label: 'Brain / chat', services: ['i01.chatBot', 'i01.fsm'] },
+  { id: 'opencv', label: 'OpenCV', services: ['i01.opencv'] },
+  { id: 'audio', label: 'Audio', services: ['i01.audioPlayer'] },
+] as const;

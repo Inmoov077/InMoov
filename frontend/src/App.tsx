@@ -10,7 +10,10 @@ import { PresetsPage } from '@/pages/PresetsPage';
 import { OfflinePage } from '@/pages/OfflinePage';
 import { TestingPage } from '@/pages/TestingPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { CalibrationPage } from '@/pages/CalibrationPage';
 import { BodyPage } from '@/pages/BodyPage';
+import { MrlHubPage } from '@/pages/MrlHubPage';
+import { MrlLivePage } from '@/pages/MrlLivePage';
 
 export default function App() {
   return (
@@ -28,6 +31,9 @@ export default function App() {
           <Route path="/offline" element={<OfflinePage />} />
           <Route path="/testing" element={<TestingPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/calibration" element={<CalibrationPage />} />
+          <Route path="/mrl" element={<MrlHubPage />} />
+          <Route path="/mrl-live" element={<MrlLivePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

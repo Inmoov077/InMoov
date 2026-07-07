@@ -1,9 +1,12 @@
 import { create } from 'zustand';
 import * as api from '@/lib/api';
 import {
+  ARM_JOINT_META,
   DEFAULT_ARM,
   DEFAULT_HAND,
   DEFAULT_LEG,
+  HAND_JOINT_META,
+  LEG_JOINT_META,
   type ArmJoints,
   type BodySide,
   type HandJoints,
@@ -62,7 +65,8 @@ export const useBodyStore = create<BodyState>((set, get) => ({
 
   setArmJoint: (side, joint, value, send = true) => {
     const key = side === 'left' ? 'leftArm' : 'rightArm';
-    const v = clamp(Number(value), 0, 180);
+    const meta = ARM_JOINT_META.find((m) => m.key === joint);
+    const v = clamp(Number(value), meta?.min ?? 0, meta?.max ?? 180);
     set((s) => ({ [key]: { ...s[key], [joint]: v } }));
     notifyRobotPreview();
     if (send && useServoStore.getState().connected) {
@@ -72,7 +76,8 @@ export const useBodyStore = create<BodyState>((set, get) => ({
 
   setHandJoint: (side, joint, value, send = true) => {
     const key = side === 'left' ? 'leftHand' : 'rightHand';
-    const v = clamp(Number(value), 0, 180);
+    const meta = HAND_JOINT_META.find((m) => m.key === joint);
+    const v = clamp(Number(value), meta?.min ?? 0, meta?.max ?? 180);
     set((s) => ({ [key]: { ...s[key], [joint]: v } }));
     notifyRobotPreview();
     if (send && useServoStore.getState().connected) {
@@ -82,8 +87,8 @@ export const useBodyStore = create<BodyState>((set, get) => ({
 
   setLegJoint: (side, joint, value, send = true) => {
     const key = side === 'left' ? 'leftLeg' : 'rightLeg';
-    const max = joint === 'knee' ? 160 : 180;
-    const v = clamp(Number(value), 0, max);
+    const meta = LEG_JOINT_META.find((m) => m.key === joint);
+    const v = clamp(Number(value), meta?.min ?? 0, meta?.max ?? 180);
     set((s) => ({ [key]: { ...s[key], [joint]: v } }));
     notifyRobotPreview();
     if (send && useServoStore.getState().connected) {

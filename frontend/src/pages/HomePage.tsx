@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowUpRight,
   Bone,
+  Bot,
   Brain,
   Camera,
   Gamepad2,
@@ -21,10 +22,12 @@ const TILES = [
   { to: '/head', icon: SlidersHorizontal, title: 'Head', desc: 'Turn, eyes, jaw', color: 'from-accent/15 to-transparent' },
   { to: '/neck', icon: Bone, title: 'Neck', desc: 'Spin, nod, lean', color: 'from-info/15 to-transparent' },
   { to: '/body', icon: Footprints, title: 'Body', desc: 'Arms, hands & legs', color: 'from-primary/15 to-transparent' },
-  { to: '/presets', icon: Rocket, title: 'Moves', desc: 'Nod, wave, bow', color: 'from-success/15 to-transparent' },
+  { to: '/presets', icon: Rocket, title: 'Moves', desc: '149 MRL + built-in', color: 'from-success/15 to-transparent' },
   { to: '/ai', icon: Brain, title: 'Chat', desc: 'Talk with AI', color: 'from-axis-violet/15 to-transparent' },
   { to: '/offline', icon: Mic, title: 'Voice', desc: 'Offline commands', color: 'from-axis-amber/15 to-transparent' },
-  { to: '/camera', icon: Camera, title: 'Camera', desc: 'Face follow', color: 'from-axis-sky/15 to-transparent' },
+  { to: '/camera', icon: Camera, title: 'Vision', desc: 'Face track + MRL gestures', color: 'from-axis-sky/15 to-transparent' },
+  { to: '/mrl-live', icon: Bot, title: 'MRL Live', desc: 'Native :8888 full clone', color: 'from-accent/15 to-transparent', big: false },
+  { to: '/mrl', icon: Bot, title: 'MRL Hub', desc: 'Offline features A–Z', color: 'from-muted/30 to-transparent', big: false },
   { to: '/settings', icon: Settings, title: 'Settings', desc: 'USB & limits', color: 'from-muted to-transparent' },
 ];
 

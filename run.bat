@@ -4,6 +4,9 @@ echo ========================================
 echo   InMoov Control Deck
 echo ========================================
 
+echo Extracting MyRobotLab 1.1.1610 gestures and voice commands...
+python scripts\extract_mrl_inmoov.py
+
 if not exist "models\inmoov\meshes\l_thumb5_1.stl" (
   echo Downloading official InMoov meshes from MyRobotLab/inmoov_ros...
   python scripts\download_inmoov_meshes.py

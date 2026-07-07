@@ -1,4 +1,5 @@
 import type { ArmJoints, HandJoints, LegJoints } from '@/lib/bodyConfig';
+import { MRL_PRESETS, MRL_PRESET_META, type MrlPresetCategory } from '@/lib/mrlPresets';
 
 export interface PresetKeyframe {
   hneck: number;
@@ -16,6 +17,36 @@ export interface PresetKeyframe {
   leftLeg?: Partial<LegJoints>;
 }
 
+export type PresetCategory = 'builtin' | MrlPresetCategory;
+
+export interface PresetMetaEntry {
+  id: string;
+  name: string;
+  desc: string;
+  icon: string;
+  category: PresetCategory;
+}
+
+export const BUILTIN_PRESET_META: PresetMetaEntry[] = [
+  { id: 'nod', name: 'Nod Yes', desc: 'Tilt up and down', icon: '↕', category: 'builtin' },
+  { id: 'shake', name: 'Shake No', desc: 'Rotate left and right', icon: '↔', category: 'builtin' },
+  { id: 'tilt-side', name: 'Think / Tilt', desc: 'Side roll motion', icon: '↩', category: 'builtin' },
+  { id: 'look-around', name: 'Look Around', desc: 'Scan the environment', icon: '◎', category: 'builtin' },
+  { id: 'bow', name: 'Bow', desc: 'Polite greeting bow', icon: '⌄', category: 'builtin' },
+  { id: 'wave-head', name: 'Robot Dance', desc: 'Multi-axis pattern', icon: '✦', category: 'builtin' },
+  { id: 'happy-greet', name: 'Happy Greet', desc: 'Jaw + eye animation', icon: '☺', category: 'builtin' },
+  { id: 'scan-room', name: 'Scan Room', desc: 'Full pan sweep', icon: '⌖', category: 'builtin' },
+  { id: 'idle-breathe', name: 'Idle Breathe', desc: 'Subtle life motion', icon: '∿', category: 'builtin' },
+  { id: 'gallery-real', name: 'Gallery Pose', desc: 'Like real InMoov photo', icon: '📷', category: 'builtin' },
+  { id: 'wave-arm', name: 'Wave Arm', desc: 'Right arm greeting wave', icon: '👋', category: 'builtin' },
+  { id: 'handshake', name: 'Handshake', desc: 'Extend hand to greet', icon: '🤝', category: 'builtin' },
+  { id: 'leg-step', name: 'Leg Step', desc: 'Alternating walk motion', icon: '🦵', category: 'builtin' },
+  { id: 'circle-roll', name: 'Neck Circle', desc: 'Circular rolling motion', icon: '🌀', category: 'builtin' },
+  { id: 'diagonal-look', name: 'Diagonal Look', desc: 'Corner scan pattern', icon: '⤄', category: 'builtin' },
+  { id: 'curious-tilt', name: 'Curious Tilt', desc: 'Inquisitive head tilt', icon: '🤔', category: 'builtin' },
+];
+
+/** Built-in + MyRobotLab 1.1.1610 official gestures */
 export const PRESETS: Record<string, PresetKeyframe[]> = {
   nod: [
     { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 80, roll: 120, hold: 1500 },
@@ -72,7 +103,7 @@ export const PRESETS: Record<string, PresetKeyframe[]> = {
     { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 120, lift: 130, rotate: 90, elbow: 40, wrist: 90 }, hold: 1200 },
     { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 90, lift: 45, rotate: 90, elbow: 90, wrist: 90 }, hold: 1000 },
   ],
-  'handshake': [
+  handshake: [
     { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 90, lift: 45, elbow: 90 }, hold: 600 },
     { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 45, lift: 100, elbow: 120, wrist: 90 }, rightHand: { thumb: 120, index: 10, middle: 170, ring: 170, pinky: 170 }, hold: 2000 },
     { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, rightArm: { shoulder: 90, lift: 45, elbow: 90 }, rightHand: { thumb: 10, index: 10, middle: 10, ring: 10, pinky: 10 }, hold: 1000 },
@@ -86,20 +117,41 @@ export const PRESETS: Record<string, PresetKeyframe[]> = {
     { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, leftLeg: { hip: 90, thigh: 90, knee: 10, ankle: 90 }, rightLeg: { hip: 105, thigh: 110, knee: 70, ankle: 80 }, hold: 1200 },
     { hneck: 85, eye: 90, jaw: 8, rot: 60, tilt: 50, roll: 120, leftLeg: { hip: 90, thigh: 90, knee: 10, ankle: 90, foot: 90 }, rightLeg: { hip: 90, thigh: 90, knee: 10, ankle: 90, foot: 90 }, hold: 1000 },
   ],
+  'circle-roll': [
+    { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 50, roll: 120, hold: 1000 },
+    { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 75, roll: 120, hold: 1500 },
+    { hneck: 90, eye: 75, jaw: 0, rot: 35, tilt: 65, roll: 145, hold: 1500 },
+    { hneck: 90, eye: 90, jaw: 0, rot: 20, tilt: 50, roll: 160, hold: 1500 },
+    { hneck: 90, eye: 90, jaw: 0, rot: 35, tilt: 25, roll: 145, hold: 1500 },
+    { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 25, roll: 120, hold: 1500 },
+    { hneck: 90, eye: 105, jaw: 0, rot: 85, tilt: 25, roll: 95, hold: 1500 },
+    { hneck: 90, eye: 90, jaw: 0, rot: 100, tilt: 50, roll: 80, hold: 1500 },
+    { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 50, roll: 120, hold: 1500 },
+  ],
+  'diagonal-look': [
+    { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 50, roll: 120, hold: 1000 },
+    { hneck: 90, eye: 60, jaw: 0, rot: 20, tilt: 70, roll: 160, hold: 2000 },
+    { hneck: 90, eye: 120, jaw: 0, rot: 100, tilt: 30, roll: 80, hold: 2000 },
+    { hneck: 90, eye: 120, jaw: 0, rot: 100, tilt: 70, roll: 80, hold: 2000 },
+    { hneck: 90, eye: 60, jaw: 0, rot: 20, tilt: 30, roll: 160, hold: 2000 },
+    { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 50, roll: 120, hold: 1500 },
+  ],
+  'curious-tilt': [
+    { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 50, roll: 120, hold: 1000 },
+    { hneck: 80, eye: 120, jaw: 0, rot: 90, tilt: 75, roll: 90, hold: 2500 },
+    { hneck: 80, eye: 60, jaw: 0, rot: 30, tilt: 75, roll: 150, hold: 2500 },
+    { hneck: 90, eye: 90, jaw: 0, rot: 60, tilt: 50, roll: 120, hold: 1500 },
+  ],
+  ...MRL_PRESETS,
 };
 
-export const PRESET_META: { id: string; name: string; desc: string; icon: string }[] = [
-  { id: 'nod', name: 'Nod Yes', desc: 'Tilt up and down', icon: '↕' },
-  { id: 'shake', name: 'Shake No', desc: 'Rotate left and right', icon: '↔' },
-  { id: 'tilt-side', name: 'Think / Tilt', desc: 'Side roll motion', icon: '↩' },
-  { id: 'look-around', name: 'Look Around', desc: 'Scan the environment', icon: '◎' },
-  { id: 'bow', name: 'Bow', desc: 'Polite greeting bow', icon: '⌄' },
-  { id: 'wave-head', name: 'Robot Dance', desc: 'Multi-axis pattern', icon: '✦' },
-  { id: 'happy-greet', name: 'Happy Greet', desc: 'Jaw + eye animation', icon: '☺' },
-  { id: 'scan-room', name: 'Scan Room', desc: 'Full pan sweep', icon: '⌖' },
-  { id: 'idle-breathe', name: 'Idle Breathe', desc: 'Subtle life motion', icon: '∿' },
-  { id: 'gallery-real', name: 'Gallery Pose', desc: 'Like real InMoov photo', icon: '📷' },
-  { id: 'wave-arm', name: 'Wave Arm', desc: 'Right arm greeting wave', icon: '👋' },
-  { id: 'handshake', name: 'Handshake', desc: 'Extend hand to greet', icon: '🤝' },
-  { id: 'leg-step', name: 'Leg Step', desc: 'Alternating walk motion', icon: '🦵' },
+export const PRESET_META: PresetMetaEntry[] = [
+  ...BUILTIN_PRESET_META,
+  ...MRL_PRESET_META.map((m) => ({
+    id: m.id,
+    name: m.name,
+    desc: m.desc,
+    icon: m.icon,
+    category: m.category as PresetCategory,
+  })),
 ];

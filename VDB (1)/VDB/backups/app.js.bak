@@ -1,0 +1,486 @@
+/* ═══════════════════════════════════════════════════════════
+   InMoov Upper Body Dashboard — Application Logic
+   
+   Handles:
+     • WebSocket connection to Python backend
+     • Servo slider ↔ Arduino bridging (20 servos, both arms)
+     • Wave control UI with 10 patterns
+     • Body-part enable/disable toggles
+     • Pin configuration modal
+     • SVG arm visualization updates (both arms)
+     • Serial log rendering
+   ═══════════════════════════════════════════════════════════ */
+
+// ─────────────── State ───────────────
+let socket = null;
+let isConnected = false;
+let isWaving = false;
+let selectedPattern = "gentle";
+let servoLimits = {};
+let servoPositions = {
+  r_shoulder: 30, r_omoplate: 10, r_bicep: 5, r_rotate: 90,
+  r_thumb: 10, r_index: 10, r_middle: 10, r_ring: 10, r_pinky: 10, r_wrist: 90,
+  l_shoulder: 30, l_omoplate: 10, l_bicep: 5, l_rotate: 90,
+  l_thumb: 10, l_index: 10, l_middle: 10, l_ring: 10, l_pinky: 10, l_wrist: 90,
+};
+let enabledParts = { r_arm: true, r_hand: true, l_arm: true, l_hand: true };
+
+// ─────────────── Init ───────────────
+document.addEventListener("DOMContentLoaded", () => {
+  initSocket();
+  startStatusPoller();
+  updateAllSliderBackgrounds();
+});
+
+// ─────────────── Socket.IO ───────────────
+function initSocket() {
+  socket = io();
+
+  socket.on("connect", () => {
+    addLog("Dashboard connected to server", "system");
+  });
+
+  socket.on("disconnect", () => {
+    setConnected(false);
+    addLog("Lost connection to server", "error");
+  });
+
+  socket.on("connection_status", (data) => {
+    setConnected(data.connected);
+    if (data.msg) addLog(data.msg, data.connected ? "recv" : "error");
+  });
+
+  socket.on("limits", (data) => {
+    servoLimits = data;
+  });
+
+  socket.on("patterns", (data) => {
+    // Patterns received from server (for future dynamic use)
+  });
+
+  socket.on("status_update", (data) => {
+    if (data.servos) {
+      servoPositions = data.servos;
+      updateUIFromState();
+    }
+    if (data.wave) {
+      isWaving = data.wave.active;
+      updateWaveUI();
+    }
+    if (data.connected !== undefined) {
+      setConnected(data.connected);
+    }
+    if (data.enabled_parts) {
+      enabledParts = data.enabled_parts;
+      updateToggleUI();
+    }
+  });
+
+  socket.on("enabled_parts_update", (data) => {
+    enabledParts = data;
+    updateToggleUI();
+  });
+
+  socket.on("arduino_ready", (data) => {
+    addLog(data.message || "Arduino ready!", "recv");
+  });
+
+  socket.on("command_ok", (data) => {
+    addLog(data.response || "OK", "recv");
+  });
+
+  socket.on("command_error", (data) => {
+    addLog(data.error || "Error", "error");
+  });
+
+  socket.on("serial_log", (data) => {
+    if (data.data) {
+      const type = data.data.startsWith("RSP:ERR") ? "error" : "recv";
+      addLog(data.data, type);
+    }
+  });
+}
+
+// ─────────────── Connection ───────────────
+function toggleConnection() {
+  if (isConnected) {
+    socket.emit("disconnect_arduino");
+  } else {
+    addLog("Scanning for Arduino...", "system");
+    socket.emit("connect_arduino");
+  }
+}
+
+function setConnected(connected) {
+  isConnected = connected;
+  const badge = document.getElementById("connection-badge");
+  const text = document.getElementById("connection-text");
+  const btn = document.getElementById("btn-connect");
+
+  if (connected) {
+    badge.className = "badge badge-connected";
+    text.textContent = "Connected";
+    btn.innerHTML = '<span class="btn-icon">🔌</span> Disconnect';
+    btn.classList.add("btn-secondary");
+    btn.classList.remove("btn-primary");
+  } else {
+    badge.className = "badge badge-disconnected";
+    text.textContent = "Disconnected";
+    btn.innerHTML = '<span class="btn-icon">⚡</span> Connect';
+    btn.classList.add("btn-primary");
+    btn.classList.remove("btn-secondary");
+  }
+}
+
+// ─────────────── Servo Control ───────────────
+function moveServo(slider) {
+  const servo = slider.dataset.servo;
+  const angle = parseInt(slider.value);
+
+  servoPositions[servo] = angle;
+  updateAngleDisplay(servo, angle);
+  updateSliderBackground(slider);
+  updateArmSVG();
+
+  if (isConnected) {
+    socket.emit("move_servo", { servo, angle });
+  }
+}
+
+function updateAngleDisplay(servo, angle) {
+  const el = document.getElementById("angle-" + servo);
+  if (el) el.textContent = angle + "°";
+}
+
+function updateSliderBackground(slider) {
+  const min = parseFloat(slider.min);
+  const max = parseFloat(slider.max);
+  const val = parseFloat(slider.value);
+  const pct = ((val - min) / (max - min)) * 100;
+
+  const cls = slider.classList;
+  let color = "56,189,248";
+  if (cls.contains("slider-blue"))   color = "59,130,246";
+  if (cls.contains("slider-green"))  color = "52,211,153";
+  if (cls.contains("slider-amber"))  color = "251,191,36";
+  if (cls.contains("slider-purple")) color = "167,139,250";
+
+  slider.style.background = `linear-gradient(to right, rgba(${color},0.5) 0%, rgba(${color},0.5) ${pct}%, rgba(30,41,59,0.8) ${pct}%, rgba(30,41,59,0.8) 100%)`;
+}
+
+function updateAllSliderBackgrounds() {
+  document.querySelectorAll(".slider").forEach(updateSliderBackground);
+}
+
+// ─────────────── Body Part Toggles ───────────────
+function togglePart(part, enabled) {
+  enabledParts[part] = enabled;
+  if (isConnected) {
+    socket.emit("set_part_enabled", { part, enabled });
+  }
+  addLog(`${part} ${enabled ? "enabled" : "disabled"}`, "sent");
+}
+
+function updateToggleUI() {
+  for (const [part, enabled] of Object.entries(enabledParts)) {
+    const cb = document.getElementById("toggle-" + part);
+    if (cb) cb.checked = enabled;
+  }
+}
+
+// ─────────────── Wave Control ───────────────
+function selectPattern(btn) {
+  document.querySelectorAll(".pattern-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  selectedPattern = btn.dataset.pattern;
+}
+
+function updateWaveParam() {
+  const speed = document.getElementById("wave-speed").value;
+  const amp = document.getElementById("wave-amplitude").value;
+  document.getElementById("speed-val").textContent = speed + "%";
+  document.getElementById("amp-val").textContent = amp + "%";
+
+  updateSliderBackground(document.getElementById("wave-speed"));
+  updateSliderBackground(document.getElementById("wave-amplitude"));
+}
+
+function startWave() {
+  if (!isConnected) {
+    addLog("Connect to Arduino first!", "error");
+    return;
+  }
+
+  const speed = parseInt(document.getElementById("wave-speed").value);
+  const amplitude = parseInt(document.getElementById("wave-amplitude").value);
+
+  socket.emit("start_wave", {
+    pattern: selectedPattern,
+    speed,
+    amplitude
+  });
+
+  isWaving = true;
+  updateWaveUI();
+  addLog(`Pattern started: ${selectedPattern} (speed=${speed}, power=${amplitude})`, "sent");
+}
+
+function stopWave() {
+  socket.emit("stop_wave");
+  isWaving = false;
+  updateWaveUI();
+  addLog("Pattern stopped", "sent");
+}
+
+function updateWaveUI() {
+  const badge = document.getElementById("wave-status-badge");
+  const btn = document.getElementById("btn-wave");
+  const armCanvas = document.getElementById("arm-canvas");
+
+  if (isWaving) {
+    badge.className = "badge badge-waving";
+    badge.textContent = "Active";
+    btn.classList.add("waving");
+    btn.innerHTML = '<span class="btn-icon">🏁</span> Running...';
+    armCanvas.classList.add("flag-waving");
+  } else {
+    badge.className = "badge badge-idle";
+    badge.textContent = "Idle";
+    btn.classList.remove("waving");
+    btn.innerHTML = '<span class="btn-icon">▶</span> Start';
+    armCanvas.classList.remove("flag-waving");
+  }
+}
+
+// ─────────────── Quick Actions ───────────────
+function updateGrip(side) {
+  const slider = document.getElementById("grip-" + side.charAt(0) + "-slider");
+  const valEl = document.getElementById("grip-" + side.charAt(0) + "-val");
+  const val = slider.value;
+  valEl.textContent = val + "%";
+  updateSliderBackground(slider);
+
+  if (isConnected) {
+    socket.emit("grip", { percentage: parseInt(val), side });
+  }
+}
+
+function goHome() {
+  socket.emit("go_home");
+  addLog("Returning to home position", "sent");
+
+  const defaults = {};
+  for (const key of Object.keys(servoPositions)) {
+    if (key.includes("wrist") || key.includes("rotate")) defaults[key] = 90;
+    else if (key.includes("shoulder")) defaults[key] = 30;
+    else if (key.includes("omoplate")) defaults[key] = 10;
+    else if (key.includes("bicep")) defaults[key] = 5;
+    else defaults[key] = 10;
+  }
+  Object.assign(servoPositions, defaults);
+  updateUIFromState();
+  isWaving = false;
+  updateWaveUI();
+}
+
+function emergencyStop() {
+  socket.emit("emergency_stop");
+  isWaving = false;
+  updateWaveUI();
+  addLog("🔴 EMERGENCY STOP", "error");
+
+  const btn = document.getElementById("btn-estop");
+  btn.style.boxShadow = "0 0 50px rgba(239,68,68,0.8)";
+  setTimeout(() => { btn.style.boxShadow = ""; }, 500);
+}
+
+// ─────────────── Pin Configuration ───────────────
+function togglePinConfig() {
+  const overlay = document.getElementById("pin-config-overlay");
+  overlay.style.display = overlay.style.display === "none" ? "flex" : "none";
+}
+
+function closePinConfigOutside(event) {
+  if (event.target === document.getElementById("pin-config-overlay")) {
+    togglePinConfig();
+  }
+}
+
+function setPinConfig(input) {
+  const servo = input.dataset.servo;
+  const pin = parseInt(input.value);
+  
+  if (isConnected) {
+    socket.emit("set_pin_config", { servo, pin });
+    addLog(`Pin changed: ${servo} → ${pin}`, "sent");
+  }
+  
+  // Update display in slider header
+  const display = document.getElementById("pin-" + servo);
+  if (display) display.textContent = pin;
+}
+
+// ─────────────── UI Sync ───────────────
+function updateUIFromState() {
+  for (const [servo, angle] of Object.entries(servoPositions)) {
+    const slider = document.querySelector(`input[data-servo="${servo}"]`);
+    if (slider) {
+      slider.value = angle;
+      updateSliderBackground(slider);
+    }
+    updateAngleDisplay(servo, angle);
+  }
+  updateArmSVG();
+}
+
+// ─────────────── SVG Arm Visualization ───────────────
+function updateArmSVG() {
+  // ═══ RIGHT ARM ═══
+  const rSh = servoPositions.r_shoulder || 30;
+  const rBi = servoPositions.r_bicep || 5;
+  const rWr = servoPositions.r_wrist || 90;
+
+  const rShAngle = -(rSh - 30) * 0.8;
+  const rShGroup = document.getElementById("svg-r-shoulder-group");
+  if (rShGroup) rShGroup.style.transform = `rotate(${rShAngle}deg)`;
+
+  const rBiAngle = -(rBi - 5) * 0.7;
+  const rBiGroup = document.getElementById("svg-r-bicep-group");
+  if (rBiGroup) rBiGroup.style.transform = `rotate(${rBiAngle}deg)`;
+
+  const rWrAngle = (rWr - 90) * 0.5;
+  const rWrGroup = document.getElementById("svg-r-wrist-group");
+  if (rWrGroup) rWrGroup.style.transform = `rotate(${rWrAngle}deg)`;
+
+  // ═══ LEFT ARM ═══
+  const lSh = servoPositions.l_shoulder || 30;
+  const lBi = servoPositions.l_bicep || 5;
+  const lWr = servoPositions.l_wrist || 90;
+
+  const lShAngle = (lSh - 30) * 0.8; // mirrored
+  const lShGroup = document.getElementById("svg-l-shoulder-group");
+  if (lShGroup) lShGroup.style.transform = `rotate(${lShAngle}deg)`;
+
+  const lBiAngle = (lBi - 5) * 0.7; // mirrored
+  const lBiGroup = document.getElementById("svg-l-bicep-group");
+  if (lBiGroup) lBiGroup.style.transform = `rotate(${lBiAngle}deg)`;
+
+  const lWrAngle = -(lWr - 90) * 0.5; // mirrored
+  const lWrGroup = document.getElementById("svg-l-wrist-group");
+  if (lWrGroup) lWrGroup.style.transform = `rotate(${lWrAngle}deg)`;
+
+  // ═══ JOINT HIGHLIGHTS ═══
+  highlightJoint("svg-joint-r_shoulder", rSh, 30, 0, 150);
+  highlightJoint("svg-joint-r_omoplate", servoPositions.r_omoplate || 10, 10, 10, 70);
+  highlightJoint("svg-joint-r_bicep", rBi, 5, 0, 85);
+  highlightJoint("svg-joint-r_rotate", servoPositions.r_rotate || 90, 90, 40, 150);
+  highlightJoint("svg-joint-r_wrist", rWr, 90, 10, 160);
+
+  highlightJoint("svg-joint-l_shoulder", lSh, 30, 0, 150);
+  highlightJoint("svg-joint-l_omoplate", servoPositions.l_omoplate || 10, 10, 10, 70);
+  highlightJoint("svg-joint-l_bicep", lBi, 5, 0, 85);
+  highlightJoint("svg-joint-l_rotate", servoPositions.l_rotate || 90, 90, 40, 150);
+  highlightJoint("svg-joint-l_wrist", lWr, 90, 10, 160);
+
+  // ═══ READOUTS ═══
+  setText("svg-r-sh", `SH:${rSh}°`);
+  setText("svg-r-bi", `BI:${rBi}°`);
+  setText("svg-r-wr", `WR:${rWr}°`);
+  setText("svg-l-sh", `SH:${lSh}°`);
+  setText("svg-l-bi", `BI:${lBi}°`);
+  setText("svg-l-wr", `WR:${lWr}°`);
+
+  // ═══ FINGER CURL ═══
+  const rFingers = ["r_thumb", "r_index", "r_middle", "r_ring", "r_pinky"];
+  const lFingers = ["l_thumb", "l_index", "l_middle", "l_ring", "l_pinky"];
+
+  let rGripSum = 0, lGripSum = 0;
+  
+  rFingers.forEach(f => {
+    const a = servoPositions[f] || 10;
+    rGripSum += a;
+    animateFinger("svg-finger-" + f, a, "52,211,153");
+  });
+
+  lFingers.forEach(f => {
+    const a = servoPositions[f] || 10;
+    lGripSum += a;
+    animateFinger("svg-finger-" + f, a, "167,139,250");
+  });
+
+  setText("svg-r-gr", `GRIP:${Math.round(((rGripSum / 5) - 10) / 120 * 100)}%`);
+  setText("svg-l-gr", `GRIP:${Math.round(((lGripSum / 5) - 10) / 120 * 100)}%`);
+}
+
+function animateFinger(id, angle, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const curl = ((angle - 10) / 120);
+  const height = 18 + 6 * (1 - curl);
+  const opacity = 0.15 + curl * 0.35;
+  el.setAttribute("height", height);
+  el.style.fill = `rgba(${color},${opacity})`;
+}
+
+function highlightJoint(id, value, rest, min, max) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const deviation = Math.abs(value - rest) / (max - min);
+  const intensity = Math.min(deviation * 2, 1);
+  
+  // Use different color for left arm joints
+  const isLeft = id.includes("_l_");
+  const r = isLeft ? "167,139,250" : "56,189,248";
+  
+  el.style.fill = `rgba(${r},${0.1 + intensity * 0.4})`;
+  if (intensity > 0.5) {
+    el.style.filter = `drop-shadow(0 0 ${4 + intensity * 6}px rgba(${r},${0.3 + intensity * 0.3}))`;
+  } else {
+    el.style.filter = "none";
+  }
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+// ─────────────── Serial Log ───────────────
+const MAX_LOG_ENTRIES = 80;
+
+function addLog(message, type = "system") {
+  const log = document.getElementById("serial-log");
+  if (!log) return;
+
+  const entry = document.createElement("div");
+  entry.className = "log-entry log-" + type;
+
+  const time = new Date().toLocaleTimeString("en-GB", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  });
+
+  const prefix = { system: "SYS", sent: ">>>", recv: "<<<", error: "ERR" }[type] || "---";
+  entry.textContent = `[${time}] ${prefix} ${message}`;
+
+  log.appendChild(entry);
+
+  while (log.children.length > MAX_LOG_ENTRIES) {
+    log.removeChild(log.firstChild);
+  }
+
+  log.scrollTop = log.scrollHeight;
+}
+
+function clearLog() {
+  const log = document.getElementById("serial-log");
+  if (log) log.innerHTML = '<div class="log-entry log-system">Log cleared</div>';
+}
+
+// ─────────────── Status Poller ───────────────
+function startStatusPoller() {
+  setInterval(() => {
+    if (isConnected && socket) {
+      socket.emit("request_status");
+    }
+  }, 2000);
+}

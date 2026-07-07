@@ -12,6 +12,7 @@ import { HelpTip } from '@/components/ux/HelpTip';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { servoByKey } from '@/lib/servoConfig';
 import { useServoStore } from '@/store/servoStore';
 import { useBodyStore } from '@/store/bodyStore';
 import {
@@ -174,9 +175,9 @@ export function AllServosPage() {
           <ConnectionPanel compact />
           <SectionCard icon={ScanFace} title="Head" description="Face movement">
             <div className="space-y-4">
-              <ServoControl label="Turn head" hint="Left ↔ right" pin={3} value={hneck} onChange={(v) => setHead('hneck', v)} presets={[0, 45, 85, 135, 180]} presetLabels={{ 85: 'Center' }} accent="copper" />
-              <ServoControl label="Eyes" hint="Up ↔ down" pin={4} value={eye} onChange={(v) => setHead('eye', v)} accent="signal" />
-              <ServoControl label="Jaw" hint="Open mouth" pin={5} value={jaw} min={0} max={40} onChange={(v) => setHead('jaw', v)} presets={[0, 8, 20, 40]} presetLabels={{ 0: 'Closed', 8: 'Rest' }} accent="phosphor" />
+              <ServoControl label="Turn head" hint="Left ↔ right" pin={servoByKey('head_neck')?.pin ?? 3} value={hneck} min={servoByKey('head_neck')?.min} max={servoByKey('head_neck')?.max} onChange={(v) => setHead('hneck', v)} presets={[0, 45, 85, 135, 180]} presetLabels={{ 85: 'Center' }} accent="copper" />
+              <ServoControl label="Eyes" hint="Up ↔ down" pin={servoByKey('head_eye')?.pin ?? 4} value={eye} min={servoByKey('head_eye')?.min} max={servoByKey('head_eye')?.max} onChange={(v) => setHead('eye', v)} accent="signal" />
+              <ServoControl label="Jaw" hint="Open mouth" pin={servoByKey('head_jaw')?.pin ?? 5} value={jaw} min={servoByKey('head_jaw')?.min ?? 0} max={servoByKey('head_jaw')?.max ?? 40} onChange={(v) => setHead('jaw', v)} presets={[0, 8, 20, 40]} presetLabels={{ 0: 'Closed', 8: 'Rest' }} accent="phosphor" />
             </div>
           </SectionCard>
         </div>
@@ -192,9 +193,9 @@ export function AllServosPage() {
                 <div className="flex justify-between"><Label>All together</Label><span className="font-mono font-bold text-primary">{rot}°</span></div>
                 <Slider accent="copper" min={0} max={180} value={[rot]} onValueChange={([v]) => setMaster(v)} />
               </div>
-              <ServoControl label="Spin" pin={6} value={rot} min={limits.rot.min} max={limits.rot.max} onChange={(v) => setNeck('rot', v)} accent="violet" />
-              <ServoControl label="Nod" pin={7} value={tilt} min={limits.tilt.min} max={limits.tilt.max} onChange={(v) => setNeck('tilt', v)} accent="copper" />
-              <ServoControl label="Lean" pin={8} value={roll} min={limits.roll.min} max={limits.roll.max} onChange={(v) => setNeck('roll', v)} accent="signal" />
+              <ServoControl label="Spin" pin={servoByKey('neck_rot')?.pin ?? 6} value={rot} min={limits.rot.min} max={limits.rot.max} onChange={(v) => setNeck('rot', v)} accent="violet" />
+              <ServoControl label="Nod" pin={servoByKey('neck_tilt')?.pin ?? 7} value={tilt} min={limits.tilt.min} max={limits.tilt.max} onChange={(v) => setNeck('tilt', v)} accent="copper" />
+              <ServoControl label="Lean" pin={servoByKey('neck_roll')?.pin ?? 8} value={roll} min={limits.roll.min} max={limits.roll.max} onChange={(v) => setNeck('roll', v)} accent="signal" />
             </div>
           </SectionCard>
           <SectionCard icon={ScrollText} title="Log" description="Commands sent">

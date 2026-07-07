@@ -1,0 +1,256 @@
+[
+  {
+    "id": "gentle",
+    "name": "Gentle Wave",
+    "icon": "\ud83c\udf0a",
+    "hands": "right",
+    "speed": 50,
+    "amplitude": 50,
+    "setup": {
+      "rightArm": {
+        "shoulder": 80,
+        "lift": 30,
+        "rotate": 90,
+        "elbow": 60,
+        "wrist": 90
+      },
+      "rightHand": {
+        "thumb": 110,
+        "index": 110,
+        "middle": 110,
+        "ring": 110,
+        "pinky": 110
+      }
+    }
+  },
+  {
+    "id": "vigorous",
+    "name": "Vigorous Wave",
+    "icon": "\ud83d\udcaa",
+    "hands": "right",
+    "speed": 70,
+    "amplitude": 80,
+    "setup": {
+      "rightArm": {
+        "shoulder": 80,
+        "lift": 30,
+        "rotate": 90,
+        "elbow": 60,
+        "wrist": 90
+      },
+      "rightHand": {
+        "thumb": 110,
+        "index": 110,
+        "middle": 110,
+        "ring": 110,
+        "pinky": 110
+      }
+    }
+  },
+  {
+    "id": "greeting",
+    "name": "Greeting",
+    "icon": "\ud83d\udc4b",
+    "hands": "right",
+    "speed": 50,
+    "amplitude": 60,
+    "setup": {
+      "rightArm": {
+        "shoulder": 100,
+        "lift": 35,
+        "rotate": 90,
+        "elbow": 40,
+        "wrist": 90
+      },
+      "rightHand": {
+        "thumb": 10,
+        "index": 10,
+        "middle": 10,
+        "ring": 10,
+        "pinky": 10
+      }
+    }
+  },
+  {
+    "id": "salute",
+    "name": "Salute",
+    "icon": "\ud83e\udee1",
+    "hands": "right",
+    "speed": 40,
+    "amplitude": 50,
+    "keyframes": [
+      {
+        "rightArm": {
+          "shoulder": 140,
+          "lift": 10,
+          "rotate": 90,
+          "elbow": 80,
+          "wrist": 90
+        },
+        "rightHand": {
+          "thumb": 130,
+          "index": 130,
+          "middle": 130,
+          "ring": 130,
+          "pinky": 130
+        },
+        "hold": 2000
+      },
+      {
+        "rightArm": {
+          "shoulder": 30,
+          "lift": 10,
+          "rotate": 90,
+          "elbow": 5,
+          "wrist": 90
+        },
+        "rightHand": {
+          "thumb": 10,
+          "index": 10,
+          "middle": 10,
+          "ring": 10,
+          "pinky": 10
+        },
+        "hold": 1000
+      }
+    ]
+  },
+  {
+    "id": "pride",
+    "name": "Pride Flag",
+    "icon": "\ud83c\uddee\ud83c\uddf3",
+    "hands": "right",
+    "speed": 45,
+    "amplitude": 55,
+    "setup": {
+      "rightArm": {
+        "shoulder": 80,
+        "lift": 30,
+        "rotate": 90,
+        "elbow": 60,
+        "wrist": 90
+      },
+      "rightHand": {
+        "thumb": 110,
+        "index": 110,
+        "middle": 110,
+        "ring": 110,
+        "pinky": 110
+      }
+    }
+  },
+  {
+    "id": "celebrate",
+    "name": "Celebrate",
+    "icon": "\ud83c\udf89",
+    "hands": "both",
+    "speed": 60,
+    "amplitude": 70,
+    "setup": {
+      "rightArm": {
+        "shoulder": 90,
+        "lift": 25,
+        "rotate": 90,
+        "elbow": 50,
+        "wrist": 90
+      },
+      "leftArm": {
+        "shoulder": 90,
+        "lift": 25,
+        "rotate": 90,
+        "elbow": 50,
+        "wrist": 90
+      },
+      "rightHand": {
+        "thumb": 110,
+        "index": 110,
+        "middle": 110,
+        "ring": 110,
+        "pinky": 110
+      },
+      "leftHand": {
+        "thumb": 130,
+        "index": 130,
+        "middle": 130,
+        "ring": 130,
+        "pinky": 130
+      }
+    }
+  },
+  {
+    "id": "drstrange",
+    "name": "Dr. Strange",
+    "icon": "\ud83d\udd2e",
+    "hands": "both",
+    "speed": 40,
+    "amplitude": 50,
+    "setup": {
+      "rightArm": {
+        "shoulder": 80,
+        "lift": 40,
+        "rotate": 90,
+        "elbow": 50,
+        "wrist": 90
+      },
+      "leftArm": {
+        "shoulder": 80,
+        "lift": 40,
+        "rotate": 90,
+        "elbow": 50,
+        "wrist": 90
+      },
+      "rightHand": {
+        "thumb": 10,
+        "index": 10,
+        "middle": 10,
+        "ring": 10,
+        "pinky": 10
+      },
+      "leftHand": {
+        "thumb": 10,
+        "index": 10,
+        "middle": 10,
+        "ring": 10,
+        "pinky": 10
+      }
+    }
+  },
+  {
+    "id": "gunshoot",
+    "name": "Gun Shoot",
+    "icon": "\ud83d\udd2b",
+    "hands": "both",
+    "speed": 35,
+    "amplitude": 40,
+    "setup": {
+      "rightArm": {
+        "shoulder": 70,
+        "lift": 45,
+        "rotate": 90,
+        "elbow": 30,
+        "wrist": 90
+      },
+      "leftArm": {
+        "shoulder": 70,
+        "lift": 45,
+        "rotate": 90,
+        "elbow": 30,
+        "wrist": 90
+      },
+      "rightHand": {
+        "thumb": 10,
+        "index": 10,
+        "middle": 10,
+        "ring": 130,
+        "pinky": 130
+      },
+      "leftHand": {
+        "thumb": 10,
+        "index": 10,
+        "middle": 10,
+        "ring": 130,
+        "pinky": 130
+      }
+    }
+  }
+]

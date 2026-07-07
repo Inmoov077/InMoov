@@ -18,7 +18,7 @@ Or double-click `run.bat` on Windows.
 
 ## Hardware
 
-1. Upload `full_body_servo_control.ino` to **Arduino Mega 2560** (or `combined_servo_control.ino` for head-only on Uno)
+1. Upload `full_body_servo_control.ino` to **Arduino Mega 2560** (uncomment `#define HEAD_ONLY` for 6-servo head-only on Uno)
 2. Connect via USB (9600 baud)
 3. Dashboard → **Settings** → Auto-Detect or select COM port
 
@@ -47,6 +47,10 @@ Or double-click `run.bat` on Windows.
 | Right hand | `RH,<thumb>,<index>,<middle>,<ring>,<pinky>` |
 | Left leg | `LL,<hip>,<thigh>,<knee>,<ankle>,<foot>` |
 | Right leg | `RL,<hip>,<thigh>,<knee>,<ankle>,<foot>` |
+| Pattern | `G,<nod\|shake\|yes\|no\|bow\|relax>` |
+| Pin remap | `W,<idx>,<pin>` |
+| Dump config | `D` |
+| Read positions | `R` |
 | Stop | `S` |
 
 ## Dashboard Tabs
@@ -82,8 +86,10 @@ dashboard.html          Main control center UI
 robot_viewer.js         Three.js 3D model viewer
 chat_cli.py             Terminal conversation
 vector_db.py            TF-IDF knowledge search
-full_body_servo_control.ino  Arduino Mega firmware (36 servos)
-combined_servo_control.ino   Arduino Uno firmware (head only)
+full_body_servo_control.ino  Arduino firmware (36 servos, MRL-derived config)
+servo_config.h               Auto-generated pins/limits/patterns (do not edit)
+shared/servo_config.json     Canonical servo map for firmware + dashboard
+scripts/extract_mrl_inmoov.py  Regenerate from myrobotlab-1.1.1610
 knowledge_base.txt      RAG content
 requirements.txt        Python dependencies
 ```

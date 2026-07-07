@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InMoov Command Center</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div id="app">
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon"><span class="icon-svg" id="logo-icon-slot"></span></div>
+                <h1 class="logo-text">InMoov<br><span>Command Center</span></h1>
+                <button id="toggle-sidebar" class="toggle-btn" title="Toggle Sidebar">
+                    <span class="icon-svg" id="toggle-icon-slot"></span>
+                </button>
+            </div>
+            
+            <ul class="nav-links">
+                <li><a href="#overview" class="active" data-nav="overview"><span class="icon" id="nav-icon-overview"></span><span class="text">Overview</span></a></li>
+                <li><a href="#body-control" data-nav="body-control"><span class="icon" id="nav-icon-body-control"></span><span class="text">Body Control</span></a></li>
+                <li><a href="#mobility" data-nav="mobility"><span class="icon" id="nav-icon-mobility"></span><span class="text">Mobility Base</span></a></li>
+                <li><a href="#part-tester" data-nav="part-tester"><span class="icon" id="nav-icon-part-tester"></span><span class="text">Part Tester</span></a></li>
+                <li><a href="#patterns" data-nav="patterns"><span class="icon" id="nav-icon-patterns"></span><span class="text">Patterns</span></a></li>
+                <li><a href="#config" data-nav="config"><span class="icon" id="nav-icon-config"></span><span class="text">Configuration</span></a></li>
+                <li><a href="#diagnostics" data-nav="diagnostics"><span class="icon" id="nav-icon-diagnostics"></span><span class="text">Diagnostics</span></a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div id="connection-status" class="status-indicator disconnected">
+                    <span class="dot"></span>
+                    <span class="status-text">Disconnected</span>
+                </div>
+                <button id="estop-btn" class="btn btn-danger">
+                    <span class="icon" id="estop-icon-slot"></span><span class="text">E-Stop</span>
+                </button>
+            </div>
+        </nav>
+
+        <main id="main-content">
+            <header class="mobile-header">
+                <button id="mobile-menu-btn" class="icon-btn"><span id="mobile-menu-icon"></span></button>
+                <h2>InMoov</h2>
+                <div id="mobile-connection" class="status-dot disconnected"></div>
+            </header>
+
+            <div id="view-container"></div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

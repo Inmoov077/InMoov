@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import * as api from '@/lib/api';
 import { notifyRobotPreview } from '@/lib/robotPreviewBridge';
+import { servoByKey } from '@/lib/servoConfig';
 import { clamp } from '@/lib/utils';
+
+const NECK_ROT = servoByKey('neck_rot');
+const NECK_TILT = servoByKey('neck_tilt');
+const NECK_ROLL = servoByKey('neck_roll');
+const HEAD_JAW = servoByKey('head_jaw');
 
 export type Axis = 'rot' | 'tilt' | 'roll';
 export type HeadJoint = 'hneck' | 'eye' | 'jaw';
@@ -74,9 +80,9 @@ export const useServoStore = create<ServoState>((set, get) => ({
   connected: false,
   port: null,
   limits: {
-    rot: { min: 0, max: 180 },
-    tilt: { min: 0, max: 180 },
-    roll: { min: 0, max: 180 },
+    rot: { min: NECK_ROT?.min ?? 0, max: NECK_ROT?.max ?? 180 },
+    tilt: { min: NECK_TILT?.min ?? 0, max: NECK_TILT?.max ?? 180 },
+    roll: { min: NECK_ROLL?.min ?? 60, max: NECK_ROLL?.max ?? 130 },
   },
   outputInversions: { rot: true, tilt: false, roll: true },
   linked: false,
@@ -135,7 +141,8 @@ export const useServoStore = create<ServoState>((set, get) => ({
   },
 
   setHead: (joint, value, send = true) => {
-    const v = joint === 'jaw' ? clamp(Number(value), 0, 40) : clamp(Number(value), 0, 180);
+    const jawMax = HEAD_JAW?.max ?? 40;
+    const v = joint === 'jaw' ? clamp(Number(value), 0, jawMax) : clamp(Number(value), 0, 180);
     set({ [joint]: v } as Partial<ServoState>);
     notifyRobotPreview();
     if (send && get().connected) {

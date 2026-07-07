@@ -12,6 +12,7 @@ import {
   Mic,
   Rocket,
   Settings,
+  Pin,
   SlidersHorizontal,
   Bone,
   Footprints,
@@ -34,7 +35,10 @@ const NAV = [
   { to: '/presets', label: 'Moves', icon: Rocket },
   { to: '/ai', label: 'Chat', icon: Brain },
   { to: '/offline', label: 'Voice', icon: Mic },
-  { to: '/camera', label: 'Camera', icon: Camera },
+  { to: '/camera', label: 'Vision', icon: Camera },
+  { to: '/mrl-live', label: 'MRL Live', icon: Bot },
+  { to: '/mrl', label: 'MRL Hub', icon: Bot },
+  { to: '/calibration', label: 'Calibration', icon: Pin },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

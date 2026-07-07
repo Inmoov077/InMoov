@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Cpu, Info, RefreshCw, Settings2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Cpu, Info, Pin, RefreshCw, Settings2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ConnectionPanel } from '@/components/servo/ConnectionPanel';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,21 @@ export function SettingsPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ConnectionPanel />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Pin className="h-4 w-4 text-primary" />
+              Pin & Motor Calibration
+            </CardTitle>
+            <CardDescription>VDB hardware-tested limits + editable pin map</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/calibration">Open Calibration Page</Link>
+            </Button>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

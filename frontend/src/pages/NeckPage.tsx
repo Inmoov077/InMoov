@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { servoByKey } from '@/lib/servoConfig';
 import { useServoStore, type Axis } from '@/store/servoStore';
 import { Bone } from 'lucide-react';
 
@@ -18,9 +19,9 @@ const AXES: {
   pin: number;
   accent: 'copper' | 'signal' | 'violet';
 }[] = [
-  { key: 'rot', label: 'Spin', hint: 'Turn neck left or right.', pin: 6, accent: 'violet' },
-  { key: 'tilt', label: 'Nod', hint: 'Tilt forward or backward.', pin: 7, accent: 'copper' },
-  { key: 'roll', label: 'Lean', hint: 'Tilt sideways.', pin: 8, accent: 'signal' },
+  { key: 'rot', label: 'Spin', hint: 'Turn neck left or right.', pin: servoByKey('neck_rot')?.pin ?? 6, accent: 'violet' },
+  { key: 'tilt', label: 'Nod', hint: 'Tilt forward or backward.', pin: servoByKey('neck_tilt')?.pin ?? 7, accent: 'copper' },
+  { key: 'roll', label: 'Lean', hint: 'Tilt sideways.', pin: servoByKey('neck_roll')?.pin ?? 8, accent: 'signal' },
 ];
 
 const SAFE_DEFAULTS = {

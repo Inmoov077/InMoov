@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import * as api from '@/lib/api';
 import { PRESETS, PRESET_META } from '@/lib/presets';
 import { animateKeyframes } from '@/lib/animateKeyframes';
+import { servoByKey } from '@/lib/servoConfig';
 import { useServoStore } from '@/store/servoStore';
 import { cn } from '@/lib/utils';
 
@@ -123,12 +124,12 @@ export function TestingPage() {
                 <CardDescription>Move each axis independently with live store sync</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2">
-                <ServoControl label="H-Neck" pin={3} value={hneck} onChange={(v) => setHead('hneck', v)} accent="copper" />
-                <ServoControl label="Eye" pin={4} value={eye} onChange={(v) => setHead('eye', v)} />
-                <ServoControl label="Jaw" pin={5} value={jaw} min={0} max={40} onChange={(v) => setHead('jaw', v)} accent="phosphor" />
-                <ServoControl label="Rot" pin={6} value={rot} min={limits.rot.min} max={limits.rot.max} onChange={(v) => setNeck('rot', v)} accent="violet" />
-                <ServoControl label="Tilt" pin={7} value={tilt} min={limits.tilt.min} max={limits.tilt.max} onChange={(v) => setNeck('tilt', v)} accent="copper" />
-                <ServoControl label="Roll" pin={8} value={roll} min={limits.roll.min} max={limits.roll.max} onChange={(v) => setNeck('roll', v)} />
+                <ServoControl label="H-Neck" pin={servoByKey('head_neck')?.pin ?? 3} value={hneck} min={servoByKey('head_neck')?.min} max={servoByKey('head_neck')?.max} onChange={(v) => setHead('hneck', v)} accent="copper" />
+                <ServoControl label="Eye" pin={servoByKey('head_eye')?.pin ?? 4} value={eye} min={servoByKey('head_eye')?.min} max={servoByKey('head_eye')?.max} onChange={(v) => setHead('eye', v)} />
+                <ServoControl label="Jaw" pin={servoByKey('head_jaw')?.pin ?? 5} value={jaw} min={servoByKey('head_jaw')?.min ?? 0} max={servoByKey('head_jaw')?.max ?? 40} onChange={(v) => setHead('jaw', v)} accent="phosphor" />
+                <ServoControl label="Rot" pin={servoByKey('neck_rot')?.pin ?? 6} value={rot} min={limits.rot.min} max={limits.rot.max} onChange={(v) => setNeck('rot', v)} accent="violet" />
+                <ServoControl label="Tilt" pin={servoByKey('neck_tilt')?.pin ?? 7} value={tilt} min={limits.tilt.min} max={limits.tilt.max} onChange={(v) => setNeck('tilt', v)} accent="copper" />
+                <ServoControl label="Roll" pin={servoByKey('neck_roll')?.pin ?? 8} value={roll} min={limits.roll.min} max={limits.roll.max} onChange={(v) => setNeck('roll', v)} />
               </CardContent>
             </>
           )}

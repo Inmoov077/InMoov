@@ -25,6 +25,83 @@ logger = logging.getLogger(__name__)
 BASE_DIR = os.path.dirname(__file__)
 DASHBOARD_HTML = os.path.join(BASE_DIR, 'dashboard.html')
 FRONTEND_DIST = os.path.join(BASE_DIR, 'frontend', 'dist')
+SERVO_CONFIG_PATH = os.path.join(BASE_DIR, 'shared', 'servo_config.json')
+PIN_OVERRIDES_PATH = os.path.join(BASE_DIR, 'shared', 'pin_overrides.json')
+CALIB_OVERRIDES_PATH = os.path.join(BASE_DIR, 'shared', 'calibration_overrides.json')
+WAVE_PATTERNS_PATH = os.path.join(BASE_DIR, 'shared', 'wave_patterns.json')
+MRL_GESTURES_PATH = os.path.join(BASE_DIR, 'shared', 'mrl_gestures.json')
+MRL_BASE_URL = os.environ.get('MRL_BASE_URL', 'http://localhost:8888').rstrip('/')
+MRL_WEBGUI_ROOT = os.path.join(BASE_DIR, 'myrobotlab-1.1.1610', 'resource', 'WebGui', 'app')
+
+
+def _read_json(path, default=None):
+    import json
+    try:
+        with open(path, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return default if default is not None else {}
+
+
+def _write_json(path, data):
+    import json
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+
+
+def _load_servo_config():
+    """Load canonical servo map with user pin/calibration overrides applied."""
+    base = _read_json(SERVO_CONFIG_PATH)
+    if not base:
+        logger.warning("servo_config.json not found")
+        return None
+    pin_ov = _read_json(PIN_OVERRIDES_PATH, {})
+    cal_ov = _read_json(CALIB_OVERRIDES_PATH, {})
+    servos = []
+    for s in base.get('servos', []):
+        entry = dict(s)
+        key = entry.get('key')
+        if key in pin_ov:
+            entry['pin'] = int(pin_ov[key])
+            entry['pinOverride'] = True
+        if key in cal_ov:
+            for field in ('min', 'max', 'rest'):
+                if field in cal_ov[key]:
+                    entry[field] = int(cal_ov[key][field])
+            entry['calibrationSource'] = 'user'
+        servos.append(entry)
+    base['servos'] = servos
+    base['pinOverrides'] = pin_ov
+    base['calibrationOverrides'] = cal_ov
+    return base
+
+
+def _reload_servo_config():
+    global SERVO_CONFIG
+    SERVO_CONFIG = _load_servo_config()
+    return SERVO_CONFIG
+
+
+SERVO_CONFIG = _load_servo_config()
+
+def _servo_by_key(key):
+    if not SERVO_CONFIG:
+        return None
+    for s in SERVO_CONFIG.get('servos', []):
+        if s.get('key') == key:
+            return s
+    return None
+
+def _clamp_angle(val, lo=0, hi=180):
+    return max(lo, min(hi, int(val)))
+
+
+def _clamp_servo_key(key, val, default=90):
+    s = _servo_by_key(key)
+    if s:
+        return max(s['min'], min(s['max'], int(val)))
+    return _clamp_angle(val)
 
 # Gemini API key — set via .env or GEMINI_API_KEY environment variable
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
@@ -339,9 +416,9 @@ def autodetect():
 @app.route('/api/servo/head', methods=['POST'])
 def set_servo_head():
     data = request.get_json() or {}
-    neck = data.get('neck', 85)
-    eye = data.get('eye', 90)
-    jaw = data.get('jaw', 8)
+    neck = _clamp_servo_key('head_neck', data.get('neck', 85), 85)
+    eye = _clamp_servo_key('head_eye', data.get('eye', 90), 90)
+    jaw = _clamp_servo_key('head_jaw', data.get('jaw', 8), 8)
 
     # Form serial packet H,<neck>,<eye>,<jaw>\n
     cmd = f"H,{neck},{eye},{jaw}\n"
@@ -358,14 +435,9 @@ def set_servo_head():
 def set_neck_3axis():
     """Controls 3-axis neck: rotation (pan), tilt (nod), roll (side-tilt)."""
     data = request.get_json() or {}
-    rot  = int(data.get('rot',  60))   # Left/Right rotation
-    tilt = int(data.get('tilt', 50))   # Up/Down tilt
-    roll = int(data.get('roll', 120))   # Side-to-side roll
-
-    # Clamp to 0-180 range
-    rot  = max(0, min(180, rot))
-    tilt = max(0, min(180, tilt))
-    roll = max(0, min(180, roll))
+    rot  = _clamp_servo_key('neck_rot', data.get('rot', 60), 60)
+    tilt = _clamp_servo_key('neck_tilt', data.get('tilt', 50), 50)
+    roll = _clamp_servo_key('neck_roll', data.get('roll', 120), 120)
 
     # Serial protocol: N,<rot>,<tilt>,<roll>\n
     cmd = f"N,{rot},{tilt},{roll}\n"
@@ -378,10 +450,6 @@ def set_neck_3axis():
         "serial_sent": sent,
         "angles": {"rot": rot, "tilt": tilt, "roll": roll}
     })
-
-def _clamp_angle(val, lo=0, hi=180):
-    return max(lo, min(hi, int(val)))
-
 
 @app.route('/api/servo/arm', methods=['POST'])
 def set_servo_arm():
@@ -496,17 +564,12 @@ def set_servo_body():
 def set_combined_6axis():
     """Controls all 6 servos: Head (neck, eye, jaw) and Neck (rot, tilt, roll)."""
     data = request.get_json() or {}
-    hn = int(data.get('headNeck', 85))
-    he = int(data.get('headEye', 90))
-    hj = int(data.get('headJaw', 8))
-    nr = int(data.get('neckRot', 60))
-    nt = int(data.get('neckTilt', 50))
-    nro = int(data.get('neckRoll', 120))
-
-    # Clamp neck values to 0-180 range
-    nr = max(0, min(180, nr))
-    nt = max(0, min(180, nt))
-    nro = max(0, min(180, nro))
+    hn = _clamp_servo_key('head_neck', data.get('headNeck', 85), 85)
+    he = _clamp_servo_key('head_eye', data.get('headEye', 90), 90)
+    hj = _clamp_servo_key('head_jaw', data.get('headJaw', 8), 8)
+    nr = _clamp_servo_key('neck_rot', data.get('neckRot', 60), 60)
+    nt = _clamp_servo_key('neck_tilt', data.get('neckTilt', 50), 50)
+    nro = _clamp_servo_key('neck_roll', data.get('neckRoll', 120), 120)
 
     # Serial protocol: C,<hn>,<he>,<hj>,<nr>,<nt>,<nro>\n
     cmd = f"C,{hn},{he},{hj},{nr},{nt},{nro}\n"
@@ -554,6 +617,197 @@ def emergency_stop():
     serial_mgr.disconnect()
     return jsonify({"ok": True})
 
+@app.route('/api/servo/config', methods=['GET'])
+def get_servo_config():
+    cfg = _reload_servo_config()
+    if cfg:
+        return jsonify({"ok": True, **cfg})
+    return jsonify({"ok": False, "error": "servo_config.json missing — run scripts/extract_mrl_inmoov.py"}), 404
+
+
+@app.route('/api/servo/pins', methods=['GET', 'POST'])
+def servo_pins():
+    if request.method == 'GET':
+        return jsonify({"ok": True, "pins": _read_json(PIN_OVERRIDES_PATH, {})})
+
+    data = request.get_json() or {}
+    pins = data.get('pins') or {}
+    if not isinstance(pins, dict):
+        return jsonify({"ok": False, "error": "pins must be an object"}), 400
+
+    cleaned = {k: int(v) for k, v in pins.items() if 2 <= int(v) <= 53}
+    _write_json(PIN_OVERRIDES_PATH, cleaned)
+    _reload_servo_config()
+
+    sent = []
+    if serial_mgr.is_connected() and data.get('applyToFirmware', True):
+        for s in SERVO_CONFIG.get('servos', []):
+            key = s.get('key')
+            if key in cleaned:
+                cmd = f"W,{s['id']},{cleaned[key]}\n"
+                if serial_mgr.send_cmd(cmd):
+                    sent.append(key)
+
+    return jsonify({"ok": True, "pins": cleaned, "firmware_applied": sent})
+
+
+@app.route('/api/servo/pin', methods=['POST'])
+def set_servo_pin():
+    data = request.get_json() or {}
+    key = (data.get('key') or '').strip()
+    pin = int(data.get('pin', 0))
+    servo = _servo_by_key(key)
+    if not servo:
+        return jsonify({"ok": False, "error": f"Unknown servo: {key}"}), 400
+    if pin < 2 or pin > 53:
+        return jsonify({"ok": False, "error": "Pin must be 2–53"}), 400
+
+    overrides = _read_json(PIN_OVERRIDES_PATH, {})
+    overrides[key] = pin
+    _write_json(PIN_OVERRIDES_PATH, overrides)
+    _reload_servo_config()
+
+    sent = False
+    if serial_mgr.is_connected():
+        sent = serial_mgr.send_cmd(f"W,{servo['id']},{pin}\n")
+    return jsonify({"ok": True, "key": key, "pin": pin, "serial_sent": sent})
+
+
+@app.route('/api/servo/calibration', methods=['GET', 'POST'])
+def servo_calibration():
+    if request.method == 'GET':
+        return jsonify({"ok": True, "calibration": _read_json(CALIB_OVERRIDES_PATH, {})})
+
+    data = request.get_json() or {}
+    cal = data.get('calibration') or {}
+    if not isinstance(cal, dict):
+        return jsonify({"ok": False, "error": "calibration must be an object"}), 400
+
+    cleaned = {}
+    for key, vals in cal.items():
+        if not isinstance(vals, dict):
+            continue
+        entry = {}
+        for field in ('min', 'max', 'rest'):
+            if field in vals:
+                entry[field] = max(0, min(180, int(vals[field])))
+        if entry:
+            cleaned[key] = entry
+
+    _write_json(CALIB_OVERRIDES_PATH, cleaned)
+    _reload_servo_config()
+
+    sent = []
+    if serial_mgr.is_connected() and data.get('applyToFirmware', True):
+        for s in SERVO_CONFIG.get('servos', []):
+            key = s.get('key')
+            if key in cleaned:
+                v = cleaned[key]
+                mn = v.get('min', s['min'])
+                mx = v.get('max', s['max'])
+                rs = v.get('rest', s['rest'])
+                cmd = f"U,{s['id']},{mn},{mx},{rs}\n"
+                if serial_mgr.send_cmd(cmd):
+                    sent.append(key)
+
+    return jsonify({"ok": True, "calibration": cleaned, "firmware_applied": sent})
+
+
+@app.route('/api/servo/limits', methods=['POST'])
+def set_servo_limits():
+    data = request.get_json() or {}
+    key = (data.get('key') or '').strip()
+    servo = _servo_by_key(key)
+    if not servo:
+        return jsonify({"ok": False, "error": f"Unknown servo: {key}"}), 400
+
+    mn = max(0, min(180, int(data.get('min', servo['min']))))
+    mx = max(0, min(180, int(data.get('max', servo['max']))))
+    rs = max(0, min(180, int(data.get('rest', servo['rest']))))
+    if mn > mx:
+        return jsonify({"ok": False, "error": "min must be <= max"}), 400
+    rs = max(mn, min(mx, rs))
+
+    overrides = _read_json(CALIB_OVERRIDES_PATH, {})
+    overrides[key] = {"min": mn, "max": mx, "rest": rs}
+    _write_json(CALIB_OVERRIDES_PATH, overrides)
+    _reload_servo_config()
+
+    sent = False
+    if serial_mgr.is_connected():
+        sent = serial_mgr.send_cmd(f"U,{servo['id']},{mn},{mx},{rs}\n")
+    return jsonify({"ok": True, "key": key, "min": mn, "max": mx, "rest": rs, "serial_sent": sent})
+
+
+@app.route('/api/servo/grip', methods=['POST'])
+def servo_grip():
+    data = request.get_json() or {}
+    side = (data.get('side') or 'B').strip().upper()[:1]
+    pct = max(0, min(100, int(data.get('percent', 80))))
+    if side not in ('L', 'R', 'B'):
+        return jsonify({"ok": False, "error": "side must be L, R, or B"}), 400
+    cmd = f"K,{side},{pct}\n"
+    sent = serial_mgr.is_connected() and serial_mgr.send_cmd(cmd)
+    return jsonify({"ok": True, "serial_sent": sent, "side": side, "percent": pct})
+
+
+@app.route('/api/servo/enable', methods=['GET', 'POST'])
+def servo_enable():
+    groups = (SERVO_CONFIG or {}).get('bodyPartGroups', {})
+    if request.method == 'GET':
+        return jsonify({"ok": True, "groups": groups, "mask": 255})
+
+    data = request.get_json() or {}
+    enabled = data.get('enabled') or {}
+    mask = 0
+    for gkey, gdef in groups.items():
+        if enabled.get(gkey, True):
+            mask |= int(gdef.get('bit', 0))
+    cmd = f"E,{mask}\n"
+    sent = serial_mgr.is_connected() and serial_mgr.send_cmd(cmd)
+    return jsonify({"ok": True, "serial_sent": sent, "mask": mask, "enabled": enabled})
+
+
+@app.route('/api/servo/wave-patterns', methods=['GET'])
+def get_wave_patterns():
+    patterns = _read_json(WAVE_PATTERNS_PATH, [])
+    return jsonify({"ok": True, "patterns": patterns})
+
+
+@app.route('/api/servo/apply-vdb-pins', methods=['POST'])
+def apply_vdb_pins():
+    """Apply VDB upper-body wiring profile (DS5160 arms on pins 22-29)."""
+    vdb_map = {
+        "l_shoulder": 22, "l_lift": 24, "l_elbow": 26, "l_rotate": 28,
+        "r_shoulder": 23, "r_lift": 25, "r_elbow": 27, "r_rotate": 29,
+    }
+    _write_json(PIN_OVERRIDES_PATH, vdb_map)
+    _reload_servo_config()
+    sent = []
+    if serial_mgr.is_connected():
+        for s in SERVO_CONFIG.get('servos', []):
+            key = s.get('key')
+            if key in vdb_map:
+                if serial_mgr.send_cmd(f"W,{s['id']},{vdb_map[key]}\n"):
+                    sent.append(key)
+    return jsonify({"ok": True, "pins": vdb_map, "firmware_applied": sent, "profile": "vdb_upper_body"})
+
+
+@app.route('/api/servo/pattern', methods=['POST'])
+def run_firmware_pattern():
+    """Trigger a built-in pattern on the Arduino firmware (nod, shake, yes, no, bow, relax)."""
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip().lower()
+    if not name:
+        return jsonify({"ok": False, "error": "Pattern name required"}), 400
+    allowed = set((SERVO_CONFIG or {}).get('patterns', {}).keys())
+    if allowed and name not in allowed:
+        return jsonify({"ok": False, "error": f"Unknown pattern. Available: {', '.join(sorted(allowed))}"}), 400
+    cmd = f"G,{name}\n"
+    sent = serial_mgr.is_connected() and serial_mgr.send_cmd(cmd)
+    return jsonify({"ok": True, "serial_sent": sent, "pattern": name})
+
+
 @app.route('/api/config', methods=['GET'])
 def get_config():
     return jsonify({
@@ -561,9 +815,217 @@ def get_config():
         "gemini_configured": bool(GEMINI_API_KEY),
         "app_name": "InMoov Control Center",
         "firmware": "full_body_servo_control.ino",
-        "firmware_head_only": "combined_servo_control.ino",
+        "firmware_head_only": "full_body_servo_control.ino (define HEAD_ONLY)",
         "baud_rate": 9600,
+        "servo_count": (SERVO_CONFIG or {}).get('servoCount', 36),
+        "mrl_version": (SERVO_CONFIG or {}).get('version', '1.1.1610'),
+        "mrl_url": MRL_BASE_URL,
     })
+
+
+def _mrl_request(method, path, json_body=None, timeout=15):
+    """Forward a request to the live MyRobotLab REST API."""
+    url = f"{MRL_BASE_URL}/api/{path.lstrip('/')}"
+    try:
+        if method == 'POST':
+            resp = requests.post(url, json=json_body, timeout=timeout)
+        else:
+            resp = requests.get(url, timeout=timeout)
+        content_type = resp.headers.get('Content-Type', '')
+        if 'application/json' in content_type:
+            try:
+                data = resp.json()
+            except Exception:
+                data = resp.text
+        else:
+            data = resp.text
+        return {"ok": resp.status_code < 400, "status": resp.status_code, "data": data}
+    except requests.exceptions.ConnectionError:
+        return {"ok": False, "status": 503, "error": f"MyRobotLab not reachable at {MRL_BASE_URL}"}
+    except requests.exceptions.Timeout:
+        return {"ok": False, "status": 504, "error": "MyRobotLab request timed out"}
+    except Exception as e:
+        logger.error(f"MRL proxy error: {e}")
+        return {"ok": False, "status": 500, "error": str(e)}
+
+
+@app.route('/api/mrl/status', methods=['GET'])
+def mrl_status():
+    version = _mrl_request('GET', 'service/runtime/getVersion')
+    services = _mrl_request('GET', 'service/runtime/getServiceNames')
+    state = _mrl_request('GET', 'service/i01/getState')
+    online = version.get('ok') and services.get('ok')
+    svc_list = services.get('data') if isinstance(services.get('data'), list) else []
+    return jsonify({
+        "ok": online,
+        "online": online,
+        "url": MRL_BASE_URL,
+        "version": version.get('data'),
+        "serviceCount": len(svc_list),
+        "services": svc_list,
+        "i01State": state.get('data'),
+        "error": version.get('error') or services.get('error'),
+    })
+
+
+@app.route('/api/mrl/services', methods=['GET'])
+def mrl_services():
+    result = _mrl_request('GET', 'service/runtime/getServiceNames')
+    if not result.get('ok'):
+        return jsonify(result), result.get('status', 503)
+    services = result.get('data') or []
+    grouped = {}
+    for name in services:
+        parts = name.split('.')
+        root = parts[0] if parts else name
+        grouped.setdefault(root, []).append(name)
+    return jsonify({"ok": True, "services": services, "grouped": grouped, "count": len(services)})
+
+
+@app.route('/api/mrl/proxy/<path:subpath>', methods=['GET', 'POST'])
+def mrl_proxy(subpath):
+    result = _mrl_request(
+        request.method,
+        subpath,
+        json_body=request.get_json(silent=True) if request.method == 'POST' else None,
+    )
+    status = result.get('status', 200 if result.get('ok') else 500)
+    return jsonify(result), status
+
+
+@app.route('/api/mrl/call/<path:service>/<method>', methods=['GET', 'POST'])
+@app.route('/api/mrl/call/<path:service>/<method>/<path:args>', methods=['GET', 'POST'])
+def mrl_call(service, method, args=None):
+    """Convenience wrapper: /api/mrl/call/i01.head.neck/moveTo/90"""
+    path = f"service/{service}/{method}"
+    if args:
+        path = f"{path}/{args}"
+    result = _mrl_request(request.method, path, json_body=request.get_json(silent=True))
+    status = result.get('status', 200 if result.get('ok') else 500)
+    return jsonify(result), status
+
+
+@app.route('/api/mrl/gestures', methods=['GET'])
+def mrl_gestures():
+    data = _read_json(MRL_GESTURES_PATH, {})
+    gestures = []
+    for gid, g in data.items():
+        gestures.append({
+            "id": gid,
+            "mrlName": g.get('mrlName', gid.replace('mrl-', '')),
+            "name": g.get('name', gid),
+            "category": g.get('category', 'full'),
+            "icon": g.get('icon', ''),
+        })
+    gestures.sort(key=lambda x: x['name'].lower())
+    return jsonify({"ok": True, "gestures": gestures, "count": len(gestures)})
+
+
+@app.route('/api/mrl/exec', methods=['POST'])
+@app.route('/api/mrl/exec/<gesture>', methods=['GET', 'POST'])
+def mrl_exec(gesture=None):
+    if request.method == 'POST' and not gesture:
+        body = request.get_json() or {}
+        gesture = body.get('gesture') or body.get('mrlName')
+    if not gesture:
+        return jsonify({"ok": False, "error": "Gesture name required"}), 400
+    gesture = gesture.strip()
+    if gesture.startswith('mrl-'):
+        gesture = gesture[4:]
+    script = f"i01.{gesture}()"
+    result = _mrl_request('GET', f"service/python/exec/{script}", timeout=60)
+    return jsonify({
+        "ok": result.get('ok'),
+        "gesture": gesture,
+        "script": script,
+        "result": result.get('data'),
+        "error": result.get('error'),
+    }), result.get('status', 200 if result.get('ok') else 500)
+
+
+@app.route('/api/mrl/servo/<path:service>/state', methods=['GET'])
+def mrl_servo_state(service):
+    """Aggregate common ServoGui fields for one MRL servo service."""
+    fields = ('getPin', 'getMin', 'getMax', 'getRest', 'getSpeed', 'getPosition', 'isAttached', 'isSweeping')
+    state = {"service": service}
+    for field in fields:
+        r = _mrl_request('GET', f"service/{service}/{field}")
+        state[field] = r.get('data')
+    state['ok'] = True
+    return jsonify(state)
+
+
+# Known MRL i01 servo services for the body map
+MRL_I01_SERVOS = [
+    {"service": "i01.head.rothead", "label": "Head pan", "group": "head"},
+    {"service": "i01.head.neck", "label": "Head tilt", "group": "head"},
+    {"service": "i01.head.rollNeck", "label": "Head roll", "group": "head"},
+    {"service": "i01.head.eyeX", "label": "Eye X", "group": "head"},
+    {"service": "i01.head.eyeY", "label": "Eye Y", "group": "head"},
+    {"service": "i01.head.jaw", "label": "Jaw", "group": "head"},
+    {"service": "i01.head.eyelidLeft", "label": "Eyelid L", "group": "head"},
+    {"service": "i01.head.eyelidRight", "label": "Eyelid R", "group": "head"},
+    {"service": "i01.leftArm.shoulder", "label": "L shoulder", "group": "leftArm"},
+    {"service": "i01.leftArm.omoplate", "label": "L omoplate", "group": "leftArm"},
+    {"service": "i01.leftArm.rotate", "label": "L rotate", "group": "leftArm"},
+    {"service": "i01.leftArm.bicep", "label": "L bicep", "group": "leftArm"},
+    {"service": "i01.rightArm.shoulder", "label": "R shoulder", "group": "rightArm"},
+    {"service": "i01.rightArm.omoplate", "label": "R omoplate", "group": "rightArm"},
+    {"service": "i01.rightArm.rotate", "label": "R rotate", "group": "rightArm"},
+    {"service": "i01.rightArm.bicep", "label": "R bicep", "group": "rightArm"},
+    {"service": "i01.torso.topStom", "label": "Torso top", "group": "torso"},
+    {"service": "i01.torso.midStom", "label": "Torso mid", "group": "torso"},
+    {"service": "i01.torso.lowStom", "label": "Torso low", "group": "torso"},
+]
+
+
+@app.route('/api/mrl/i01/servos', methods=['GET'])
+def mrl_i01_servos():
+    return jsonify({"ok": True, "servos": MRL_I01_SERVOS})
+
+
+@app.route('/api/mrl/assets/<path:filename>')
+def mrl_assets(filename):
+    """Serve original MyRobotLab WebGui assets (InMoov2 images, icons)."""
+    path = os.path.join(MRL_WEBGUI_ROOT, filename.replace('/', os.sep))
+    if os.path.isfile(path):
+        return send_file(path)
+    return jsonify({"ok": False, "error": f"Asset not found: {filename}"}), 404
+
+
+@app.route('/api/mrl/i01/config', methods=['GET'])
+def mrl_i01_config():
+    result = _mrl_request('GET', 'service/i01/getConfig')
+    return jsonify(result), result.get('status', 200 if result.get('ok') else 503)
+
+
+@app.route('/api/mrl/i01/peer/<action>/<peer>', methods=['GET', 'POST'])
+def mrl_i01_peer(action, peer):
+    """startPeer / releasePeer on i01."""
+    if action not in ('startPeer', 'releasePeer'):
+        return jsonify({"ok": False, "error": "action must be startPeer or releasePeer"}), 400
+    result = _mrl_request('GET', f'service/i01/{action}/{peer}')
+    return jsonify({"ok": result.get('ok'), "peer": peer, "action": action, "result": result.get('data'), "error": result.get('error')}), result.get('status', 200)
+
+
+@app.route('/api/mrl/i01/speak', methods=['POST'])
+def mrl_i01_speak():
+    data = request.get_json() or {}
+    text = (data.get('text') or '').strip()
+    if not text:
+        return jsonify({"ok": False, "error": "text required"}), 400
+    result = _mrl_request('GET', f'service/i01/speakBlocking/{requests.utils.quote(text, safe="")}')
+    return jsonify({"ok": result.get('ok'), "text": text, "error": result.get('error')})
+
+
+@app.route('/api/mrl/python/exec', methods=['POST'])
+def mrl_python_exec():
+    data = request.get_json() or {}
+    script = (data.get('script') or '').strip()
+    if not script:
+        return jsonify({"ok": False, "error": "script required"}), 400
+    result = _mrl_request('GET', f'service/python/exec/{script}', timeout=120)
+    return jsonify({"ok": result.get('ok'), "script": script, "result": result.get('data'), "error": result.get('error')}), result.get('status', 200 if result.get('ok') else 500)
 
 @app.route('/api/conversation', methods=['POST'])
 def handle_conversation():
