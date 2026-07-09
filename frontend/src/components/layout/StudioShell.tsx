@@ -8,15 +8,12 @@ interface StudioShellProps {
   actions?: ReactNode;
   tabs?: ReactNode;
   children: ReactNode;
-  /** Optional custom preview; defaults to full-body RobotViewer */
   preview?: ReactNode;
   className?: string;
   showGallery?: boolean;
 }
 
-/**
- * Split studio layout: sticky 3D preview (always visible) + scrollable controls.
- */
+/** Sticky preview + dense control panel — minimal chrome, less scroll. */
 export function StudioShell({
   title,
   description,
@@ -33,18 +30,19 @@ export function StudioShell({
         <div className="studio-preview-frame">
           {preview ?? <RobotViewer className="h-full w-full" showGallery={showGallery} />}
         </div>
-        <p className="studio-preview-hint">Drag to orbit · scroll to zoom · sliders update live</p>
       </aside>
 
       <section className="studio-controls" aria-label="Robot controls">
         <header className="studio-controls-header">
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
-            {description && (
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground md:text-base">{description}</p>
-            )}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h1 className="font-display text-lg font-semibold tracking-tight md:text-xl">{title}</h1>
+              {description && (
+                <span className="hidden text-xs text-muted-foreground sm:inline">{description}</span>
+              )}
+            </div>
           </div>
-          {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+          {actions && <div className="flex shrink-0 flex-wrap items-center gap-1.5">{actions}</div>}
         </header>
 
         {tabs && <div className="studio-tabs">{tabs}</div>}

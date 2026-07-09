@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -19,6 +18,9 @@ interface ServoControlProps {
   accent?: 'copper' | 'signal' | 'phosphor' | 'violet';
   className?: string;
   disabled?: boolean;
+  /** Dense single-row motor control (default true in studio) */
+  compact?: boolean;
+  showPin?: boolean;
 }
 
 const COLORS = {
@@ -41,6 +43,8 @@ export function ServoControl({
   accent = 'signal',
   className,
   disabled,
+  compact = true,
+  showPin = false,
 }: ServoControlProps) {
   const filtered = presets.filter((p) => p >= min && p <= max);
 
@@ -48,6 +52,48 @@ export function ServoControl({
     onChange(v);
     syncLiveRobot(readStoreAngles());
   };
+
+  if (compact) {
+    return (
+      <div
+        className={cn('motor-row', className)}
+        style={{ '--motor-color': COLORS[accent] } as React.CSSProperties}
+        title={hint ? `${hint} · pin ${pin}` : `pin ${pin}`}
+      >
+        <div className="motor-row-label">
+          <Label className="text-xs font-medium leading-none">{label}</Label>
+          {showPin && <span className="text-[10px] text-muted-foreground">#{pin}</span>}
+        </div>
+        <Slider
+          accent={accent}
+          min={min}
+          max={max}
+          step={1}
+          value={[value]}
+          onValueChange={([v]) => handleChange(v)}
+          disabled={disabled}
+          className="min-w-0 flex-1"
+        />
+        <span className="motor-row-value">{Math.round(value)}°</span>
+        <div className="motor-row-presets">
+          {filtered.slice(0, 5).map((p) => (
+            <button
+              key={p}
+              type="button"
+              disabled={disabled}
+              onClick={() => handleChange(p)}
+              className={cn(
+                'motor-chip',
+                Math.round(value) === p && 'motor-chip-active',
+              )}
+            >
+              {presetLabels?.[p] ?? p}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -63,8 +109,16 @@ export function ServoControl({
           {Math.round(value)}°
         </span>
       </div>
-      <Slider accent={accent} min={min} max={max} step={1} value={[value]} onValueChange={([v]) => handleChange(v)} disabled={disabled} />
-      <div className="flex flex-wrap gap-2">
+      <Slider
+        accent={accent}
+        min={min}
+        max={max}
+        step={1}
+        value={[value]}
+        onValueChange={([v]) => handleChange(v)}
+        disabled={disabled}
+      />
+      <div className="flex flex-wrap gap-1.5">
         {filtered.map((p) => (
           <Button
             key={p}
@@ -78,7 +132,9 @@ export function ServoControl({
           </Button>
         ))}
       </div>
-      <Badge variant="default" className="w-fit text-[10px] font-normal">Wire {pin}</Badge>
+      {showPin && (
+        <span className="text-[10px] text-muted-foreground">Wire {pin}</span>
+      )}
     </div>
   );
 }

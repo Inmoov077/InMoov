@@ -1,4 +1,4 @@
-import { Bone, Mic, RotateCcw, ScanFace, Volume2 } from 'lucide-react';
+import { Bone, Mic, RotateCcw, ScanFace } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ServoControl } from '@/components/servo/ServoControl';
 import { Joystick } from '@/components/servo/Joystick';
@@ -13,13 +13,12 @@ import { useServoStore, type Axis } from '@/store/servoStore';
 const NECK_AXES: {
   key: Axis;
   label: string;
-  hint: string;
   pin: number;
   accent: 'copper' | 'signal' | 'violet';
 }[] = [
-  { key: 'rot', label: 'Spin', hint: 'Turn left / right', pin: servoByKey('neck_rot')?.pin ?? 6, accent: 'violet' },
-  { key: 'tilt', label: 'Nod', hint: 'Forward / back', pin: servoByKey('neck_tilt')?.pin ?? 7, accent: 'copper' },
-  { key: 'roll', label: 'Lean', hint: 'Side tilt', pin: servoByKey('neck_roll')?.pin ?? 8, accent: 'signal' },
+  { key: 'rot', label: 'Spin', pin: servoByKey('neck_rot')?.pin ?? 6, accent: 'violet' },
+  { key: 'tilt', label: 'Nod', pin: servoByKey('neck_tilt')?.pin ?? 7, accent: 'copper' },
+  { key: 'roll', label: 'Lean', pin: servoByKey('neck_roll')?.pin ?? 8, accent: 'signal' },
 ];
 
 export function HeadPanel() {
@@ -29,7 +28,7 @@ export function HeadPanel() {
   const setHead = useServoStore((s) => s.setHead);
   const centerHead = useServoStore((s) => s.centerHead);
 
-  const [ttsText, setTtsText] = useState('Hello! I am InMoov, your open-source humanoid companion.');
+  const [ttsText, setTtsText] = useState('Hello! I am InMoov.');
   const [speaking, setSpeaking] = useState(false);
   const jawAnimRef = useRef<number | null>(null);
 
@@ -45,8 +44,7 @@ export function HeadPanel() {
     const start = performance.now();
     const loop = (now: number) => {
       const t = (now - start) / 1000;
-      const open = 8 + Math.abs(Math.sin(t * 12)) * 22;
-      setHead('jaw', Math.round(open), false);
+      setHead('jaw', Math.round(8 + Math.abs(Math.sin(t * 12)) * 22), false);
       jawAnimRef.current = requestAnimationFrame(loop);
     };
     jawAnimRef.current = requestAnimationFrame(loop);
@@ -82,74 +80,66 @@ export function HeadPanel() {
   useEffect(() => () => stopJawAnim(), [stopJawAnim]);
 
   return (
-    <div className="space-y-4">
-      <SectionCard
-        icon={ScanFace}
-        title="Head"
-        description="Pan, eyes, and jaw"
-        action={
-          <Button variant="outline" size="sm" onClick={() => centerHead()}>
-            <RotateCcw className="h-3.5 w-3.5" /> Reset
+    <SectionCard
+      icon={ScanFace}
+      title="Head"
+      description="Pan · eyes · jaw"
+      action={
+        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => centerHead()}>
+          <RotateCcw className="h-3 w-3" /> Reset
+        </Button>
+      }
+    >
+      <div className="space-y-1.5">
+        <ServoControl
+          label="Turn"
+          pin={servoByKey('head_neck')?.pin ?? 3}
+          value={hneck}
+          min={servoByKey('head_neck')?.min}
+          max={servoByKey('head_neck')?.max}
+          onChange={(v) => setHead('hneck', v)}
+          presets={[0, 45, 85, 135, 180]}
+          presetLabels={{ 85: 'C' }}
+          accent="copper"
+        />
+        <ServoControl
+          label="Eyes"
+          pin={servoByKey('head_eye')?.pin ?? 4}
+          value={eye}
+          min={servoByKey('head_eye')?.min}
+          max={servoByKey('head_eye')?.max}
+          onChange={(v) => setHead('eye', v)}
+          accent="signal"
+        />
+        <ServoControl
+          label="Jaw"
+          pin={servoByKey('head_jaw')?.pin ?? 5}
+          value={jaw}
+          min={servoByKey('head_jaw')?.min ?? 0}
+          max={servoByKey('head_jaw')?.max ?? 40}
+          onChange={(v) => setHead('jaw', v)}
+          presets={[0, 8, 20, 40]}
+          presetLabels={{ 0: 'Shut', 8: 'Rest' }}
+          accent="phosphor"
+        />
+      </div>
+      <div className="mt-2 flex items-center gap-1.5">
+        <Input
+          value={ttsText}
+          onChange={(e) => setTtsText(e.target.value)}
+          className="h-8 text-xs"
+          placeholder="Speak text…"
+        />
+        <Button size="sm" className="h-8 shrink-0 px-2.5" onClick={speak} disabled={speaking}>
+          <Mic className="h-3.5 w-3.5" />
+        </Button>
+        {speaking && (
+          <Button size="sm" variant="outline" className="h-8 shrink-0 px-2" onClick={stopSpeak}>
+            Stop
           </Button>
-        }
-      >
-        <div className="space-y-4">
-          <ServoControl
-            label="Turn head"
-            hint="Left ↔ right"
-            pin={servoByKey('head_neck')?.pin ?? 3}
-            value={hneck}
-            min={servoByKey('head_neck')?.min}
-            max={servoByKey('head_neck')?.max}
-            onChange={(v) => setHead('hneck', v)}
-            presets={[0, 45, 85, 135, 180]}
-            presetLabels={{ 85: 'Center' }}
-            accent="copper"
-          />
-          <ServoControl
-            label="Eyes"
-            hint="Up ↔ down"
-            pin={servoByKey('head_eye')?.pin ?? 4}
-            value={eye}
-            min={servoByKey('head_eye')?.min}
-            max={servoByKey('head_eye')?.max}
-            onChange={(v) => setHead('eye', v)}
-            accent="signal"
-          />
-          <ServoControl
-            label="Jaw"
-            hint="Open mouth"
-            pin={servoByKey('head_jaw')?.pin ?? 5}
-            value={jaw}
-            min={servoByKey('head_jaw')?.min ?? 0}
-            max={servoByKey('head_jaw')?.max ?? 40}
-            onChange={(v) => setHead('jaw', v)}
-            presets={[0, 8, 20, 40]}
-            presetLabels={{ 0: 'Closed', 8: 'Rest' }}
-            accent="phosphor"
-          />
-        </div>
-      </SectionCard>
-
-      <SectionCard icon={Volume2} title="Speak" description="Browser TTS with jaw motion">
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="tts">Text</Label>
-            <Input id="tts" value={ttsText} onChange={(e) => setTtsText(e.target.value)} />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={speak} disabled={speaking}>
-              <Mic className="h-4 w-4" /> Speak
-            </Button>
-            {speaking && (
-              <Button size="sm" variant="outline" onClick={stopSpeak}>
-                Stop
-              </Button>
-            )}
-          </div>
-        </div>
-      </SectionCard>
-    </div>
+        )}
+      </div>
+    </SectionCard>
   );
 }
 
@@ -163,36 +153,34 @@ export function NeckPanel() {
   const centerNeck = useServoStore((s) => s.centerNeck);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <SectionCard
         icon={Bone}
         title="Neck"
-        description="Spin, nod, lean — or use the pad"
+        description="Spin · nod · lean"
         action={
-          <Button variant="outline" size="sm" onClick={() => centerNeck()}>
-            <RotateCcw className="h-3.5 w-3.5" /> Reset
+          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => centerNeck()}>
+            <RotateCcw className="h-3 w-3" /> Reset
           </Button>
         }
       >
-        <div className="space-y-4">
-          <div className="surface-inset space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>All neck motors</Label>
-              <span className="font-mono text-sm font-bold text-primary">{rot}°</span>
-            </div>
-            <Slider
-              accent="copper"
-              min={limits.rot.min}
-              max={limits.rot.max}
-              value={[rot]}
-              onValueChange={([v]) => setMaster(v)}
-            />
-          </div>
+        <div className="mb-1.5 flex items-center gap-2 rounded-lg bg-muted/50 px-2 py-1.5">
+          <Label className="shrink-0 text-xs">All</Label>
+          <Slider
+            accent="copper"
+            min={limits.rot.min}
+            max={limits.rot.max}
+            value={[rot]}
+            onValueChange={([v]) => setMaster(v)}
+            className="flex-1"
+          />
+          <span className="w-8 text-right font-mono text-xs font-bold text-primary">{rot}°</span>
+        </div>
+        <div className="space-y-1.5">
           {NECK_AXES.map((axis) => (
             <ServoControl
               key={axis.key}
               label={axis.label}
-              hint={axis.hint}
               pin={axis.pin}
               value={axis.key === 'rot' ? rot : axis.key === 'tilt' ? tilt : roll}
               min={limits[axis.key].min}
@@ -203,8 +191,7 @@ export function NeckPanel() {
           ))}
         </div>
       </SectionCard>
-
-      <Joystick />
+      <Joystick compact />
     </div>
   );
 }

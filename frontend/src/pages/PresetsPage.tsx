@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
-import { Loader2, Play, Square } from 'lucide-react';
-import { PageHeader } from '@/components/layout/PageHeader';
+import { Link } from 'react-router-dom';
+import { Loader2, Play, Search, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { PRESETS, PRESET_META, type PresetCategory } from '@/lib/presets';
 import { animateKeyframes } from '@/lib/animateKeyframes';
 import { useBodyStore } from '@/store/bodyStore';
@@ -17,21 +18,31 @@ const FILTER_TABS: { id: FilterTab; label: string }[] = [
   { id: 'head', label: 'Head' },
   { id: 'arm', label: 'Arms' },
   { id: 'hand', label: 'Hands' },
-  { id: 'full', label: 'Full body' },
+  { id: 'full', label: 'Full' },
   { id: 'social', label: 'Social' },
 ];
 
 export function PresetsPage() {
   const [running, setRunning] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterTab>('all');
+  const [q, setQ] = useState('');
   const abortRef = useRef<AbortController | null>(null);
   const centerAll = useServoStore((s) => s.centerAll);
   const centerBody = useBodyStore((s) => s.centerBody);
 
   const visiblePresets = useMemo(() => {
-    if (filter === 'all') return PRESET_META;
-    return PRESET_META.filter((p) => p.category === filter);
-  }, [filter]);
+    let list = filter === 'all' ? PRESET_META : PRESET_META.filter((p) => p.category === filter);
+    const query = q.trim().toLowerCase();
+    if (query) {
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.desc.toLowerCase().includes(query) ||
+          p.id.toLowerCase().includes(query),
+      );
+    }
+    return list;
+  }, [filter, q]);
 
   const playPreset = async (id: string) => {
     const keyframes = PRESETS[id];
@@ -47,60 +58,107 @@ export function PresetsPage() {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Ready moves"
-        description="Built-in animations plus 136 official MyRobotLab 1.1.1610 InMoov2 gestures."
-        actions={
-          running ? (
-            <Button variant="destructive" size="sm" onClick={() => { abortRef.current?.abort(); setRunning(null); centerAll(); centerBody(); }}>
-              <Square className="h-4 w-4" /> Stop
-            </Button>
-          ) : undefined
-        }
-      />
+  const stop = () => {
+    abortRef.current?.abort();
+    setRunning(null);
+    centerAll();
+    centerBody();
+  };
 
-      <div className="flex flex-wrap gap-2">
-        {FILTER_TABS.map((tab) => (
-          <Button
-            key={tab.id}
-            variant={filter === tab.id ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter(tab.id)}
-          >
-            {tab.label}
-            <Badge variant="default" className="ml-2">
-              {tab.id === 'all'
-                ? PRESET_META.length
-                : PRESET_META.filter((p) => p.category === tab.id).length}
-            </Badge>
+  return (
+    <div className="space-y-4 animate-fadeUp">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">Moves</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {PRESET_META.length} gestures · tap to play ·{' '}
+            <Link to="/control" className="text-primary underline-offset-2 hover:underline">
+              Control
+            </Link>
+          </p>
+        </div>
+        {running && (
+          <Button variant="destructive" size="sm" className="h-8" onClick={stop}>
+            <Square className="h-3.5 w-3.5" /> Stop
           </Button>
-        ))}
+        )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visiblePresets.map((preset) => (
-          <div key={preset.id} className={cn('preset-tile', running === preset.id && 'active')}>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-3xl">{preset.icon}</span>
-              <div className="flex flex-col items-end gap-1">
-                {running === preset.id && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search moves…"
+            className="h-9 pl-9"
+          />
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {FILTER_TABS.map((tab) => {
+            const count =
+              tab.id === 'all'
+                ? PRESET_META.length
+                : PRESET_META.filter((p) => p.category === tab.id).length;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFilter(tab.id)}
+                className={cn(
+                  filter === tab.id ? 'nav-pill-active' : 'nav-pill-idle',
+                  'px-2.5 py-1 text-xs',
+                )}
+              >
+                {tab.label}
+                <span className="ml-1 opacity-70">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {visiblePresets.map((preset) => {
+          const active = running === preset.id;
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              disabled={!!running && !active}
+              onClick={() => void playPreset(preset.id)}
+              className={cn(
+                'preset-chip group text-left',
+                active && 'preset-chip-active',
+                running && !active && 'opacity-50',
+              )}
+              title={preset.desc}
+            >
+              <div className="flex items-start justify-between gap-1">
+                <span className="text-lg leading-none">{preset.icon}</span>
+                {active ? (
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+                ) : (
+                  <Play className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
+                )}
+              </div>
+              <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-snug">{preset.name}</p>
+              <div className="mt-1 flex items-center gap-1">
                 {preset.category !== 'builtin' && (
-                  <Badge variant="copper" className="text-[10px] uppercase tracking-wide">
+                  <Badge variant="copper" className="h-4 px-1 text-[9px]">
                     MRL
                   </Badge>
                 )}
+                <span className="truncate text-[10px] text-muted-foreground">{preset.category}</span>
               </div>
-            </div>
-            <h3 className="mt-4 font-display text-xl font-semibold">{preset.name}</h3>
-            <p className="mt-1 flex-1 text-sm text-muted-foreground">{preset.desc}</p>
-            <Button className="mt-4 w-full" disabled={!!running} onClick={() => playPreset(preset.id)}>
-              <Play className="h-4 w-4" /> Play
-            </Button>
-          </div>
-        ))}
+            </button>
+          );
+        })}
       </div>
+
+      {visiblePresets.length === 0 && (
+        <p className="py-12 text-center text-sm text-muted-foreground">No moves match your search.</p>
+      )}
     </div>
   );
 }

@@ -1,14 +1,5 @@
-import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-  Bone,
-  Cable,
-  Footprints,
-  LayoutGrid,
-  RotateCcw,
-  ScanFace,
-  ScrollText,
-} from 'lucide-react';
+import { Bone, Cable, Footprints, RotateCcw, ScanFace, ScrollText } from 'lucide-react';
 import { StudioShell } from '@/components/layout/StudioShell';
 import { BodyJointPanel, type BodyTab } from '@/components/control/BodyJointPanel';
 import { HeadPanel, NeckPanel } from '@/components/control/HeadNeckPanel';
@@ -20,10 +11,9 @@ import { useServoStore } from '@/store/servoStore';
 import { useBodyStore } from '@/store/bodyStore';
 import { cn } from '@/lib/utils';
 
-type ControlTab = 'all' | 'head' | 'neck' | 'body' | 'connect';
+type ControlTab = 'head' | 'neck' | 'body' | 'connect';
 
-const TABS: { id: ControlTab; label: string; icon: typeof LayoutGrid }[] = [
-  { id: 'all', label: 'All', icon: LayoutGrid },
+const TABS: { id: ControlTab; label: string; icon: typeof ScanFace }[] = [
   { id: 'head', label: 'Head', icon: ScanFace },
   { id: 'neck', label: 'Neck', icon: Bone },
   { id: 'body', label: 'Body', icon: Footprints },
@@ -31,8 +21,9 @@ const TABS: { id: ControlTab; label: string; icon: typeof LayoutGrid }[] = [
 ];
 
 function parseTab(raw: string | null): ControlTab {
-  if (raw === 'head' || raw === 'neck' || raw === 'body' || raw === 'connect' || raw === 'all') return raw;
-  return 'all';
+  if (raw === 'neck' || raw === 'body' || raw === 'connect' || raw === 'head') return raw;
+  if (raw === 'all') return 'head';
+  return 'head';
 }
 
 function parseBodyTab(raw: string | null): BodyTab {
@@ -50,8 +41,9 @@ export function AllServosPage() {
 
   const setTab = (next: ControlTab) => {
     const p = new URLSearchParams(params);
-    if (next === 'all') p.delete('tab');
+    if (next === 'head') p.delete('tab');
     else p.set('tab', next);
+    if (next !== 'body') p.delete('part');
     setParams(p, { replace: true });
   };
 
@@ -62,42 +54,28 @@ export function AllServosPage() {
     setParams(p, { replace: true });
   };
 
-  const description = useMemo(() => {
-    switch (tab) {
-      case 'head':
-        return 'Head pan, eyes, jaw, and speak — 3D stays on the left.';
-      case 'neck':
-        return 'Spin, nod, lean, and the neck pad — preview always visible.';
-      case 'body':
-        return 'Arms, hands, and legs — one panel, no duplicate pages.';
-      case 'connect':
-        return 'USB serial connection and command log.';
-      default:
-        return 'Every motor in one place. Preview stays put while you scroll controls.';
-    }
-  }, [tab]);
-
   return (
     <StudioShell
       title="Control"
-      description={description}
+      description="Live 3D · one section at a time"
       showGallery
       actions={
-        <div className="flex flex-wrap gap-2">
+        <>
           <Button
             variant="outline"
             size="sm"
+            className="h-7 px-2 text-xs"
             onClick={() => {
               centerAll();
               centerBody();
             }}
           >
-            <RotateCcw className="h-4 w-4" /> Reset all
+            <RotateCcw className="h-3.5 w-3.5" /> Reset
           </Button>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" asChild>
             <Link to="/presets">Moves</Link>
           </Button>
-        </div>
+        </>
       }
       tabs={
         <>
@@ -106,25 +84,23 @@ export function AllServosPage() {
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
-              className={cn(tab === item.id ? 'nav-pill-active' : 'nav-pill-idle')}
+              className={cn(tab === item.id ? 'nav-pill-active' : 'nav-pill-idle', 'px-2.5 py-1 text-xs')}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-3.5 w-3.5" />
               {item.label}
             </button>
           ))}
         </>
       }
     >
-      {(tab === 'all' || tab === 'head') && <HeadPanel />}
-      {(tab === 'all' || tab === 'neck') && <NeckPanel />}
-      {(tab === 'all' || tab === 'body') && (
-        <BodyJointPanel tab={bodyTab} onTabChange={setBodyTab} compact={tab === 'all'} />
-      )}
-      {(tab === 'all' || tab === 'connect') && (
-        <div className="space-y-4">
-          <ConnectionPanel compact={tab === 'all'} />
-          <SectionCard icon={ScrollText} title="Serial log" description="Commands sent to the board">
-            <SerialConsole height="h-48" />
+      {tab === 'head' && <HeadPanel />}
+      {tab === 'neck' && <NeckPanel />}
+      {tab === 'body' && <BodyJointPanel tab={bodyTab} onTabChange={setBodyTab} />}
+      {tab === 'connect' && (
+        <div className="space-y-2">
+          <ConnectionPanel compact />
+          <SectionCard icon={ScrollText} title="Log" description="Serial traffic">
+            <SerialConsole height="h-36" />
           </SectionCard>
         </div>
       )}

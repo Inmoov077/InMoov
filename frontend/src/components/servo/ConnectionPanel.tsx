@@ -53,31 +53,31 @@ export function ConnectionPanel({ compact, className }: { compact?: boolean; cla
   const selectValue = selectedPort && ports.includes(selectedPort) ? selectedPort : undefined;
 
   return (
-    <Card className={cn(className)}>
-      <CardHeader className={compact ? 'p-5 pb-3' : undefined}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12">
-              <Usb className="h-5 w-5 text-primary" />
+    <Card className={cn(compact && 'section-dense', className)}>
+      <CardHeader className={compact ? 'p-3 pb-2' : undefined}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className={cn('flex items-center justify-center rounded-xl bg-primary/12', compact ? 'h-8 w-8' : 'h-11 w-11 rounded-2xl')}>
+              <Usb className={cn(compact ? 'h-4 w-4' : 'h-5 w-5', 'text-primary')} />
             </div>
             <div>
-              <CardTitle className="text-lg">Connect robot</CardTitle>
+              <CardTitle className={compact ? 'text-base' : 'text-lg'}>Connect</CardTitle>
               {!compact && <CardDescription>USB cable → pick port → Connect</CardDescription>}
             </div>
           </div>
           <Badge variant={connected ? 'online' : 'offline'}>{connected ? 'On' : 'Off'}</Badge>
         </div>
       </CardHeader>
-      <CardContent className={cn('space-y-4', compact && 'px-5 pb-5')}>
-        <div className="surface-inset">
+      <CardContent className={cn(compact ? 'space-y-2 p-3 pt-0' : 'space-y-4')}>
+        <div className={cn(compact ? 'rounded-lg border border-border/40 bg-muted/40 p-2' : 'surface-inset')}>
           {!loaded ? (
-            <p className="text-sm text-muted-foreground">Searching…</p>
+            <p className="text-xs text-muted-foreground">Searching…</p>
           ) : ports.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No ports — plug in USB and refresh.</p>
+            <p className="text-xs text-muted-foreground">No ports — plug USB and refresh.</p>
           ) : (
             <Select value={selectValue} onValueChange={setSelectedPort} disabled={connected || busy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose port (COM3, COM4…)" />
+              <SelectTrigger className={compact ? 'h-8 text-xs' : undefined}>
+                <SelectValue placeholder="Port (COM3…)" />
               </SelectTrigger>
               <SelectContent>
                 {ports.map((p) => (
@@ -87,7 +87,7 @@ export function ConnectionPanel({ compact, className }: { compact?: boolean; cla
             </Select>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {!connected ? (
             <Button onClick={async () => {
               if (!selectedPort) return toast.warning('Pick a port first');
