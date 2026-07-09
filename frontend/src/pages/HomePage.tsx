@@ -1,16 +1,14 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowUpRight,
-  Bone,
   Bot,
   Brain,
   Camera,
   Gamepad2,
+  Layers,
   Mic,
   Rocket,
   Settings,
-  SlidersHorizontal,
-  Footprints,
 } from 'lucide-react';
 import { QuickStart } from '@/components/ux/QuickStart';
 import { Button } from '@/components/ui/button';
@@ -18,17 +16,63 @@ import { Badge } from '@/components/ui/badge';
 import { useServoStore } from '@/store/servoStore';
 
 const TILES = [
-  { to: '/control', icon: Gamepad2, title: 'Control panel', desc: 'All motors + 3D preview', color: 'from-primary/20 to-primary/5', big: true },
-  { to: '/head', icon: SlidersHorizontal, title: 'Head', desc: 'Turn, eyes, jaw', color: 'from-accent/15 to-transparent' },
-  { to: '/neck', icon: Bone, title: 'Neck', desc: 'Spin, nod, lean', color: 'from-info/15 to-transparent' },
-  { to: '/body', icon: Footprints, title: 'Body', desc: 'Arms, hands & legs', color: 'from-primary/15 to-transparent' },
-  { to: '/presets', icon: Rocket, title: 'Moves', desc: '149 MRL + built-in', color: 'from-success/15 to-transparent' },
-  { to: '/ai', icon: Brain, title: 'Chat', desc: 'Talk with AI', color: 'from-axis-violet/15 to-transparent' },
-  { to: '/offline', icon: Mic, title: 'Voice', desc: 'Offline commands', color: 'from-axis-amber/15 to-transparent' },
-  { to: '/camera', icon: Camera, title: 'Vision', desc: 'Face track + MRL gestures', color: 'from-axis-sky/15 to-transparent' },
-  { to: '/mrl-live', icon: Bot, title: 'MRL Live', desc: 'Native :8888 full clone', color: 'from-accent/15 to-transparent', big: false },
-  { to: '/mrl', icon: Bot, title: 'MRL Hub', desc: 'Offline features A–Z', color: 'from-muted/30 to-transparent', big: false },
-  { to: '/settings', icon: Settings, title: 'Settings', desc: 'USB & limits', color: 'from-muted to-transparent' },
+  {
+    to: '/control',
+    icon: Gamepad2,
+    title: 'Control',
+    desc: 'Sticky 3D preview + all motors in one scroll panel',
+    color: 'from-primary/20 to-primary/5',
+    big: true,
+  },
+  {
+    to: '/robot',
+    icon: Bot,
+    title: 'Studio',
+    desc: 'Body map, gestures, OpenCV, runtime, Python',
+    color: 'from-accent/15 to-transparent',
+  },
+  {
+    to: '/presets',
+    icon: Rocket,
+    title: 'Moves',
+    desc: '136+ gestures & built-in animations',
+    color: 'from-success/15 to-transparent',
+  },
+  {
+    to: '/camera',
+    icon: Camera,
+    title: 'Vision',
+    desc: 'Face track + hand gestures',
+    color: 'from-axis-sky/15 to-transparent',
+  },
+  {
+    to: '/ai',
+    icon: Brain,
+    title: 'Chat',
+    desc: 'Talk with AI + mood motion',
+    color: 'from-axis-violet/15 to-transparent',
+  },
+  {
+    to: '/offline',
+    icon: Mic,
+    title: 'Voice',
+    desc: 'Offline commands',
+    color: 'from-axis-amber/15 to-transparent',
+  },
+  {
+    to: '/features',
+    icon: Layers,
+    title: 'Features',
+    desc: 'Full stack map & shortcuts',
+    color: 'from-muted/30 to-transparent',
+  },
+  {
+    to: '/settings',
+    icon: Settings,
+    title: 'Settings',
+    desc: 'USB, ports & limits',
+    color: 'from-muted to-transparent',
+  },
 ];
 
 export function HomePage() {
@@ -43,14 +87,20 @@ export function HomePage() {
             {connected ? `Connected · ${port}` : 'Not connected — plug in USB'}
           </Badge>
           <h1 className="font-display text-4xl font-semibold leading-tight md:text-5xl">
-            Control your <span className="text-gradient">InMoov</span> robot
+            Control your <span className="text-gradient">InMoov</span>
           </h1>
           <p className="mt-4 max-w-lg text-lg text-muted-foreground">
-            Move the head, neck, arms, hands, and legs — try ready-made gestures or chat with your humanoid.
+            One control studio: 3D preview stays on the left while you scroll every motor, gesture, and tool on
+            the right. No duplicate pages.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button size="lg" asChild>
-              <Link to="/control">Open control panel <ArrowUpRight className="h-4 w-4" /></Link>
+              <Link to="/control">
+                Open control <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link to="/robot">Studio</Link>
             </Button>
             {!connected && (
               <Button size="lg" variant="outline" asChild>

@@ -34,7 +34,7 @@ export const SERVO_CONFIG: {
   hardwareProfiles: Record<string, { description: string; note?: string }>;
 } = {
   "version": "1.1.1610",
-  "source": "myrobotlab-1.1.1610/resource/InMoov2 + VDB (1)/VDB",
+  "source": "InMoove Core + shared/servo_config.json",
   "firmware": "full_body_servo_control.ino",
   "baud": 9600,
   "servoCount": 36,

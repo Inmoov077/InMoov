@@ -55,6 +55,100 @@
     @apply mx-auto w-full max-w-[1400px] px-4 md:px-6;
   }
 
+  /* Full-height studio pages (Control, Robot Studio) */
+  .studio-main {
+    @apply w-full px-3 py-3 md:px-4 md:py-4;
+    min-height: calc(100vh - 3.5rem);
+  }
+
+  .studio-shell {
+    @apply grid w-full gap-3 md:gap-4;
+    grid-template-columns: 1fr;
+    min-height: calc(100vh - 4.5rem);
+  }
+
+  @media (min-width: 1024px) {
+    .studio-shell {
+      grid-template-columns: minmax(340px, 1.05fr) minmax(360px, 0.95fr);
+      align-items: start;
+    }
+  }
+
+  .studio-preview {
+    @apply flex flex-col gap-2;
+  }
+
+  @media (min-width: 1024px) {
+    .studio-preview {
+      position: sticky;
+      top: calc(3.5rem + 0.75rem);
+      height: calc(100vh - 5rem);
+      max-height: calc(100vh - 5rem);
+    }
+  }
+
+  .studio-preview-frame {
+    @apply overflow-hidden rounded-2xl border border-border/60;
+    height: min(48vh, 420px);
+    min-height: 280px;
+    box-shadow: 0 1px 2px hsla(230, 35%, 12%, 0.04), 0 12px 40px hsla(230, 35%, 12%, 0.08);
+  }
+
+  @media (min-width: 1024px) {
+    .studio-preview-frame {
+      flex: 1;
+      height: auto;
+      min-height: 0;
+    }
+  }
+
+  .studio-preview-hint {
+    @apply hidden text-center text-[11px] text-muted-foreground lg:block;
+  }
+
+  .studio-controls {
+    @apply flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/70;
+    box-shadow: 0 1px 2px hsla(230, 35%, 12%, 0.04), 0 8px 32px hsla(230, 35%, 12%, 0.06);
+  }
+
+  @media (min-width: 1024px) {
+    .studio-controls {
+      position: sticky;
+      top: calc(3.5rem + 0.75rem);
+      height: calc(100vh - 5rem);
+      max-height: calc(100vh - 5rem);
+    }
+  }
+
+  .studio-controls-header {
+    @apply flex flex-col gap-3 border-b border-border/50 px-4 py-4 sm:flex-row sm:items-start sm:justify-between md:px-5;
+    background: linear-gradient(
+      135deg,
+      hsla(8, 78%, 56%, 0.08) 0%,
+      hsla(262, 55%, 52%, 0.05) 50%,
+      transparent 100%
+    );
+  }
+
+  .studio-tabs {
+    @apply flex flex-wrap gap-1.5 border-b border-border/40 px-3 py-2.5 md:px-4;
+    background: hsla(40, 50%, 98%, 0.6);
+  }
+
+  .studio-controls-scroll {
+    @apply flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 py-4 md:px-4;
+    scrollbar-gutter: stable;
+  }
+
+  .studio-controls-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .studio-controls-scroll::-webkit-scrollbar-thumb {
+    background: hsla(230, 12%, 42%, 0.25);
+    border-radius: 999px;
+  }
+
   .surface {
     @apply rounded-2xl border border-border/60 bg-card text-card-foreground;
     box-shadow: 0 1px 2px hsla(230, 35%, 12%, 0.04), 0 8px 32px hsla(230, 35%, 12%, 0.06);
@@ -74,7 +168,7 @@
   }
 
   .nav-pill {
-    @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all;
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-all;
   }
 
   .nav-pill-active {

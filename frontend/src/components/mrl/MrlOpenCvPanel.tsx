@@ -61,9 +61,9 @@ export function MrlOpenCvPanel() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Camera className="h-4 w-4" /> OpenCV — native clone
+            <Camera className="h-4 w-4" /> Vision
           </CardTitle>
-          <CardDescription>Start/stop capture, filters, web viewer — mirrors OpenCVGui.html</CardDescription>
+          <CardDescription>Peer control for vision. Live face tracking lives on the Vision page.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -108,18 +108,22 @@ export function MrlOpenCvPanel() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Video feed</CardTitle>
-          <CardDescription>Live frames via MRL WebSocket (onWebDisplay)</CardDescription>
+          <CardDescription>
+            Open <a className="text-primary underline" href="/camera">Vision</a> for live MediaPipe tracking.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-hidden rounded-lg border border-border/50 bg-black/80">
             <img
-              src={frame ?? MRL_ASSET('service/img/OpenCV.png')}
-              alt="OpenCV feed"
+              src={frame ?? MRL_ASSET('OpenCV.png')}
+              alt="Vision"
               className="mx-auto max-h-[400px] w-full object-contain"
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            {capturing ? (frame ? 'Receiving frames…' : 'Waiting for WebSocket frames…') : 'Start capture to view feed'}
+            {capturing
+              ? 'Vision peer started — use /camera for live browser feed'
+              : 'Start capture to enable vision peer'}
           </p>
         </CardContent>
       </Card>

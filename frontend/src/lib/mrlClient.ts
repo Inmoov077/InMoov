@@ -50,27 +50,27 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 export async function getMrlStatus(): Promise<MrlStatus> {
-  const res = await fetch('/api/mrl/status');
+  const res = await fetch('/api/core/status');
   return parseJson(res);
 }
 
 export async function getMrlServices() {
-  const res = await fetch('/api/mrl/services');
+  const res = await fetch('/api/core/services');
   return parseJson<{ ok: boolean; services: string[]; grouped: Record<string, string[]>; count: number }>(res);
 }
 
 export async function getMrlI01Servos() {
-  const res = await fetch('/api/mrl/i01/servos');
+  const res = await fetch('/api/core/robot/servos');
   return parseJson<{ ok: boolean; servos: MrlI01Servo[] }>(res);
 }
 
 export async function getMrlGestures() {
-  const res = await fetch('/api/mrl/gestures');
+  const res = await fetch('/api/core/gestures');
   return parseJson<{ ok: boolean; gestures: MrlGesture[]; count: number }>(res);
 }
 
 export async function getMrlServoState(service: string): Promise<MrlServoState> {
-  const res = await fetch(`/api/mrl/servo/${encodeURIComponent(service)}/state`);
+  const res = await fetch(`/api/core/servo/${encodeURIComponent(service)}/state`);
   return parseJson(res);
 }
 
@@ -79,14 +79,14 @@ export async function mrlCall<T = unknown>(
   method: string,
   ...args: (string | number)[]
 ): Promise<MrlCallResult<T>> {
-  const base = `/api/mrl/call/${encodeURIComponent(service)}/${encodeURIComponent(method)}`;
+  const base = `/api/core/call/${encodeURIComponent(service)}/${encodeURIComponent(method)}`;
   const path = args.length ? `${base}/${args.map(encodeURIComponent).join('/')}` : base;
   const res = await fetch(path);
   return parseJson(res);
 }
 
 export async function mrlExec(gesture: string) {
-  const res = await fetch('/api/mrl/exec', {
+  const res = await fetch('/api/core/exec', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({ gesture }),
@@ -138,20 +138,21 @@ export async function mrlSetLimits(service: string, min: number, max: number) {
   return mrlCall(service, 'setMinMax', min, max);
 }
 
-export const MRL_WEBUI_URL = 'http://localhost:8888';
+/** InMoove Core is always local — no external Web UI required. */
+export const MRL_WEBUI_URL = '/robot';
 
 export async function mrlStartPeer(peer: string) {
-  const res = await fetch(`/api/mrl/i01/peer/startPeer/${encodeURIComponent(peer)}`, { method: 'POST' });
+  const res = await fetch(`/api/core/robot/peer/startPeer/${encodeURIComponent(peer)}`, { method: 'POST' });
   return parseJson<{ ok: boolean; error?: string }>(res);
 }
 
 export async function mrlReleasePeer(peer: string) {
-  const res = await fetch(`/api/mrl/i01/peer/releasePeer/${encodeURIComponent(peer)}`, { method: 'POST' });
+  const res = await fetch(`/api/core/robot/peer/releasePeer/${encodeURIComponent(peer)}`, { method: 'POST' });
   return parseJson<{ ok: boolean; error?: string }>(res);
 }
 
 export async function mrlSpeak(text: string) {
-  const res = await fetch('/api/mrl/i01/speak', {
+  const res = await fetch('/api/core/robot/speak', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({ text }),
@@ -160,7 +161,7 @@ export async function mrlSpeak(text: string) {
 }
 
 export async function mrlPythonExec(script: string) {
-  const res = await fetch('/api/mrl/python/exec', {
+  const res = await fetch('/api/core/script', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({ script }),
@@ -169,7 +170,7 @@ export async function mrlPythonExec(script: string) {
 }
 
 export async function getMrlI01Config() {
-  const res = await fetch('/api/mrl/i01/config');
+  const res = await fetch('/api/core/robot/config');
   return parseJson<{ ok: boolean; data?: { peers?: Record<string, unknown> } }>(res);
 }
 

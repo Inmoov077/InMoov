@@ -32,13 +32,13 @@ export function MrlRuntimePanel() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Server className="h-4 w-4" /> Runtime — native clone
+            <Server className="h-4 w-4" /> InMoove Core runtime
           </CardTitle>
-          <CardDescription>Mirrors RuntimeGui.html — version, uptime, service list</CardDescription>
+          <CardDescription>Native service registry — version, uptime, peers</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <p className="text-xs text-muted-foreground">MRL version</p>
+            <p className="text-xs text-muted-foreground">Core version</p>
             <p className="font-semibold">{status?.version ?? '—'}</p>
           </div>
           <div>
@@ -50,7 +50,7 @@ export function MrlRuntimePanel() {
             <p className="font-semibold">{status?.serviceCount ?? services.length}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">i01 state</p>
+            <p className="text-xs text-muted-foreground">Robot state</p>
             <Badge variant="copper">{status?.i01State ?? '—'}</Badge>
           </div>
         </CardContent>

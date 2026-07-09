@@ -1,19 +1,25 @@
 @echo off
 cd /d "%~dp0"
 echo ========================================
-echo   InMoov Control Deck
+echo   InMoove Control Deck
 echo ========================================
 
-echo Extracting MyRobotLab 1.1.1610 gestures and voice commands...
-python scripts\extract_mrl_inmoov.py
+if not exist "shared\gestures.json" (
+  if exist "shared\mrl_gestures.json" (
+    echo Syncing gestures.json...
+    copy /Y "shared\mrl_gestures.json" "shared\gestures.json" >nul
+  )
+)
 
 if not exist "models\inmoov\meshes\l_thumb5_1.stl" (
-  echo Downloading official InMoov meshes from MyRobotLab/inmoov_ros...
+  echo Downloading official InMoov meshes...
   python scripts\download_inmoov_meshes.py
 )
-echo Downloading official InMoov legs + compiling full URDF...
-python scripts\import_official_leg_stls.py
-python scripts\compile_inmoov_ros_urdf.py
+if exist "scripts\import_official_leg_stls.py" (
+  echo Compiling full URDF...
+  python scripts\import_official_leg_stls.py
+  python scripts\compile_inmoov_ros_urdf.py
+)
 
 if not exist "frontend\node_modules\" (
   echo Installing frontend dependencies...
@@ -34,7 +40,8 @@ if errorlevel 1 (
 cd ..
 
 echo.
-echo Starting Flask backend...
-echo Open http://localhost:5000 in your browser
+echo Starting InMoove Core + Flask...
+echo Open http://localhost:5000
+echo Studio: http://localhost:5000/robot
 echo.
 python app.py

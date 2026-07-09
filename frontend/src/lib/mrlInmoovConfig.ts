@@ -1,6 +1,6 @@
-/** Native clone of MyRobotLab InMoov2Gui circular menu + panel definitions. */
+/** InMoove Studio body map + panel definitions (assets from InMoove Core). */
 
-export const MRL_ASSET = (path: string) => `/api/mrl/assets/${path}`;
+export const MRL_ASSET = (path: string) => `/api/core/assets/${path}`;
 
 export interface InMoovButton {
   name: string;

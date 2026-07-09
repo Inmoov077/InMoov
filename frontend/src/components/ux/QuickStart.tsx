@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 const STEPS = [
   { n: 1, icon: Cable, title: 'Plug in USB', text: 'Connect the Arduino board to your computer.', link: '/settings', btn: 'Connect' },
-  { n: 2, icon: Gamepad2, title: 'Move sliders', text: 'Open the control panel and drag any slider.', link: '/control', btn: 'Control' },
+  { n: 2, icon: Gamepad2, title: 'Open Control', text: '3D preview stays on the left — scroll sliders on the right.', link: '/control', btn: 'Control' },
   { n: 3, icon: Sparkles, title: 'Try a move', text: 'Tap Nod or Wave — one click choreography.', link: '/presets', btn: 'Moves' },
 ];
 

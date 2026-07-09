@@ -10,14 +10,12 @@ interface MrlInMoovBodyMapProps {
 
 export function MrlInMoovBodyMap({ activePanel, onSelect, i01State, className }: MrlInMoovBodyMapProps) {
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative flex h-full min-h-0 flex-col', className)}>
       <div
-        className="relative mx-auto overflow-hidden rounded-xl border border-border/60 shadow-lg"
+        className="relative mx-auto w-full max-w-[620px] flex-1 overflow-hidden rounded-xl border border-border/60 shadow-lg"
         style={{
-          width: 620,
-          height: 588,
-          maxWidth: '100%',
           aspectRatio: '620/588',
+          maxHeight: '100%',
           backgroundImage: `url(${MRL_ASSET('img/InMoov2/background.png')})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',

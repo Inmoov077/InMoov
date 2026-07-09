@@ -13,9 +13,7 @@ import {
   Rocket,
   Settings,
   Pin,
-  SlidersHorizontal,
-  Bone,
-  Footprints,
+  Layers,
   Octagon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,20 +24,22 @@ import { TelemetryStrip } from '@/components/layout/TelemetryStrip';
 import { useServoStore } from '@/store/servoStore';
 import { Toaster } from 'sonner';
 
+/** Primary nav — keep short; sub-features open inside pages */
 const NAV = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/control', label: 'Control', icon: Gamepad2 },
-  { to: '/head', label: 'Head', icon: SlidersHorizontal },
-  { to: '/neck', label: 'Neck', icon: Bone },
-  { to: '/body', label: 'Body', icon: Footprints },
   { to: '/presets', label: 'Moves', icon: Rocket },
+  { to: '/robot', label: 'Studio', icon: Bot },
+  { to: '/camera', label: 'Vision', icon: Camera },
   { to: '/ai', label: 'Chat', icon: Brain },
   { to: '/offline', label: 'Voice', icon: Mic },
-  { to: '/camera', label: 'Vision', icon: Camera },
-  { to: '/mrl-live', label: 'MRL Live', icon: Bot },
-  { to: '/mrl', label: 'MRL Hub', icon: Bot },
-  { to: '/calibration', label: 'Calibration', icon: Pin },
+  { to: '/features', label: 'Features', icon: Layers },
   { to: '/settings', label: 'Settings', icon: Settings },
+];
+
+const MORE = [
+  { to: '/calibration', label: 'Calibration', icon: Pin },
+  { to: '/testing', label: 'Test', icon: FlaskConical },
 ];
 
 export function AppLayout() {
@@ -48,14 +48,16 @@ export function AppLayout() {
   const port = useServoStore((s) => s.port);
   const emergencyStop = useServoStore((s) => s.emergencyStop);
   const [menuOpen, setMenuOpen] = useState(false);
-  const showStats = location.pathname !== '/';
+
+  const isStudio = location.pathname === '/control' || location.pathname === '/robot';
+  const showStats = location.pathname !== '/' && !isStudio;
 
   useEffect(() => {
     useServoStore.getState().refreshConnection();
   }, []);
 
   const NavPills = ({ mobile, onNav }: { mobile?: boolean; onNav?: () => void }) => (
-    <div className={cn(mobile ? 'flex flex-col gap-1 p-4' : 'hidden items-center gap-1 lg:flex')}>
+    <div className={cn(mobile ? 'flex flex-col gap-1 p-4' : 'hidden items-center gap-0.5 xl:flex')}>
       {NAV.map((item) => (
         <NavLink
           key={item.to}
@@ -68,29 +70,32 @@ export function AppLayout() {
           {item.label}
         </NavLink>
       ))}
-      {!mobile && (
-        <NavLink
-          to="/testing"
-          className={({ isActive }) => (isActive ? 'nav-pill-active' : 'nav-pill-idle')}
-        >
-          <FlaskConical className="h-4 w-4" />
-          Test
-        </NavLink>
-      )}
+      {mobile &&
+        MORE.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            onClick={onNav}
+            className={({ isActive }) => (isActive ? 'nav-pill-active' : 'nav-pill-idle')}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </NavLink>
+        ))}
     </div>
   );
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-card/80 backdrop-blur-xl">
-        <div className="shell flex h-16 items-center gap-4">
-          <NavLink to="/" className="flex shrink-0 items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-glow">
-              <Bot className="h-5 w-5" />
+    <div className="min-h-screen flex flex-col">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-card/85 backdrop-blur-xl">
+        <div className={cn('flex h-14 items-center gap-3 px-4 md:px-6', isStudio ? 'max-w-none' : 'shell')}>
+          <NavLink to="/" className="flex shrink-0 items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-glow">
+              <Bot className="h-4 w-4" />
             </div>
             <div className="hidden sm:block">
-              <p className="font-display text-lg font-semibold leading-tight text-foreground">InMoov</p>
-              <p className="text-xs text-muted-foreground">Robot Studio</p>
+              <p className="font-display text-base font-semibold leading-tight text-foreground">InMoov</p>
+              <p className="text-[10px] leading-none text-muted-foreground">Robot Studio</p>
             </div>
           </NavLink>
 
@@ -98,7 +103,12 @@ export function AppLayout() {
 
           <div className="ml-auto flex items-center gap-2">
             <Badge variant={connected ? 'online' : 'offline'} className="hidden sm:flex">
-              <span className={cn('mr-1.5 h-2 w-2 rounded-full', connected ? 'animate-pulseDot bg-success' : 'bg-destructive')} />
+              <span
+                className={cn(
+                  'mr-1.5 h-2 w-2 rounded-full',
+                  connected ? 'animate-pulseDot bg-success' : 'bg-destructive',
+                )}
+              />
               {connected ? port ?? 'Connected' : 'Offline'}
             </Badge>
             <Button variant="destructive" size="sm" onClick={() => emergencyStop()} title="Stop all motors">
@@ -107,13 +117,14 @@ export function AppLayout() {
             </Button>
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden">
+                <Button variant="outline" size="icon" className="xl:hidden">
                   <Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="p-0">
                 <div className="border-b border-border/50 p-5">
                   <p className="font-display text-xl font-semibold">Menu</p>
+                  <p className="text-sm text-muted-foreground">All pages in one place</p>
                 </div>
                 <NavPills mobile onNav={() => setMenuOpen(false)} />
                 <div className="border-t border-border/50 p-4">
@@ -127,7 +138,7 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main className="shell py-6 md:py-8">
+      <main className={cn('flex-1', isStudio ? 'studio-main' : 'shell py-6 md:py-8')}>
         {showStats && (
           <div className="mb-6">
             <TelemetryStrip />
@@ -135,17 +146,20 @@ export function AppLayout() {
         )}
         <motion.div
           key={location.pathname}
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
+          transition={{ duration: 0.28 }}
+          className={isStudio ? 'h-full' : undefined}
         >
           <Outlet />
         </motion.div>
       </main>
 
-      <footer className="border-t border-border/50 py-6 text-center text-sm text-muted-foreground">
-        InMoov · Marwadi University Robotics &amp; AI Club
-      </footer>
+      {!isStudio && (
+        <footer className="border-t border-border/50 py-5 text-center text-sm text-muted-foreground">
+          InMoov · Marwadi University Robotics &amp; AI Club
+        </footer>
+      )}
       <Toaster theme="light" position="bottom-center" richColors closeButton />
     </div>
   );

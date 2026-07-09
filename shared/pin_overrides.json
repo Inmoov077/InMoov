@@ -1,1 +1,10 @@
-{}
+{
+  "l_shoulder": 22,
+  "l_lift": 24,
+  "l_elbow": 26,
+  "l_rotate": 28,
+  "r_shoulder": 23,
+  "r_lift": 25,
+  "r_elbow": 27,
+  "r_rotate": 29
+}

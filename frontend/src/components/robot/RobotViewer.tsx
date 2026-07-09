@@ -265,7 +265,7 @@ export const RobotViewer = forwardRef<
               Retry
             </button>
             <p className="text-xs text-muted-foreground">
-              Run <code className="rounded bg-muted px-1">run.bat</code> then open /control or /body
+              Run <code className="rounded bg-muted px-1">run.bat</code> then open /control
             </p>
           </div>
         )}

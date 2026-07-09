@@ -1,8 +1,8 @@
-# InMoov
+# InMoove
 
-Open-source InMoov humanoid robot **head control system** — Marwadi University Robotics & AI Club.
+Open-source **InMoov humanoid robot control system** — Marwadi University Robotics & AI Club.
 
-36-axis full-body servo control (head, neck, arms, hands, legs), unified web dashboard, AI conversation, offline voice Q&A, camera tracking, and 3D preview.
+36-axis full-body servo control, **InMoove Core** runtime (native — no external Java stack), web dashboard, AI conversation, offline voice Q&A, camera tracking, and 3D preview.
 
 ## Quick Start
 
@@ -14,24 +14,31 @@ python app.py
 
 Open **http://localhost:5000**
 
+| Page | URL |
+|------|-----|
+| Home | http://localhost:5000/ |
+| **InMoove Studio** | http://localhost:5000/robot |
+| Features hub | http://localhost:5000/features |
+
 Or double-click `run.bat` on Windows.
+
+## InMoove Core
+
+Native robot runtime embedded in this project (`inmoove_core/`):
+
+- Always online when Flask is running (no port 8888, no external process)
+- 136+ gestures from `shared/gestures.json`
+- Servo peers, speech (TTS + jaw), safe script DSL
+- Body-map assets under `inmoove_core/assets/`
+- Serial bridge to Arduino firmware
+
+API: `/api/core/*` (legacy `/api/mrl/*` aliases still work).
 
 ## Hardware
 
 1. Upload `full_body_servo_control.ino` to **Arduino Mega 2560** (uncomment `#define HEAD_ONLY` for 6-servo head-only on Uno)
 2. Connect via USB (9600 baud)
 3. Dashboard → **Settings** → Auto-Detect or select COM port
-
-### Servo Pins
-
-| Pin | Servo |
-|-----|-------|
-| 3 | Head Neck |
-| 4 | Eye |
-| 5 | Jaw |
-| 6 | Neck Rotation |
-| 7 | Neck Tilt |
-| 8 | Neck Roll |
 
 ### Serial Protocol
 
@@ -41,57 +48,43 @@ Or double-click `run.bat` on Windows.
 | Head | `H,<neck>,<eye>,<jaw>` |
 | Neck | `N,<rot>,<tilt>,<roll>` |
 | Combined | `C,<hn>,<he>,<hj>,<nr>,<nt>,<nro>` |
-| Left arm | `LA,<shoulder>,<lift>,<rotate>,<elbow>,<wrist>` |
-| Right arm | `RA,<shoulder>,<lift>,<rotate>,<elbow>,<wrist>` |
-| Left hand | `LH,<thumb>,<index>,<middle>,<ring>,<pinky>` |
-| Right hand | `RH,<thumb>,<index>,<middle>,<ring>,<pinky>` |
-| Left leg | `LL,<hip>,<thigh>,<knee>,<ankle>,<foot>` |
-| Right leg | `RL,<hip>,<thigh>,<knee>,<ankle>,<foot>` |
+| Left/right arm | `LA/RA,<5>` |
+| Left/right hand | `LH/RH,<5>` |
+| Left/right leg | `LL/RL,<5>` |
 | Pattern | `G,<nod\|shake\|yes\|no\|bow\|relax>` |
-| Pin remap | `W,<idx>,<pin>` |
-| Dump config | `D` |
-| Read positions | `R` |
 | Stop | `S` |
 
-## Dashboard Tabs
+## Dashboard
 
-- **All 6 Servos** — head & neck control + 3D preview
-- **Body** — arms (10), hands (10), legs (10) with live 3D sync
-- **Head / Neck** — individual axis control
-- **Camera Tracking** — MediaPipe face/hand tracking
-- **AI Conversation** — Gemini / Ollama with mood expressions
-- **Motion Presets** — nod, shake, dance, bow, etc.
-- **Offline Q&A** — 52+ voice commands, no internet
-- **Testing** — control each subsystem separately
-- **Settings** — connection, limits, system info
-
-## CLI Mode
-
-```bash
-python chat_cli.py
-```
-
-## Vector DB (RAG)
-
-```bash
-python vector_db.py index knowledge_base.txt
-python vector_db.py search "robotics club"
-```
+- **Studio** (`/robot`) — body map, all servos, gestures, vision peer, runtime, script
+- **Control / Body / Head / Neck** — direct axes + 3D preview
+- **Moves** — gesture library
+- **Vision** — MediaPipe face/hand tracking
+- **Chat** — Gemini / Ollama + mood expressions
+- **Voice** — offline commands
+- **Calibration / Settings** — pins, limits, COM port
 
 ## Project Structure
 
 ```
-app.py                  Flask server
-dashboard.html          Main control center UI
-robot_viewer.js         Three.js 3D model viewer
-chat_cli.py             Terminal conversation
-vector_db.py            TF-IDF knowledge search
-full_body_servo_control.ino  Arduino firmware (36 servos, MRL-derived config)
-servo_config.h               Auto-generated pins/limits/patterns (do not edit)
-shared/servo_config.json     Canonical servo map for firmware + dashboard
-scripts/extract_mrl_inmoov.py  Regenerate from myrobotlab-1.1.1610
-knowledge_base.txt      RAG content
-requirements.txt        Python dependencies
+app.py                     Flask + InMoove Core API
+inmoove_core/              Native runtime (no external deps)
+  assets/                  Body map, icons, expressions
+  config/peers.json        Peer graph
+  runtime.py               Servos, gestures, speech, script DSL
+shared/gestures.json       Gesture keyframes
+shared/servo_config.json   36-servo map
+frontend/                  React control deck
+full_body_servo_control.ino
+models/inmoov/             URDF + STL meshes
+```
+
+## CLI / RAG
+
+```bash
+python chat_cli.py
+python vector_db.py index knowledge_base.txt
+python vector_db.py search "robotics club"
 ```
 
 ## License

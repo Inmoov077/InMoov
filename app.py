@@ -29,9 +29,12 @@ SERVO_CONFIG_PATH = os.path.join(BASE_DIR, 'shared', 'servo_config.json')
 PIN_OVERRIDES_PATH = os.path.join(BASE_DIR, 'shared', 'pin_overrides.json')
 CALIB_OVERRIDES_PATH = os.path.join(BASE_DIR, 'shared', 'calibration_overrides.json')
 WAVE_PATTERNS_PATH = os.path.join(BASE_DIR, 'shared', 'wave_patterns.json')
-MRL_GESTURES_PATH = os.path.join(BASE_DIR, 'shared', 'mrl_gestures.json')
-MRL_BASE_URL = os.environ.get('MRL_BASE_URL', 'http://localhost:8888').rstrip('/')
-MRL_WEBGUI_ROOT = os.path.join(BASE_DIR, 'myrobotlab-1.1.1610', 'resource', 'WebGui', 'app')
+GESTURES_PATH = os.path.join(BASE_DIR, 'shared', 'gestures.json')
+if not os.path.isfile(GESTURES_PATH):
+    GESTURES_PATH = os.path.join(BASE_DIR, 'shared', 'mrl_gestures.json')
+
+# Native InMoove Core (no external MyRobotLab / Java process)
+from inmoove_core import get_core  # noqa: E402
 
 
 def _read_json(path, default=None):
@@ -810,222 +813,145 @@ def run_firmware_pattern():
 
 @app.route('/api/config', methods=['GET'])
 def get_config():
+    core = _get_inmoove_core()
     return jsonify({
         "gemini_api_key": GEMINI_API_KEY,
         "gemini_configured": bool(GEMINI_API_KEY),
-        "app_name": "InMoov Control Center",
+        "app_name": "InMoove Control Center",
         "firmware": "full_body_servo_control.ino",
         "firmware_head_only": "full_body_servo_control.ino (define HEAD_ONLY)",
         "baud_rate": 9600,
         "servo_count": (SERVO_CONFIG or {}).get('servoCount', 36),
-        "mrl_version": (SERVO_CONFIG or {}).get('version', '1.1.1610'),
-        "mrl_url": MRL_BASE_URL,
+        "core_version": core.status().get("version"),
+        "core_online": True,
+        "product": "InMoove",
     })
 
 
-def _mrl_request(method, path, json_body=None, timeout=15):
-    """Forward a request to the live MyRobotLab REST API."""
-    url = f"{MRL_BASE_URL}/api/{path.lstrip('/')}"
-    try:
-        if method == 'POST':
-            resp = requests.post(url, json=json_body, timeout=timeout)
-        else:
-            resp = requests.get(url, timeout=timeout)
-        content_type = resp.headers.get('Content-Type', '')
-        if 'application/json' in content_type:
-            try:
-                data = resp.json()
-            except Exception:
-                data = resp.text
-        else:
-            data = resp.text
-        return {"ok": resp.status_code < 400, "status": resp.status_code, "data": data}
-    except requests.exceptions.ConnectionError:
-        return {"ok": False, "status": 503, "error": f"MyRobotLab not reachable at {MRL_BASE_URL}"}
-    except requests.exceptions.Timeout:
-        return {"ok": False, "status": 504, "error": "MyRobotLab request timed out"}
-    except Exception as e:
-        logger.error(f"MRL proxy error: {e}")
-        return {"ok": False, "status": 500, "error": str(e)}
-
-
-@app.route('/api/mrl/status', methods=['GET'])
-def mrl_status():
-    version = _mrl_request('GET', 'service/runtime/getVersion')
-    services = _mrl_request('GET', 'service/runtime/getServiceNames')
-    state = _mrl_request('GET', 'service/i01/getState')
-    online = version.get('ok') and services.get('ok')
-    svc_list = services.get('data') if isinstance(services.get('data'), list) else []
-    return jsonify({
-        "ok": online,
-        "online": online,
-        "url": MRL_BASE_URL,
-        "version": version.get('data'),
-        "serviceCount": len(svc_list),
-        "services": svc_list,
-        "i01State": state.get('data'),
-        "error": version.get('error') or services.get('error'),
-    })
-
-
-@app.route('/api/mrl/services', methods=['GET'])
-def mrl_services():
-    result = _mrl_request('GET', 'service/runtime/getServiceNames')
-    if not result.get('ok'):
-        return jsonify(result), result.get('status', 503)
-    services = result.get('data') or []
-    grouped = {}
-    for name in services:
-        parts = name.split('.')
-        root = parts[0] if parts else name
-        grouped.setdefault(root, []).append(name)
-    return jsonify({"ok": True, "services": services, "grouped": grouped, "count": len(services)})
-
-
-@app.route('/api/mrl/proxy/<path:subpath>', methods=['GET', 'POST'])
-def mrl_proxy(subpath):
-    result = _mrl_request(
-        request.method,
-        subpath,
-        json_body=request.get_json(silent=True) if request.method == 'POST' else None,
+def _get_inmoove_core():
+    """Always-online native core — serial bridged to Arduino firmware."""
+    return get_core(
+        project_root=BASE_DIR,
+        send_serial=lambda cmd: serial_mgr.send_cmd(cmd) if serial_mgr.is_connected() else False,
+        get_servo_config=lambda: SERVO_CONFIG,
     )
-    status = result.get('status', 200 if result.get('ok') else 500)
-    return jsonify(result), status
 
 
+# ── InMoove Core API (primary). /api/mrl/* aliases for older clients. ──
+
+@app.route('/api/core/status', methods=['GET'])
+@app.route('/api/mrl/status', methods=['GET'])
+def core_status():
+    return jsonify(_get_inmoove_core().status())
+
+
+@app.route('/api/core/services', methods=['GET'])
+@app.route('/api/mrl/services', methods=['GET'])
+def core_services():
+    return jsonify(_get_inmoove_core().services_grouped())
+
+
+@app.route('/api/core/call/<path:service>/<method>', methods=['GET', 'POST'])
+@app.route('/api/core/call/<path:service>/<method>/<path:args>', methods=['GET', 'POST'])
 @app.route('/api/mrl/call/<path:service>/<method>', methods=['GET', 'POST'])
 @app.route('/api/mrl/call/<path:service>/<method>/<path:args>', methods=['GET', 'POST'])
-def mrl_call(service, method, args=None):
-    """Convenience wrapper: /api/mrl/call/i01.head.neck/moveTo/90"""
-    path = f"service/{service}/{method}"
-    if args:
-        path = f"{path}/{args}"
-    result = _mrl_request(request.method, path, json_body=request.get_json(silent=True))
+def core_call(service, method, args=None):
+    arg_list = args.split('/') if args else []
+    result = _get_inmoove_core().call(service, method, arg_list)
     status = result.get('status', 200 if result.get('ok') else 500)
     return jsonify(result), status
 
 
+@app.route('/api/core/proxy/<path:subpath>', methods=['GET', 'POST'])
+@app.route('/api/mrl/proxy/<path:subpath>', methods=['GET', 'POST'])
+def core_proxy(subpath):
+    parts = subpath.strip('/').split('/')
+    if parts and parts[0] == 'service':
+        parts = parts[1:]
+    if len(parts) < 2:
+        return jsonify({"ok": False, "error": "path must be service/{name}/{method}/..."}), 400
+    service, method, *rest = parts
+    result = _get_inmoove_core().call(service, method, rest)
+    status = result.get('status', 200 if result.get('ok') else 500)
+    return jsonify(result), status
+
+
+@app.route('/api/core/gestures', methods=['GET'])
 @app.route('/api/mrl/gestures', methods=['GET'])
-def mrl_gestures():
-    data = _read_json(MRL_GESTURES_PATH, {})
-    gestures = []
-    for gid, g in data.items():
-        gestures.append({
-            "id": gid,
-            "mrlName": g.get('mrlName', gid.replace('mrl-', '')),
-            "name": g.get('name', gid),
-            "category": g.get('category', 'full'),
-            "icon": g.get('icon', ''),
-        })
-    gestures.sort(key=lambda x: x['name'].lower())
-    return jsonify({"ok": True, "gestures": gestures, "count": len(gestures)})
+def core_gestures():
+    return jsonify(_get_inmoove_core().load_gestures_catalog())
 
 
+@app.route('/api/core/exec', methods=['POST'])
+@app.route('/api/core/exec/<gesture>', methods=['GET', 'POST'])
 @app.route('/api/mrl/exec', methods=['POST'])
 @app.route('/api/mrl/exec/<gesture>', methods=['GET', 'POST'])
-def mrl_exec(gesture=None):
+def core_exec(gesture=None):
     if request.method == 'POST' and not gesture:
         body = request.get_json() or {}
-        gesture = body.get('gesture') or body.get('mrlName')
+        gesture = body.get('gesture') or body.get('mrlName') or body.get('name')
     if not gesture:
         return jsonify({"ok": False, "error": "Gesture name required"}), 400
-    gesture = gesture.strip()
-    if gesture.startswith('mrl-'):
-        gesture = gesture[4:]
-    script = f"i01.{gesture}()"
-    result = _mrl_request('GET', f"service/python/exec/{script}", timeout=60)
-    return jsonify({
-        "ok": result.get('ok'),
-        "gesture": gesture,
-        "script": script,
-        "result": result.get('data'),
-        "error": result.get('error'),
-    }), result.get('status', 200 if result.get('ok') else 500)
+    result = _get_inmoove_core().exec_gesture(gesture)
+    return jsonify(result), (200 if result.get('ok') else 404)
 
 
+@app.route('/api/core/servo/<path:service>/state', methods=['GET'])
 @app.route('/api/mrl/servo/<path:service>/state', methods=['GET'])
-def mrl_servo_state(service):
-    """Aggregate common ServoGui fields for one MRL servo service."""
-    fields = ('getPin', 'getMin', 'getMax', 'getRest', 'getSpeed', 'getPosition', 'isAttached', 'isSweeping')
-    state = {"service": service}
-    for field in fields:
-        r = _mrl_request('GET', f"service/{service}/{field}")
-        state[field] = r.get('data')
-    state['ok'] = True
-    return jsonify(state)
+def core_servo_state(service):
+    return jsonify(_get_inmoove_core().servo_state(service))
 
 
-# Known MRL i01 servo services for the body map
-MRL_I01_SERVOS = [
-    {"service": "i01.head.rothead", "label": "Head pan", "group": "head"},
-    {"service": "i01.head.neck", "label": "Head tilt", "group": "head"},
-    {"service": "i01.head.rollNeck", "label": "Head roll", "group": "head"},
-    {"service": "i01.head.eyeX", "label": "Eye X", "group": "head"},
-    {"service": "i01.head.eyeY", "label": "Eye Y", "group": "head"},
-    {"service": "i01.head.jaw", "label": "Jaw", "group": "head"},
-    {"service": "i01.head.eyelidLeft", "label": "Eyelid L", "group": "head"},
-    {"service": "i01.head.eyelidRight", "label": "Eyelid R", "group": "head"},
-    {"service": "i01.leftArm.shoulder", "label": "L shoulder", "group": "leftArm"},
-    {"service": "i01.leftArm.omoplate", "label": "L omoplate", "group": "leftArm"},
-    {"service": "i01.leftArm.rotate", "label": "L rotate", "group": "leftArm"},
-    {"service": "i01.leftArm.bicep", "label": "L bicep", "group": "leftArm"},
-    {"service": "i01.rightArm.shoulder", "label": "R shoulder", "group": "rightArm"},
-    {"service": "i01.rightArm.omoplate", "label": "R omoplate", "group": "rightArm"},
-    {"service": "i01.rightArm.rotate", "label": "R rotate", "group": "rightArm"},
-    {"service": "i01.rightArm.bicep", "label": "R bicep", "group": "rightArm"},
-    {"service": "i01.torso.topStom", "label": "Torso top", "group": "torso"},
-    {"service": "i01.torso.midStom", "label": "Torso mid", "group": "torso"},
-    {"service": "i01.torso.lowStom", "label": "Torso low", "group": "torso"},
-]
-
-
+@app.route('/api/core/robot/servos', methods=['GET'])
 @app.route('/api/mrl/i01/servos', methods=['GET'])
-def mrl_i01_servos():
-    return jsonify({"ok": True, "servos": MRL_I01_SERVOS})
+def core_robot_servos():
+    return jsonify(_get_inmoove_core().robot_servos())
 
 
+@app.route('/api/core/assets/<path:filename>')
 @app.route('/api/mrl/assets/<path:filename>')
-def mrl_assets(filename):
-    """Serve original MyRobotLab WebGui assets (InMoov2 images, icons)."""
-    path = os.path.join(MRL_WEBGUI_ROOT, filename.replace('/', os.sep))
-    if os.path.isfile(path):
+def core_assets(filename):
+    path = _get_inmoove_core().resolve_asset(filename)
+    if path is not None:
         return send_file(path)
     return jsonify({"ok": False, "error": f"Asset not found: {filename}"}), 404
 
 
+@app.route('/api/core/robot/config', methods=['GET'])
 @app.route('/api/mrl/i01/config', methods=['GET'])
-def mrl_i01_config():
-    result = _mrl_request('GET', 'service/i01/getConfig')
-    return jsonify(result), result.get('status', 200 if result.get('ok') else 503)
+def core_robot_config():
+    return jsonify(_get_inmoove_core().robot_config())
 
 
+@app.route('/api/core/robot/peer/<action>/<peer>', methods=['GET', 'POST'])
 @app.route('/api/mrl/i01/peer/<action>/<peer>', methods=['GET', 'POST'])
-def mrl_i01_peer(action, peer):
-    """startPeer / releasePeer on i01."""
+def core_robot_peer(action, peer):
     if action not in ('startPeer', 'releasePeer'):
         return jsonify({"ok": False, "error": "action must be startPeer or releasePeer"}), 400
-    result = _mrl_request('GET', f'service/i01/{action}/{peer}')
-    return jsonify({"ok": result.get('ok'), "peer": peer, "action": action, "result": result.get('data'), "error": result.get('error')}), result.get('status', 200)
+    result = _get_inmoove_core().peer_action(action, peer)
+    return jsonify(result), (200 if result.get('ok') else 400)
 
 
+@app.route('/api/core/robot/speak', methods=['POST'])
 @app.route('/api/mrl/i01/speak', methods=['POST'])
-def mrl_i01_speak():
+def core_robot_speak():
     data = request.get_json() or {}
     text = (data.get('text') or '').strip()
     if not text:
         return jsonify({"ok": False, "error": "text required"}), 400
-    result = _mrl_request('GET', f'service/i01/speakBlocking/{requests.utils.quote(text, safe="")}')
-    return jsonify({"ok": result.get('ok'), "text": text, "error": result.get('error')})
+    return jsonify(_get_inmoove_core().speak(text))
 
 
+@app.route('/api/core/script', methods=['POST'])
 @app.route('/api/mrl/python/exec', methods=['POST'])
-def mrl_python_exec():
+def core_script():
     data = request.get_json() or {}
     script = (data.get('script') or '').strip()
     if not script:
         return jsonify({"ok": False, "error": "script required"}), 400
-    result = _mrl_request('GET', f'service/python/exec/{script}', timeout=120)
-    return jsonify({"ok": result.get('ok'), "script": script, "result": result.get('data'), "error": result.get('error')}), result.get('status', 200 if result.get('ok') else 500)
+    result = _get_inmoove_core().exec_script(script)
+    return jsonify(result), (200 if result.get('ok') else 400)
+
 
 @app.route('/api/conversation', methods=['POST'])
 def handle_conversation():

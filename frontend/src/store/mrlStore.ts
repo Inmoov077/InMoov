@@ -84,6 +84,16 @@ export const useMrlStore = create<MrlState>((set, get) => ({
   },
 
   execGesture: async (name) => {
+    // Native core plays on serial; client also animates 3D if preset keyframes exist
+    try {
+      const { PRESETS } = await import('@/lib/presets');
+      const { animateKeyframes } = await import('@/lib/animateKeyframes');
+      const ids = [name, `mrl-${name}`, name.replace(/^mrl-/, '')];
+      const kf = ids.map((id) => PRESETS[id]).find(Boolean);
+      if (kf) void animateKeyframes(kf);
+    } catch {
+      /* optional client animation */
+    }
     const res = await mrl.mrlExec(name);
     return res.ok;
   },

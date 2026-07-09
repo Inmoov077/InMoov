@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { HomePage } from '@/pages/HomePage';
 import { AllServosPage } from '@/pages/AllServosPage';
@@ -22,6 +22,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/control" element={<AllServosPage />} />
+          {/* Legacy paths → unified Control tabs (no duplicate UIs) */}
           <Route path="/head" element={<HeadPage />} />
           <Route path="/neck" element={<NeckPage />} />
           <Route path="/body" element={<BodyPage />} />
@@ -32,8 +33,11 @@ export default function App() {
           <Route path="/testing" element={<TestingPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/calibration" element={<CalibrationPage />} />
-          <Route path="/mrl" element={<MrlHubPage />} />
-          <Route path="/mrl-live" element={<MrlLivePage />} />
+          <Route path="/robot" element={<MrlLivePage />} />
+          <Route path="/features" element={<MrlHubPage />} />
+          <Route path="/mrl" element={<Navigate to="/features" replace />} />
+          <Route path="/mrl-live" element={<Navigate to="/robot" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
