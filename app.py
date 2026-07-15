@@ -209,6 +209,112 @@ class SerialManager:
 
 serial_mgr = SerialManager()
 
+
+# ── RealSense D455 chest camera — presence wake ───────────────
+
+from inmoove_core.realsense_presence import get_presence_guard  # noqa: E402
+
+
+def _enable_all_motors() -> dict:
+    """Enable every body-part group on firmware (mask 255) and go to rest pose."""
+    result = {"enable_sent": False, "rest_sent": False, "cmds": []}
+    if not serial_mgr.is_connected():
+        result["error"] = "serial not connected"
+        return result
+
+    # All bodyPartGroups bits: head|neck|arms|hands|legs = 255
+    if serial_mgr.send_cmd("E,255\n"):
+        result["enable_sent"] = True
+        result["cmds"].append("E,255")
+
+    # Head + neck rest from servo config
+    by_key = {s.get("key"): s for s in (SERVO_CONFIG or {}).get("servos", [])}
+    def rest(key, default):
+        s = by_key.get(key) or {}
+        return int(s.get("rest", default))
+
+    hn = rest("head_neck", 85)
+    he = rest("head_eye", 90)
+    hj = rest("head_jaw", 8)
+    nr = rest("neck_rot", 60)
+    nt = rest("neck_tilt", 50)
+    nro = rest("neck_roll", 120)
+    cmd = f"C,{hn},{he},{hj},{nr},{nt},{nro}\n"
+    if serial_mgr.send_cmd(cmd):
+        result["rest_sent"] = True
+        result["cmds"].append(cmd.strip())
+
+    # Upper body rest (arms / hands)
+    la = (
+        rest("l_shoulder", 30), rest("l_lift", 10), rest("l_rotate", 90),
+        rest("l_elbow", 5), rest("l_wrist", 90),
+    )
+    ra = (
+        rest("r_shoulder", 30), rest("r_lift", 10), rest("r_rotate", 90),
+        rest("r_elbow", 5), rest("r_wrist", 90),
+    )
+    lh = (
+        rest("l_thumb", 10), rest("l_index", 10), rest("l_middle", 10),
+        rest("l_ring", 10), rest("l_pinky", 10),
+    )
+    rh = (
+        rest("r_thumb", 10), rest("r_index", 10), rest("r_middle", 10),
+        rest("r_ring", 10), rest("r_pinky", 10),
+    )
+    for part in (
+        f"LA,{la[0]},{la[1]},{la[2]},{la[3]},{la[4]}",
+        f"RA,{ra[0]},{ra[1]},{ra[2]},{ra[3]},{ra[4]}",
+        f"LH,{lh[0]},{lh[1]},{lh[2]},{lh[3]},{lh[4]}",
+        f"RH,{rh[0]},{rh[1]},{rh[2]},{rh[3]},{rh[4]}",
+    ):
+        if serial_mgr.send_cmd(part + "\n"):
+            result["cmds"].append(part)
+
+    # Soft firmware relax if available
+    if serial_mgr.send_cmd("G,relax\n"):
+        result["cmds"].append("G,relax")
+
+    return result
+
+
+def _on_realsense_wake(event: dict):
+    """Person stood in front of D455 for N seconds → motors on + speak."""
+    logger.info(
+        "D455 wake: person present %.1fs @ %s m — enabling motors and greeting",
+        event.get("presence_seconds", 0),
+        event.get("median_distance_m"),
+    )
+    motor_result = {}
+    if event.get("enable_motors", True):
+        try:
+            motor_result = _enable_all_motors()
+            logger.info("Motor wake result: %s", motor_result)
+        except Exception as e:
+            logger.exception("Motor wake failed: %s", e)
+            motor_result = {"error": str(e)}
+
+    greet = (event.get("greet_text") or "Hello, how are you?").strip()
+    speak_result = {}
+    try:
+        # Run TTS off the camera thread so the depth loop keeps running
+        def _speak():
+            try:
+                res = _get_inmoove_core().speak(greet)
+                logger.info("Wake greeting: %s", res)
+            except Exception as ex:
+                logger.exception("Wake speak failed: %s", ex)
+
+        threading.Thread(target=_speak, name="d455-greet", daemon=True).start()
+        speak_result = {"queued": True, "text": greet}
+    except Exception as e:
+        speak_result = {"ok": False, "error": str(e)}
+
+    # Stash last wake payload for UI
+    guard = get_presence_guard()
+    with getattr(guard, "_lock", threading.Lock()):
+        guard._state.last_greet_text = greet  # type: ignore[attr-defined]
+
+
 def _serve_dashboard():
     """Serve React production build when available, else legacy dashboard.html."""
     react_index = os.path.join(FRONTEND_DIST, 'index.html')
@@ -951,6 +1057,112 @@ def core_script():
         return jsonify({"ok": False, "error": "script required"}), 400
     result = _get_inmoove_core().exec_script(script)
     return jsonify(result), (200 if result.get('ok') else 400)
+
+
+# ── RealSense D455 API ────────────────────────────────────────
+
+@app.route('/api/realsense/devices', methods=['GET'])
+def realsense_devices():
+    guard = get_presence_guard(on_wake=_on_realsense_wake)
+    return jsonify({"ok": True, "devices": guard.list_devices()})
+
+
+@app.route('/api/realsense/status', methods=['GET'])
+def realsense_status():
+    guard = get_presence_guard(on_wake=_on_realsense_wake)
+    return jsonify({"ok": True, **guard.status()})
+
+
+@app.route('/api/realsense/start', methods=['POST'])
+def realsense_start():
+    guard = get_presence_guard(on_wake=_on_realsense_wake)
+    data = request.get_json(silent=True) or {}
+    # Optional config overrides on start
+    cfg_keys = (
+        "presence_seconds", "min_distance_m", "max_distance_m",
+        "min_person_pixel_ratio", "greet_cooldown_s", "greet_text",
+        "enable_motors_on_wake", "require_leave", "use_hog_confirm",
+    )
+    overrides = {k: data[k] for k in cfg_keys if k in data}
+    if overrides:
+        guard.update_config(**overrides)
+    result = guard.start()
+    status = 200 if result.get("ok") else 500
+    return jsonify(result), status
+
+
+@app.route('/api/realsense/stop', methods=['POST'])
+def realsense_stop():
+    guard = get_presence_guard(on_wake=_on_realsense_wake)
+    return jsonify(guard.stop())
+
+
+@app.route('/api/realsense/config', methods=['GET', 'POST'])
+def realsense_config():
+    guard = get_presence_guard(on_wake=_on_realsense_wake)
+    if request.method == 'GET':
+        return jsonify({"ok": True, "config": guard.status().get("config", {})})
+    data = request.get_json() or {}
+    cfg = guard.update_config(**data)
+    return jsonify({"ok": True, "config": cfg})
+
+
+@app.route('/api/realsense/wake-now', methods=['POST'])
+def realsense_wake_now():
+    """Manual test of the same wake path (motors + hello)."""
+    data = request.get_json(silent=True) or {}
+    event = {
+        "greet_text": data.get("greet_text") or "Hello, how are you?",
+        "enable_motors": data.get("enable_motors", True),
+        "presence_seconds": data.get("presence_seconds", 5.0),
+        "median_distance_m": data.get("median_distance_m"),
+        "timestamp": time.time(),
+        "manual": True,
+    }
+    _on_realsense_wake(event)
+    return jsonify({"ok": True, "event": event})
+
+
+@app.route('/api/realsense/stream')
+def realsense_stream():
+    """MJPEG color stream with presence overlay (chest D455)."""
+    from flask import Response
+
+    kind = (request.args.get("kind") or "color").lower()
+    guard = get_presence_guard(on_wake=_on_realsense_wake)
+
+    def generate():
+        # Auto-start if not running so the UI can just open the stream
+        if not guard.status().get("running"):
+            guard.start()
+        boundary = b"--frame\r\n"
+        while True:
+            jpeg = guard.get_jpeg(kind)
+            if jpeg:
+                yield boundary
+                yield b"Content-Type: image/jpeg\r\n\r\n" + jpeg + b"\r\n"
+            else:
+                # Placeholder frame while camera warms up
+                time.sleep(0.05)
+                continue
+            time.sleep(0.06)  # ~15 fps cap
+
+    return Response(
+        generate(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"},
+    )
+
+
+@app.route('/api/realsense/snapshot')
+def realsense_snapshot():
+    kind = (request.args.get("kind") or "color").lower()
+    guard = get_presence_guard(on_wake=_on_realsense_wake)
+    jpeg = guard.get_jpeg(kind)
+    if not jpeg:
+        return jsonify({"ok": False, "error": "No frame yet — start the D455 guard first"}), 404
+    from flask import Response
+    return Response(jpeg, mimetype="image/jpeg")
 
 
 @app.route('/api/conversation', methods=['POST'])
