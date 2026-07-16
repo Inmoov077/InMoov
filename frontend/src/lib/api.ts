@@ -143,6 +143,83 @@ export async function runFirmwarePattern(name: string) {
   return res.json();
 }
 
+/** Intel RealSense D455 chest presence guard */
+export interface RealSenseStatus {
+  ok?: boolean;
+  running?: boolean;
+  device_connected?: boolean;
+  device_name?: string;
+  serial_number?: string;
+  usb_type?: string;
+  person_present?: boolean;
+  presence_seconds?: number;
+  presence_required?: number;
+  progress?: number;
+  awake?: boolean;
+  last_wake_at?: number | null;
+  last_greet_text?: string;
+  last_error?: string;
+  frames?: number;
+  person_pixel_ratio?: number;
+  median_distance_m?: number | null;
+  waiting_for_leave?: boolean;
+  has_frame?: boolean;
+  config?: {
+    presence_seconds?: number;
+    min_distance_m?: number;
+    max_distance_m?: number;
+    greet_text?: string;
+    greet_cooldown_s?: number;
+    enable_motors_on_wake?: boolean;
+  };
+}
+
+export async function realsenseDevices() {
+  const res = await fetch('/api/realsense/devices');
+  return res.json();
+}
+
+export async function realsenseStatus(): Promise<RealSenseStatus> {
+  const res = await fetch('/api/realsense/status');
+  return res.json();
+}
+
+export async function realsenseStart(config?: Record<string, unknown>) {
+  const res = await fetch('/api/realsense/start', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(config || {}),
+  });
+  return res.json();
+}
+
+export async function realsenseStop() {
+  const res = await fetch('/api/realsense/stop', { method: 'POST' });
+  return res.json();
+}
+
+export async function realsenseWakeNow(greetText = 'Hello, how are you?') {
+  const res = await fetch('/api/realsense/wake-now', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ greet_text: greetText, enable_motors: true }),
+  });
+  return res.json();
+}
+
+export async function realsenseConfig(patch?: Record<string, unknown>) {
+  if (!patch) {
+    const res = await fetch('/api/realsense/config');
+    return res.json();
+  }
+  const res = await fetch('/api/realsense/config', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(patch),
+  });
+  return res.json();
+}
+
 export async function getServoPins() {
   const res = await fetch('/api/servo/pins');
   return res.json();
