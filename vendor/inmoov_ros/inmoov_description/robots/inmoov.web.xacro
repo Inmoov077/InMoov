@@ -2,19 +2,19 @@
 
 <robot name="inmoov" xmlns:xacro="http://ros.org/wiki/xacro">
 
-<xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/config.joints.urdf.xacro" />
-<xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/config.inertial.urdf.xacro" />
-<xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/materials.urdf.xacro" />
-<xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/inmoov.gazebo" />
+<xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/config.joints.urdf.xacro" />
+<xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/config.inertial.urdf.xacro" />
+<xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/materials.urdf.xacro" />
+<xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/inmoov.gazebo" />
 
-  <xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/materials.urdf.xacro" />
-  <xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmBase.urdf.xacro" />
-  <xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmTorso.urdf.xacro" />
-  <xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmHead.urdf.xacro" />
-  <xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmEye.urdf.xacro" />
-  <xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmFace.urdf.xacro" />
-  <xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmArm.urdf.xacro" />
-  <xacro:include filename="D:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmHand.urdf.xacro" />
+  <xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/materials.urdf.xacro" />
+  <xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmBase.urdf.xacro" />
+  <xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmTorso.urdf.xacro" />
+  <xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmHead.urdf.xacro" />
+  <xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmEye.urdf.xacro" />
+  <xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmFace.urdf.xacro" />
+  <xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmArm.urdf.xacro" />
+  <xacro:include filename="E:/Sahil_Inmoove/Head/vendor/inmoov_ros/inmoov_description/urdf/asmHand.urdf.xacro" />
 
   <link name="world"/>
 
