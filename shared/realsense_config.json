@@ -1,0 +1,18 @@
+﻿{
+  "device": "Intel RealSense D455",
+  "mount": "chest",
+  "presence_seconds": 5.0,
+  "min_distance_m": 0.45,
+  "max_distance_m": 2.2,
+  "min_person_pixel_ratio": 0.08,
+  "roi": [0.20, 0.10, 0.80, 0.95],
+  "greet_cooldown_s": 25.0,
+  "require_leave": true,
+  "leave_clear_seconds": 1.5,
+  "width": 640,
+  "height": 480,
+  "fps": 15,
+  "greet_text": "Hello, how are you?",
+  "enable_motors_on_wake": true,
+  "use_hog_confirm": false
+}
