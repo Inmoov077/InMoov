@@ -29,3 +29,6 @@ myrobotlab-1.1.1610/
 
 # Optional: regenerate locally
 # vector_db.pkl
+# Local agent scratch dumps
+agent-tools/
+
