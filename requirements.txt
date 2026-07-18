@@ -1,7 +1,11 @@
-flask>=3.0
+﻿flask>=3.0
 pyserial>=3.5
 requests>=2.31
 scikit-learn>=1.4
 numpy>=1.26
 pyttsx3>=2.90
 pypdf>=4.0
+
+# Optional: Intel RealSense D455 chest presence wake
+# pyrealsense2
+# opencv-python
