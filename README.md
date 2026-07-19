@@ -1,8 +1,8 @@
-# InMoove
+﻿# InMoove
 
-Open-source **InMoov humanoid robot control system** — Marwadi University Robotics & AI Club.
+Open-source **InMoov humanoid robot control system** â€” Marwadi University Robotics & AI Club.
 
-36-axis full-body servo control, **InMoove Core** runtime (native — no external Java stack), web dashboard, AI conversation, offline voice Q&A, camera tracking, and 3D preview.
+36-axis full-body servo control, **InMoove Core** runtime (native â€” no external Java stack), web dashboard, AI conversation, offline voice Q&A, camera tracking, and 3D preview.
 
 ## Quick Start
 
@@ -38,7 +38,7 @@ API: `/api/core/*` (legacy `/api/mrl/*` aliases still work).
 
 1. Upload `full_body_servo_control.ino` to **Arduino Mega 2560** (uncomment `#define HEAD_ONLY` for 6-servo head-only on Uno)
 2. Connect via USB (9600 baud)
-3. Dashboard → **Settings** → Auto-Detect or select COM port
+3. Dashboard â†’ **Settings** â†’ Auto-Detect or select COM port
 
 ### Serial Protocol
 
@@ -56,14 +56,27 @@ API: `/api/core/*` (legacy `/api/mrl/*` aliases still work).
 
 ## Dashboard
 
-- **Studio** (`/robot`) — body map, all servos, gestures, vision peer, runtime, script
-- **Control / Body / Head / Neck** — direct axes + 3D preview
-- **Moves** — gesture library
-- **Vision** — MediaPipe face/hand tracking
-- **Chat** — Gemini / Ollama + mood expressions
-- **Voice** — offline commands
-- **Calibration / Settings** — pins, limits, COM port
+- **Studio** (`/robot`) â€” body map, all servos, gestures, vision peer, runtime, script
+- **Control / Body / Head / Neck** â€” direct axes + 3D preview
+- **Moves** â€” gesture library
+- **Vision** â€” MediaPipe face/hand tracking
+- **Chat** â€” Gemini / Ollama + mood expressions
+- **Voice** â€” offline commands
+- **Calibration / Settings** â€” pins, limits, COM port
 
+
+## RealSense D455 Presence Wake
+
+Chest-mounted **Intel RealSense D455** can wake the robot when a person stands in front for N seconds (default 5):
+
+1. `pip install pyrealsense2 opencv-python`
+2. Connect D455 over USB 3.x
+3. Open **Vision** → start D455 presence guard
+4. On wake: motors enable (`E,255`) + rest pose + spoken greeting
+
+API surface: `/api/realsense/*` (devices, status, start, stop, config, stream, wake-now).
+
+Default tuning lives in `shared/realsense_config.json`.
 ## Project Structure
 
 ```
@@ -90,3 +103,4 @@ python vector_db.py search "robotics club"
 ## License
 
 Built on the [InMoov](https://inmoov.fr/) open-source humanoid robot project.
+
