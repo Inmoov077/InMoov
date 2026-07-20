@@ -41,7 +41,9 @@ cd ..
 
 echo.
 echo Starting InMoove Core + Flask...
+echo Optional: D455 presence needs pyrealsense2 + opencv-python
 echo Open http://localhost:5000
 echo Studio: http://localhost:5000/robot
 echo.
 python app.py
+
