@@ -1,7 +1,8 @@
-{
-  "name": "frontend",
+﻿{
+  "name": "inmoove-control-deck",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
+  "description": "InMoove humanoid robot control deck (React)",
   "type": "module",
   "scripts": {
     "dev": "vite",
