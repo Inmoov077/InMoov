@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import {
   ArrowUpRight,
   Bot,
@@ -42,7 +42,7 @@ const TILES = [
     to: '/camera',
     icon: Camera,
     title: 'Vision',
-    desc: 'Face track + hand gestures',
+    desc: 'D455 presence wake + face/hand track',
     color: 'from-axis-sky/15 to-transparent',
   },
   {
@@ -84,7 +84,7 @@ export function HomePage() {
       <section className="page-hero">
         <div>
           <Badge variant={connected ? 'online' : 'offline'} className="mb-4">
-            {connected ? `Connected · ${port}` : 'Not connected — plug in USB'}
+            {connected ? `Connected Â· ${port}` : 'Not connected â€” plug in USB'}
           </Badge>
           <h1 className="font-display text-4xl font-semibold leading-tight md:text-5xl">
             Control your <span className="text-gradient">InMoov</span>
@@ -138,3 +138,4 @@ export function HomePage() {
     </div>
   );
 }
+
