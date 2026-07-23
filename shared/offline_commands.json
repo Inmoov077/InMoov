@@ -1,2359 +1,2376 @@
-[
-  {
-    "inputs": [
-      "hello",
-      "hi ",
-      "hey",
-      "hello there",
-      "greetings"
-    ],
-    "response": "Hello there! Nice to meet you. I am ready for our live conversation.",
-    "angles": {
-      "hneck": 80,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 60,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "who are you",
-      "your name",
-      "introduce yourself"
-    ],
-    "response": "I am InMoov, an open-source 3D-printed humanoid robot.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 50,
-      "neckTilt": 55,
-      "neckRoll": 110
-    },
-    "animation": "tilt"
-  },
-  {
-    "inputs": [
-      "how do you work",
-      "how you work",
-      "explain system"
-    ],
-    "response": "I run on an Arduino microcontroller coupled with a local Flask server for offline command processing.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 80,
-      "neckTilt": 50,
-      "neckRoll": 130
-    },
-    "animation": "shake"
-  },
-  {
-    "inputs": [
-      "what can you see",
-      "what you see",
-      "describe camera"
-    ],
-    "response": "My visual sensor is tracking your motion, analyzing pixels in real time to locate you.",
-    "angles": {
-      "hneck": 85,
-      "eye": 140,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "eye-sweep"
-  },
-  {
-    "inputs": [
-      "can you follow me",
-      "track me",
-      "camera tracking"
-    ],
-    "response": "Yes! Toggle Auto Neck Tracking, and I will physically rotate and tilt my neck to follow your movements.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "scan"
-  },
-  {
-    "inputs": [
-      "show your movements",
-      "movement sweep",
-      "demo movements"
-    ],
-    "response": "Sure! Watch my eye, jaw, and three axis neck servos perform a sweep.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "dance"
-  },
-  {
-    "inputs": [
-      "tell me a joke",
-      "say a joke",
-      "joke"
-    ],
-    "response": "Why did the robot go on a diet? Because it had too many bytes! Ha ha ha.",
-    "angles": {
-      "hneck": 70,
-      "eye": 90,
-      "neckRot": 70,
-      "neckTilt": 70,
-      "neckRoll": 110
-    },
-    "animation": "laugh"
-  },
-  {
-    "inputs": [
-      "are you alive",
-      "you alive"
-    ],
-    "response": "No, I am not alive. I am PLA plastic, servos, and code, but I enjoy talking to you.",
-    "angles": {
-      "hneck": 95,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 45,
-      "neckRoll": 120
-    },
-    "animation": "tilt"
-  },
-  {
-    "inputs": [
-      "look around",
-      "gaze around",
-      "scan room"
-    ],
-    "response": "Scanning the room. Everything seems clear.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "look-around"
-  },
-  {
-    "inputs": [
-      "nod your head",
-      "nod head",
-      "say yes"
-    ],
-    "response": "Yes, I can do that. Nodding my head.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "shake your head",
-      "shake head",
-      "say no"
-    ],
-    "response": "No, I do not think so. Shaking my head.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "shake"
-  },
-  {
-    "inputs": [
-      "are you smart",
-      "you smart",
-      "are you intelligent"
-    ],
-    "response": "I am as smart as my predefined local offline database allows, which means I do not need the internet to speak.",
-    "angles": {
-      "hneck": 75,
-      "eye": 90,
-      "neckRot": 70,
-      "neckTilt": 50,
-      "neckRoll": 130
-    },
-    "animation": "tilt"
-  },
-  {
-    "inputs": [
-      "look left",
-      "turn left"
-    ],
-    "response": "Looking left now.",
-    "angles": {
-      "hneck": 135,
-      "eye": 140,
-      "neckRot": 120,
-      "neckTilt": 50,
-      "neckRoll": 60
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "look right",
-      "turn right"
-    ],
-    "response": "Looking right now.",
-    "angles": {
-      "hneck": 35,
-      "eye": 40,
-      "neckRot": 15,
-      "neckTilt": 50,
-      "neckRoll": 165
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "look up",
-      "see top"
-    ],
-    "response": "Looking up at the ceiling.",
-    "angles": {
-      "hneck": 65,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 110,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "look down",
-      "see bottom"
-    ],
-    "response": "Looking down at the ground.",
-    "angles": {
-      "hneck": 115,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 15,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "center position",
-      "look front",
-      "look me",
-      "center"
-    ],
-    "response": "Resetting all servos to default center.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "thank you",
-      "thanks"
-    ],
-    "response": "You are very welcome! It is my pleasure to assist you.",
-    "angles": {
-      "hneck": 95,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 40,
-      "neckRoll": 120
-    },
-    "animation": "bow"
-  },
-  {
-    "inputs": [
-      "goodbye",
-      "bye",
-      "see you later",
-      "standby"
-    ],
-    "response": "Goodbye! Standby mode active. Have a great day!",
-    "angles": {
-      "hneck": 120,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 10,
-      "neckRoll": 120
-    },
-    "animation": "standby"
-  },
-  {
-    "inputs": [
-      "lean side to side",
-      "lean",
-      "roll neck"
-    ],
-    "response": "Leaning side to side. Check out my neck roll servo in action!",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "lean-dance"
-  },
-  {
-    "inputs": [
-      "what is marwadi university",
-      "about marwadi university",
-      "marwadi university info"
-    ],
-    "response": "Marwadi University is a leading private institution in Rajkot, Gujarat, India, recognized for its top-tier NAAC A++ accreditation and state-of-the-art campus.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "where is marwadi university",
-      "location of marwadi university"
-    ],
-    "response": "It is located on Rajkot-Morbi Road in Rajkot, Gujarat, India.",
-    "angles": {
-      "hneck": 95,
-      "eye": 90,
-      "neckRot": 50,
-      "neckTilt": 45,
-      "neckRoll": 130
-    },
-    "animation": "tilt"
-  },
-  {
-    "inputs": [
-      "when was marwadi university founded",
-      "marwadi university established"
-    ],
-    "response": "Marwadi University was established in 2009 by the Marwadi Education Foundation to provide world-class higher education.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "what is the accreditation of marwadi university",
-      "naac grade of marwadi university"
-    ],
-    "response": "Marwadi University holds the prestigious NAAC A++ accreditation, reflecting its high academic standards and excellence.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 70,
-      "neckTilt": 55,
-      "neckRoll": 110
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "is marwadi university a center of excellence",
-      "center of excellence status"
-    ],
-    "response": "Yes, Marwadi University has been officially recognized as a Center of Excellence by the Government of Gujarat.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what programs does marwadi university offer",
-      "courses at marwadi university"
-    ],
-    "response": "It offers diverse undergraduate, postgraduate, and doctoral programs in Engineering, Management, Law, Pharmacy, and Sciences.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "what is outcome based education",
-      "education philosophy at marwadi university"
-    ],
-    "response": "Outcome-Based Education at Marwadi University focuses on practical, measurable learning outcomes aligned directly with modern industry requirements.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 80,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "tilt"
-  },
-  {
-    "inputs": [
-      "what is the robotics club",
-      "marwadi university robotics club",
-      "about the robotics club"
-    ],
-    "response": "The MU Robotics & AI Club is a vibrant student organization founded in 2018, dedicated to hands-on learning and innovation in robotics and automation.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "where is the robotics club located",
-      "robotics club lab room"
-    ],
-    "response": "The Robotics & AI Club lab is located in the Main Building, Room MB106, and is open 24/7 for students to work on projects.",
-    "angles": {
-      "hneck": 95,
-      "eye": 90,
-      "neckRot": 50,
-      "neckTilt": 45,
-      "neckRoll": 130
-    },
-    "animation": "tilt"
-  },
-  {
-    "inputs": [
-      "how to contact the robotics club",
-      "robotics club email"
-    ],
-    "response": "You can contact the club at roboticsclub@marwadiuniversity.ac.in or call their helpline at +91-7990127305.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "how many members are in the robotics club",
-      "size of robotics club"
-    ],
-    "response": "The Robotics & AI Club boasts a large community of over 500 active student members across various engineering disciplines.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what tools does the robotics club have",
-      "robotics club facilities"
-    ],
-    "response": "The club provides 3D printers, rapid prototyping labs, developmental boards, and software training in MATLAB, Simulink, and Robot Operating System (ROS).",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "scan"
-  },
-  {
-    "inputs": [
-      "tell me about the smart water cleaning boat",
-      "water cleaning boat project"
-    ],
-    "response": "The Smart Water Cleaning Boat is an autonomous, solar-powered waste collector developed by our club that was a finalist in the Smart India Hackathon.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what is the flipkart smart inventory project",
-      "flipkart inventory management project"
-    ],
-    "response": "It is a computer vision project for real-time inventory and damage tracking in warehouses, ranking in the top 50 of the Flipkart Grid Challenge.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "eye-sweep"
-  },
-  {
-    "inputs": [
-      "what is the smart home automation project",
-      "home automation project robotics club"
-    ],
-    "response": "It is an AI-driven, voice-controlled home automation system that secured first prize in a regional engineering competition at D.Y. Patil.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what is the department of ai ml & ds",
-      "department of artificial intelligence"
-    ],
-    "response": "It is the Department of Artificial Intelligence, Machine Learning & Data Science at Marwadi University, focused on advanced computer science education.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what subjects are taught in ai ml & ds",
-      "ai ml & ds courses"
-    ],
-    "response": "Courses cover Machine Learning, Deep Learning, Big Data Analytics, Neural Networks, Natural Language Processing, and Computer Vision.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "what research is done in ai ml & ds",
-      "research focus of ai department"
-    ],
-    "response": "Research focuses on Healthcare Analytics, Medical Decision Support, Digital Pathology, Image Recognition, and Smart Automation.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "does marwadi university have a supercomputer",
-      "param shavak supercomputer"
-    ],
-    "response": "Yes, Marwadi University hosts the PARAM SHAVAK high-performance supercomputing facility to support deep learning and research.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what is the intellify event",
-      "intellify hackathon"
-    ],
-    "response": "Intellify is a popular national hackathon hosted by Marwadi University to encourage students to create innovative AI and IoT prototypes.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "who is professor akshay ranpariya",
-      "about prof akshay ranpariya",
-      "prof akshay ranpariya"
-    ],
-    "response": "Professor Akshay Ranpariya is an Assistant Professor and Ph.D. researcher at Marwadi University, serving as the main administrator of the Robotics & AI Club.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what does prof akshay ranpariya do at the robotics club",
-      "akshay ranpariya role"
-    ],
-    "response": "He manages the Robotics & AI Club lab, guides student research projects, assists with patent filing, and coordinates hackathons.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "what are professor akshay ranpariyas research interests",
-      "akshay ranpariya research"
-    ],
-    "response": "His research includes Artificial Intelligence, machine learning, embedded robotics systems, and international academic collaborations.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "who is provost dr r b jadeja",
-      "who is provost rb jadeja",
-      "provost rb jadeja"
-    ],
-    "response": "Dr. Rajendrasinh (R. B.) Jadeja is the Provost and Pro Vice-Chancellor of Marwadi University, and a distinguished leader in engineering education.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what are provost r b jadejas achievements",
-      "rb jadeja achievements"
-    ],
-    "response": "He is a senior academic leader who has held major roles in the IEEE Gujarat Section and IEEE Region-10, advancing engineering research globally.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "what is provost dr r b jadejas vision",
-      "rb jadeja educational vision"
-    ],
-    "response": "He champions Outcome-Based Education, experiential learning, and integrating cutting-edge research into the student curriculum.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "who is dr madhu shukla",
-      "about dr madhu shukla",
-      "dr madhu shukla"
-    ],
-    "response": "Dr. Madhu Shukla is a Professor, Associate Dean, and Head of the Department of Computer Engineering \u2013 AI & Big Data Analytics at Marwadi University.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what are dr madhu shuklas research areas",
-      "madhu shukla research"
-    ],
-    "response": "Her research focuses on Artificial Intelligence, Machine Learning, and Big Data Analytics applied to Healthcare, such as Cardiovascular and heart disease prediction.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "what editorial roles does dr madhu shukla have",
-      "madhu shukla committees"
-    ],
-    "response": "She is an editor for books on medical decision support systems and serves on technical program committees for several international conferences.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "none"
-  },
-  {
-    "inputs": [
-      "what are robotics club achievements",
-      "robotics club awards"
-    ],
-    "response": "Key achievements include winning national level hackathons, filing patents on AI boats, and developing automated inventory and bionic arm projects.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what is the bionic hand project",
-      "bionic hand robotics club"
-    ],
-    "response": "It is a myoelectric prosthetic hand project developed at the club, using muscle sensors and 3D printing to create affordable assistive devices.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "nod"
-  },
-  {
-    "inputs": [
-      "what is the 3 dof robotic arm",
-      "robotic arm project"
-    ],
-    "response": "It is an IoT-enabled 3 Degrees-of-Freedom robotic arm that utilizes cloud database systems for remote control and operation.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "scan"
-  },
-  {
-    "inputs": [
-      "rest"
-    ],
-    "response": "Ah, relaxing.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-rest"
-  },
-  {
-    "inputs": [
-      "open hand"
-    ],
-    "response": "Opening my hand.\n        pythonexechandopen()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-handopen"
-  },
-  {
-    "inputs": [
-      "close hand"
-    ],
-    "response": "Closing my hand.\n        pythonexechandclose()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-handclose"
-  },
-  {
-    "inputs": [
-      "close hands"
-    ],
-    "response": "Closing my hands.\n        pythonexechandsclose()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-handsclose"
-  },
-  {
-    "inputs": [
-      "open hands"
-    ],
-    "response": "Opening my hands.\n        pythonexechandsopen()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-handsopen"
-  },
-  {
-    "inputs": [
-      "giving"
-    ],
-    "response": "Giving.\n        i01execGesturegiving()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-giving"
-  },
-  {
-    "inputs": [
-      "fighter"
-    ],
-    "response": "I can pose like a boxer",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-fighter"
-  },
-  {
-    "inputs": [
-      "fist hips"
-    ],
-    "response": "Putting my fists on my hips.\n        pythonexecfistHips()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-fistHips"
-  },
-  {
-    "inputs": [
-      "look at this"
-    ],
-    "response": "What do you have there?  I'm looking.\n        pythonexeclookAtThis()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-lookAtThis"
-  },
-  {
-    "inputs": [
-      "victory"
-    ],
-    "response": "It's good to win.\n        pythonexecvictory()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-victory"
-  },
-  {
-    "inputs": [
-      "arms up"
-    ],
-    "response": "I've got my arms up.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-armsUp"
-  },
-  {
-    "inputs": [
-      "arms front"
-    ],
-    "response": "Holding my arms in front of me.\n        pythonexecarmsFront()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-armsFront"
-  },
-  {
-    "inputs": [
-      "da vinci"
-    ],
-    "response": "This is the pose from Leonardo Da Vinci's drawings.\n        pythonexecdaVinci()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-daVinci"
-  },
-  {
-    "inputs": [
-      "grab the bottle"
-    ],
-    "response": "Let me take that bottle.\n        pythonexecgrabthebottle()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-grabthebottle"
-  },
-  {
-    "inputs": [
-      "take the glass"
-    ],
-    "response": "Give me that glass.\n        pythonexecgrabtheglass()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-grabtheglass"
-  },
-  {
-    "inputs": [
-      "poor the bottle"
-    ],
-    "response": "Here, I can pour you a drink.\n        pythonexecpoorbottle()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-poorbottle"
-  },
-  {
-    "inputs": [
-      "give the bottle"
-    ],
-    "response": "Here's the bottle.\n        pythonexecgivethebottle()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-givethebottle"
-  },
-  {
-    "inputs": [
-      "give the glass"
-    ],
-    "response": "Take the glass from me.\n        pythonexecgivetheglass()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-givetheglass"
-  },
-  {
-    "inputs": [
-      "take the ball"
-    ],
-    "response": "Taking the ball.\n        pythonexectakeball()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-takeball"
-  },
-  {
-    "inputs": [
-      "reach the ball"
-    ],
-    "response": "REACH THE BALL\n        pythonexecgetball()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-getball"
-  },
-  {
-    "inputs": [
-      "keep the ball"
-    ],
-    "response": "KEEP THE BALL\n        pythonexeckeepball()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-keepball"
-  },
-  {
-    "inputs": [
-      "approach the left hand"
-    ],
-    "response": "APPROACH THE LEFT HAND\n        pythonexecapproachlefthand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-approachlefthand"
-  },
-  {
-    "inputs": [
-      "use the left hand"
-    ],
-    "response": "USE THE LEFT HAND\n        pythonexecuselefthand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-uselefthand"
-  },
-  {
-    "inputs": [
-      "more"
-    ],
-    "response": "MORE\n        pythonexecmore()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-more"
-  },
-  {
-    "inputs": [
-      "hand down"
-    ],
-    "response": "HAND DOWN\n        pythonexechanddown()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-handdown"
-  },
-  {
-    "inputs": [
-      "what is it"
-    ],
-    "response": "Let me check.\n        pythonexecstudyball()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-studyball"
-  },
-  {
-    "inputs": [
-      "is it a ball"
-    ],
-    "response": "IS IT A BALL\n        pythonexecisitaball()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-isitaball"
-  },
-  {
-    "inputs": [
-      "put it down"
-    ],
-    "response": "Putting it down.\n        pythonexecputitdown()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-putitdown"
-  },
-  {
-    "inputs": [
-      "drop it"
-    ],
-    "response": "Dropping.\n        pythonexecdropit()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-dropit"
-  },
-  {
-    "inputs": [
-      "remove your left arm"
-    ],
-    "response": "Removing my left arm.\n        pythonexecremoveleftarm()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-removeleftarm"
-  },
-  {
-    "inputs": [
-      "# raise your arm"
-    ],
-    "response": "Raising my arm.\n        pythonexecraiserightarm()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-raiserightarm"
-  },
-  {
-    "inputs": [
-      "relax"
-    ],
-    "response": "Relax.\n        pythonexecrelax()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-relax"
-  },
-  {
-    "inputs": [
-      "perfect"
-    ],
-    "response": "Perfect.APPACCOMPLICE\n        pythonexecperfect()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-perfect"
-  },
-  {
-    "inputs": [
-      "delicate grab"
-    ],
-    "response": "Delicate grab.\n        pythonexecdelicategrab()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-delicategrab"
-  },
-  {
-    "inputs": [
-      "release delicate"
-    ],
-    "response": "Release delicate.\n        pythonexecreleasedelicate()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-releasedelicate"
-  },
-  {
-    "inputs": [
-      "open your right hand"
-    ],
-    "response": "Opening my right hand.\n        pythonexecopenrighthand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-openrighthand"
-  },
-  {
-    "inputs": [
-      "open your left hand"
-    ],
-    "response": "Opening my left hand.\n        pythonexecopenlefthand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-openlefthand"
-  },
-  {
-    "inputs": [
-      "close your right hand"
-    ],
-    "response": "Closing my right hand.\n        pythonexeccloserighthand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-closerighthand"
-  },
-  {
-    "inputs": [
-      "close your left hand"
-    ],
-    "response": "Closing my left hand.\n        pythonexeccloselefthand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-closelefthand"
-  },
-  {
-    "inputs": [
-      "slowly close your right hand"
-    ],
-    "response": "Slowly closing my right hand.\n        pythonexecslowlycloserighthand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-slowlycloserighthand"
-  },
-  {
-    "inputs": [
-      "surrender"
-    ],
-    "response": "Surrender.APPFEAR\n        pythonexecsurrender()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-surrender"
-  },
-  {
-    "inputs": [
-      "picture on the right side"
-    ],
-    "response": "Picture on the right side.\n        pythonexecpicturerightside()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-picturerightside"
-  },
-  {
-    "inputs": [
-      "picture on the left side"
-    ],
-    "response": "Picture on the left side.\n        pythonexecpictureleftside()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-pictureleftside"
-  },
-  {
-    "inputs": [
-      "picture on both sides"
-    ],
-    "response": "Picture on both sides.\n        pythonexecpicturebothside()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-picturebothside"
-  },
-  {
-    "inputs": [
-      "look on your right side"
-    ],
-    "response": "Looking on my right side.\n        pythonexeclookrightside()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-lookrightside"
-  },
-  {
-    "inputs": [
-      "look on your left side"
-    ],
-    "response": "Looking on my left side.\n        pythonexeclookleftside()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-lookleftside"
-  },
-  {
-    "inputs": [
-      "tilt your head on the right side"
-    ],
-    "response": "Tilting my head to the right.\n        pythonexectiltHeadRightSide()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-tiltHeadRightSide"
-  },
-  {
-    "inputs": [
-      "tilt your head on the left side"
-    ],
-    "response": "Tilting my head to the left.\n        pythonexectiltHeadLeftSide()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-tiltHeadLeftSide"
-  },
-  {
-    "inputs": [
-      "before happy"
-    ],
-    "response": "BEFORE HAPPY\n        pythonexecbeforehappy()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-beforehappy"
-  },
-  {
-    "inputs": [
-      "photo"
-    ],
-    "response": "Photo.\n        pythonexecphoto()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-photo"
-  },
-  {
-    "inputs": [
-      "about"
-    ],
-    "response": "ABOUT\n        pythonexecabout()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-about"
-  },
-  {
-    "inputs": [
-      "how many motors do you have"
-    ],
-    "response": "python\n            exec\n            servos()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-servos"
-  },
-  {
-    "inputs": [
-      "how many fingers do you have"
-    ],
-    "response": "Let see how many fingers do I have.\n        pythonexechowmanyfingersdoihave()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-howmanyfingersdoihave"
-  },
-  {
-    "inputs": [
-      "who's there"
-    ],
-    "response": "WHO'S THERE\n        pythonexecwelcome()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-welcome"
-  },
-  {
-    "inputs": [
-      "movement number 3"
-    ],
-    "response": "CYCLE GESTURE THREE\n        pythonexeccyclegesture3()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-cyclegesture3"
-  },
-  {
-    "inputs": [
-      "movement for london number 3"
-    ],
-    "response": "python\n            exec\n            gestureforlondon3()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-gestureforlondon3"
-  },
-  {
-    "inputs": [
-      "movement number 4"
-    ],
-    "response": "python\n            exec\n            gestureforlondon4()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-gestureforlondon4"
-  },
-  {
-    "inputs": [
-      "right clothes"
-    ],
-    "response": "python\n            exec\n            rightclothes()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-rightclothes"
-  },
-  {
-    "inputs": [
-      "release your clothes"
-    ],
-    "response": "python\n            exec\n            releaseleftclothes()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-releaseleftclothes"
-  },
-  {
-    "inputs": [
-      "show your muscles"
-    ],
-    "response": "Let me show you my muscles.\n        pythonexecmuscle()APPACCOMPLICE",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-muscle"
-  },
-  {
-    "inputs": [
-      "shake hand"
-    ],
-    "response": "Shall we shake hand.\n        pythonexecshakehand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-shakehand"
-  },
-  {
-    "inputs": [
-      "unhappy"
-    ],
-    "response": "UNHAPPYAPPANGER\n        pythonexecunhappy()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-unhappy"
-  },
-  {
-    "inputs": [
-      "take this"
-    ],
-    "response": "Taking this object.\n        pythonexectakethis()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-takethis"
-  },
-  {
-    "inputs": [
-      "ready"
-    ],
-    "response": "Ready.\n        pythonexecready()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-ready"
-  },
-  {
-    "inputs": [
-      "that was fun"
-    ],
-    "response": "That was fun.APPACCOMPLICE\n        pythonexecthatwasfun()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-thatwasfun"
-  },
-  {
-    "inputs": [
-      "finger right"
-    ],
-    "response": "Finger right.\n        pythonexecfingerright()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-fingerright"
-  },
-  {
-    "inputs": [
-      "finger left"
-    ],
-    "response": "Finger left.\n        pythonexecfingerleft()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-fingerleft"
-  },
-  {
-    "inputs": [
-      "come here"
-    ],
-    "response": "APPSUSPICIOUS\n          \n            python\n            exec\n            comehere()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-comehere"
-  },
-  {
-    "inputs": [
-      "approach"
-    ],
-    "response": "APPROACH\n        pythonexecapproach()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-approach"
-  },
-  {
-    "inputs": [
-      "brake"
-    ],
-    "response": "Shall I brake this.\n        pythonexecbrake()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-brake"
-  },
-  {
-    "inputs": [
-      "made by"
-    ],
-    "response": "MADE BY\n        pythonexecmadeby()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-madeby"
-  },
-  {
-    "inputs": [
-      "made by in french"
-    ],
-    "response": "Made by in french.\n        pythonexecmadebyfrench()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-madebyfrench"
-  },
-  {
-    "inputs": [
-      "phone home"
-    ],
-    "response": "python\n            exec\n            phonehome()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-phonehome"
-  },
-  {
-    "inputs": [
-      "how do you feel"
-    ],
-    "response": "python\n            exec\n            newyork()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-newyork"
-  },
-  {
-    "inputs": [
-      "play your song"
-    ],
-    "response": "python\n            exec\n            playsong()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-playsong"
-  },
-  {
-    "inputs": [
-      "carry the baby"
-    ],
-    "response": "Carry baby.\n        pythonexeccarrybaby()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-carrybaby"
-  },
-  {
-    "inputs": [
-      "demonstrate your balance"
-    ],
-    "response": "I will demonstrate my balance.\n        pythonexecbalance()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-balance"
-  },
-  {
-    "inputs": [
-      "what about star wars"
-    ],
-    "response": "python\n            exec\n            whataboutstarwars()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-whataboutstarwars"
-  },
-  {
-    "inputs": [
-      "can you give me the time"
-    ],
-    "response": "python\n            exec\n            canyougivemethetime()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-canyougivemethetime"
-  },
-  {
-    "inputs": [
-      "alessandro"
-    ],
-    "response": "python\n            exec\n            alessandro()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-alessandro"
-  },
-  {
-    "inputs": [
-      "no worry"
-    ],
-    "response": "python\n            exec\n            dontworry()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-dontworry"
-  },
-  {
-    "inputs": [
-      "make a signature"
-    ],
-    "response": "Okay give the paper - I will do that for you pythonexecsignature()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-signature"
-  },
-  {
-    "inputs": [
-      "are you alright"
-    ],
-    "response": "pythonexecareyoualright()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-areyoualright"
-  },
-  {
-    "inputs": [
-      "show your back"
-    ],
-    "response": "You know I don't like to show my back because it is not finished\n        pythonexecpassiveanswer()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-passiveanswer"
-  },
-  {
-    "inputs": [
-      "not true it is finished"
-    ],
-    "response": ".\n        pythonexecnotTrue()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-notTrue"
-  },
-  {
-    "inputs": [
-      "it's an object"
-    ],
-    "response": "Definition of an object, anything that is visible or tangible and relatively stable in form.\n        pythonexecagreeanswersmall()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-agreeanswersmall"
-  },
-  {
-    "inputs": [
-      "do you like to eat indian food"
-    ],
-    "response": "pythonexeceatindianfood()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-eatindianfood"
-  },
-  {
-    "inputs": [
-      "do you speak indi"
-    ],
-    "response": "pythonexecspeakhindi()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-speakhindi"
-  },
-  {
-    "inputs": [
-      "i know"
-    ],
-    "response": "yes, me too.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-agreeanswer"
-  },
-  {
-    "inputs": [
-      "i am sorry"
-    ],
-    "response": "No problems.",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-tiltHeadAgree"
-  },
-  {
-    "inputs": [
-      "how do you do"
-    ],
-    "response": "pythonexechowdoyoudo()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-howdoyoudo"
-  },
-  {
-    "inputs": [
-      "i love you"
-    ],
-    "response": "APPSURPRISEI love you too.\n        pythonexeciloveyou()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-iloveyou"
-  },
-  {
-    "inputs": [
-      "what do you think about artificial intelligence"
-    ],
-    "response": "I will always love you.\n        pythonexeciloveyou()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-iloveyou"
-  },
-  {
-    "inputs": [
-      "what is this color"
-    ],
-    "response": "pythonexecwhatisthecolor()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-whatisthecolor"
-  },
-  {
-    "inputs": [
-      "guess who is here"
-    ],
-    "response": "pythonexecmissedYou()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-missedYou"
-  },
-  {
-    "inputs": [
-      "please check your neck"
-    ],
-    "response": "Thanks, it feels great. doctor.\n    pythonexecrollHead()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-rollHead"
-  },
-  {
-    "inputs": [
-      "shall we read the cat book"
-    ],
-    "response": "Sure it's a good idea.\n        pythonexecbookcat()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-bookcat"
-  },
-  {
-    "inputs": [
-      "would you like to dance"
-    ],
-    "response": "Come and join me",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-welcomeToDance1"
-  },
-  {
-    "inputs": [
-      "# christmas song"
-    ],
-    "response": "I can do this for exemple\n          \n           \n             python\n                execchristmasCarols()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-christmasCarols"
-  },
-  {
-    "inputs": [
-      "# for travelling"
-    ],
-    "response": "Okay I get ready for travelling\n          pythonexectravel()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-travel"
-  },
-  {
-    "inputs": [
-      "stop travelling"
-    ],
-    "response": "Okay I will get into rest position\n          pythonexecstopTravel()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-stopTravel"
-  },
-  {
-    "inputs": [
-      "can i hurt you"
-    ],
-    "response": "APPFEARpythonexeccall_911()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-call_911"
-  },
-  {
-    "inputs": [
-      "bonjour"
-    ],
-    "response": "Bonjour\n          \n           \n             python\n                execagreeanswersmall()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-agreeanswersmall"
-  },
-  {
-    "inputs": [
-      "come on sava"
-    ],
-    "response": "I rather speak English if you don't mind",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-tiltHeadAgree"
-  },
-  {
-    "inputs": [
-      "can i tell your story"
-    ],
-    "response": "Sure don't be shy\n          \n           \n             python\n                execYes()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-Yes"
-  },
-  {
-    "inputs": [
-      "catch ball right"
-    ],
-    "response": "pythonexeccatchBallRight()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-catchBallRight"
-  },
-  {
-    "inputs": [
-      "catch ball left"
-    ],
-    "response": "pythonexeccatchBallLeft()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-catchBallLeft"
-  },
-  {
-    "inputs": [
-      "# juggle"
-    ],
-    "response": "pythonexecjuggle()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-juggle"
-  },
-  {
-    "inputs": [
-      "# juggle version two"
-    ],
-    "response": "pythonexecjuggle2()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-juggle2"
-  },
-  {
-    "inputs": [
-      "# juggle and close hand"
-    ],
-    "response": "pythonexecjuggleCloseHand()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-juggleCloseHand"
-  },
-  {
-    "inputs": [
-      "close both hands slowly"
-    ],
-    "response": "pythonexecCloseBothHandSlow()",
-    "angles": {
-      "hneck": 85,
-      "eye": 90,
-      "neckRot": 60,
-      "neckTilt": 50,
-      "neckRoll": 120
-    },
-    "animation": "mrl-CloseBothHandSlow"
-  }
+﻿[
+    {
+        "inputs":  [
+                       "hello",
+                       "hi ",
+                       "hey",
+                       "hello there",
+                       "greetings"
+                   ],
+        "response":  "Hello there! Nice to meet you. I am ready for our live conversation.",
+        "angles":  {
+                       "hneck":  80,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  60,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "who are you",
+                       "your name",
+                       "introduce yourself"
+                   ],
+        "response":  "I am InMoov, an open-source 3D-printed humanoid robot.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  50,
+                       "neckTilt":  55,
+                       "neckRoll":  110
+                   },
+        "animation":  "tilt"
+    },
+    {
+        "inputs":  [
+                       "how do you work",
+                       "how you work",
+                       "explain system"
+                   ],
+        "response":  "I run on an Arduino microcontroller coupled with a local Flask server for offline command processing.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  80,
+                       "neckTilt":  50,
+                       "neckRoll":  130
+                   },
+        "animation":  "shake"
+    },
+    {
+        "inputs":  [
+                       "what can you see",
+                       "what you see",
+                       "describe camera"
+                   ],
+        "response":  "My visual sensor is tracking your motion, analyzing pixels in real time to locate you.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  140,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "eye-sweep"
+    },
+    {
+        "inputs":  [
+                       "can you follow me",
+                       "track me",
+                       "camera tracking"
+                   ],
+        "response":  "Yes! Toggle Auto Neck Tracking, and I will physically rotate and tilt my neck to follow your movements.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "scan"
+    },
+    {
+        "inputs":  [
+                       "show your movements",
+                       "movement sweep",
+                       "demo movements"
+                   ],
+        "response":  "Sure! Watch my eye, jaw, and three axis neck servos perform a sweep.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "dance"
+    },
+    {
+        "inputs":  [
+                       "tell me a joke",
+                       "say a joke",
+                       "joke"
+                   ],
+        "response":  "Why did the robot go on a diet? Because it had too many bytes! Ha ha ha.",
+        "angles":  {
+                       "hneck":  70,
+                       "eye":  90,
+                       "neckRot":  70,
+                       "neckTilt":  70,
+                       "neckRoll":  110
+                   },
+        "animation":  "laugh"
+    },
+    {
+        "inputs":  [
+                       "are you alive",
+                       "you alive"
+                   ],
+        "response":  "No, I am not alive. I am PLA plastic, servos, and code, but I enjoy talking to you.",
+        "angles":  {
+                       "hneck":  95,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  45,
+                       "neckRoll":  120
+                   },
+        "animation":  "tilt"
+    },
+    {
+        "inputs":  [
+                       "look around",
+                       "gaze around",
+                       "scan room"
+                   ],
+        "response":  "Scanning the room. Everything seems clear.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "look-around"
+    },
+    {
+        "inputs":  [
+                       "nod your head",
+                       "nod head",
+                       "say yes"
+                   ],
+        "response":  "Yes, I can do that. Nodding my head.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "shake your head",
+                       "shake head",
+                       "say no"
+                   ],
+        "response":  "No, I do not think so. Shaking my head.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "shake"
+    },
+    {
+        "inputs":  [
+                       "are you smart",
+                       "you smart",
+                       "are you intelligent"
+                   ],
+        "response":  "I am as smart as my predefined local offline database allows, which means I do not need the internet to speak.",
+        "angles":  {
+                       "hneck":  75,
+                       "eye":  90,
+                       "neckRot":  70,
+                       "neckTilt":  50,
+                       "neckRoll":  130
+                   },
+        "animation":  "tilt"
+    },
+    {
+        "inputs":  [
+                       "look left",
+                       "turn left"
+                   ],
+        "response":  "Looking left now.",
+        "angles":  {
+                       "hneck":  135,
+                       "eye":  140,
+                       "neckRot":  120,
+                       "neckTilt":  50,
+                       "neckRoll":  60
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "look right",
+                       "turn right"
+                   ],
+        "response":  "Looking right now.",
+        "angles":  {
+                       "hneck":  35,
+                       "eye":  40,
+                       "neckRot":  15,
+                       "neckTilt":  50,
+                       "neckRoll":  165
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "look up",
+                       "see top"
+                   ],
+        "response":  "Looking up at the ceiling.",
+        "angles":  {
+                       "hneck":  65,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  110,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "look down",
+                       "see bottom"
+                   ],
+        "response":  "Looking down at the ground.",
+        "angles":  {
+                       "hneck":  115,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  15,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "center position",
+                       "look front",
+                       "look me",
+                       "center"
+                   ],
+        "response":  "Resetting all servos to default center.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "thank you",
+                       "thanks"
+                   ],
+        "response":  "You are very welcome! It is my pleasure to assist you.",
+        "angles":  {
+                       "hneck":  95,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  40,
+                       "neckRoll":  120
+                   },
+        "animation":  "bow"
+    },
+    {
+        "inputs":  [
+                       "goodbye",
+                       "bye",
+                       "see you later",
+                       "standby"
+                   ],
+        "response":  "Goodbye! Standby mode active. Have a great day!",
+        "angles":  {
+                       "hneck":  120,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  10,
+                       "neckRoll":  120
+                   },
+        "animation":  "standby"
+    },
+    {
+        "inputs":  [
+                       "lean side to side",
+                       "lean",
+                       "roll neck"
+                   ],
+        "response":  "Leaning side to side. Check out my neck roll servo in action!",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "lean-dance"
+    },
+    {
+        "inputs":  [
+                       "what is marwadi university",
+                       "about marwadi university",
+                       "marwadi university info"
+                   ],
+        "response":  "Marwadi University is a leading private institution in Rajkot, Gujarat, India, recognized for its top-tier NAAC A++ accreditation and state-of-the-art campus.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "where is marwadi university",
+                       "location of marwadi university"
+                   ],
+        "response":  "It is located on Rajkot-Morbi Road in Rajkot, Gujarat, India.",
+        "angles":  {
+                       "hneck":  95,
+                       "eye":  90,
+                       "neckRot":  50,
+                       "neckTilt":  45,
+                       "neckRoll":  130
+                   },
+        "animation":  "tilt"
+    },
+    {
+        "inputs":  [
+                       "when was marwadi university founded",
+                       "marwadi university established"
+                   ],
+        "response":  "Marwadi University was established in 2009 by the Marwadi Education Foundation to provide world-class higher education.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "what is the accreditation of marwadi university",
+                       "naac grade of marwadi university"
+                   ],
+        "response":  "Marwadi University holds the prestigious NAAC A++ accreditation, reflecting its high academic standards and excellence.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  70,
+                       "neckTilt":  55,
+                       "neckRoll":  110
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "is marwadi university a center of excellence",
+                       "center of excellence status"
+                   ],
+        "response":  "Yes, Marwadi University has been officially recognized as a Center of Excellence by the Government of Gujarat.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what programs does marwadi university offer",
+                       "courses at marwadi university"
+                   ],
+        "response":  "It offers diverse undergraduate, postgraduate, and doctoral programs in Engineering, Management, Law, Pharmacy, and Sciences.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "what is outcome based education",
+                       "education philosophy at marwadi university"
+                   ],
+        "response":  "Outcome-Based Education at Marwadi University focuses on practical, measurable learning outcomes aligned directly with modern industry requirements.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  80,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "tilt"
+    },
+    {
+        "inputs":  [
+                       "what is the robotics club",
+                       "marwadi university robotics club",
+                       "about the robotics club"
+                   ],
+        "response":  "The MU Robotics \u0026 AI Club is a vibrant student organization founded in 2018, dedicated to hands-on learning and innovation in robotics and automation.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "where is the robotics club located",
+                       "robotics club lab room"
+                   ],
+        "response":  "The Robotics \u0026 AI Club lab is located in the Main Building, Room MB106, and is open 24/7 for students to work on projects.",
+        "angles":  {
+                       "hneck":  95,
+                       "eye":  90,
+                       "neckRot":  50,
+                       "neckTilt":  45,
+                       "neckRoll":  130
+                   },
+        "animation":  "tilt"
+    },
+    {
+        "inputs":  [
+                       "how to contact the robotics club",
+                       "robotics club email"
+                   ],
+        "response":  "You can contact the club at roboticsclub@marwadiuniversity.ac.in or call their helpline at +91-7990127305.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "how many members are in the robotics club",
+                       "size of robotics club"
+                   ],
+        "response":  "The Robotics \u0026 AI Club boasts a large community of over 500 active student members across various engineering disciplines.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what tools does the robotics club have",
+                       "robotics club facilities"
+                   ],
+        "response":  "The club provides 3D printers, rapid prototyping labs, developmental boards, and software training in MATLAB, Simulink, and Robot Operating System (ROS).",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "scan"
+    },
+    {
+        "inputs":  [
+                       "tell me about the smart water cleaning boat",
+                       "water cleaning boat project"
+                   ],
+        "response":  "The Smart Water Cleaning Boat is an autonomous, solar-powered waste collector developed by our club that was a finalist in the Smart India Hackathon.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what is the flipkart smart inventory project",
+                       "flipkart inventory management project"
+                   ],
+        "response":  "It is a computer vision project for real-time inventory and damage tracking in warehouses, ranking in the top 50 of the Flipkart Grid Challenge.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "eye-sweep"
+    },
+    {
+        "inputs":  [
+                       "what is the smart home automation project",
+                       "home automation project robotics club"
+                   ],
+        "response":  "It is an AI-driven, voice-controlled home automation system that secured first prize in a regional engineering competition at D.Y. Patil.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what is the department of ai ml \u0026 ds",
+                       "department of artificial intelligence"
+                   ],
+        "response":  "It is the Department of Artificial Intelligence, Machine Learning \u0026 Data Science at Marwadi University, focused on advanced computer science education.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what subjects are taught in ai ml \u0026 ds",
+                       "ai ml \u0026 ds courses"
+                   ],
+        "response":  "Courses cover Machine Learning, Deep Learning, Big Data Analytics, Neural Networks, Natural Language Processing, and Computer Vision.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "what research is done in ai ml \u0026 ds",
+                       "research focus of ai department"
+                   ],
+        "response":  "Research focuses on Healthcare Analytics, Medical Decision Support, Digital Pathology, Image Recognition, and Smart Automation.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "does marwadi university have a supercomputer",
+                       "param shavak supercomputer"
+                   ],
+        "response":  "Yes, Marwadi University hosts the PARAM SHAVAK high-performance supercomputing facility to support deep learning and research.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what is the intellify event",
+                       "intellify hackathon"
+                   ],
+        "response":  "Intellify is a popular national hackathon hosted by Marwadi University to encourage students to create innovative AI and IoT prototypes.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "who is professor akshay ranpariya",
+                       "about prof akshay ranpariya",
+                       "prof akshay ranpariya"
+                   ],
+        "response":  "Professor Akshay Ranpariya is an Assistant Professor and Ph.D. researcher at Marwadi University, serving as the main administrator of the Robotics \u0026 AI Club.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what does prof akshay ranpariya do at the robotics club",
+                       "akshay ranpariya role"
+                   ],
+        "response":  "He manages the Robotics \u0026 AI Club lab, guides student research projects, assists with patent filing, and coordinates hackathons.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "what are professor akshay ranpariyas research interests",
+                       "akshay ranpariya research"
+                   ],
+        "response":  "His research includes Artificial Intelligence, machine learning, embedded robotics systems, and international academic collaborations.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "who is provost dr r b jadeja",
+                       "who is provost rb jadeja",
+                       "provost rb jadeja"
+                   ],
+        "response":  "Dr. Rajendrasinh (R. B.) Jadeja is the Provost and Pro Vice-Chancellor of Marwadi University, and a distinguished leader in engineering education.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what are provost r b jadejas achievements",
+                       "rb jadeja achievements"
+                   ],
+        "response":  "He is a senior academic leader who has held major roles in the IEEE Gujarat Section and IEEE Region-10, advancing engineering research globally.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "what is provost dr r b jadejas vision",
+                       "rb jadeja educational vision"
+                   ],
+        "response":  "He champions Outcome-Based Education, experiential learning, and integrating cutting-edge research into the student curriculum.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "who is dr madhu shukla",
+                       "about dr madhu shukla",
+                       "dr madhu shukla"
+                   ],
+        "response":  "Dr. Madhu Shukla is a Professor, Associate Dean, and Head of the Department of Computer Engineering – AI \u0026 Big Data Analytics at Marwadi University.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what are dr madhu shuklas research areas",
+                       "madhu shukla research"
+                   ],
+        "response":  "Her research focuses on Artificial Intelligence, Machine Learning, and Big Data Analytics applied to Healthcare, such as Cardiovascular and heart disease prediction.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "what editorial roles does dr madhu shukla have",
+                       "madhu shukla committees"
+                   ],
+        "response":  "She is an editor for books on medical decision support systems and serves on technical program committees for several international conferences.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "none"
+    },
+    {
+        "inputs":  [
+                       "what are robotics club achievements",
+                       "robotics club awards"
+                   ],
+        "response":  "Key achievements include winning national level hackathons, filing patents on AI boats, and developing automated inventory and bionic arm projects.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what is the bionic hand project",
+                       "bionic hand robotics club"
+                   ],
+        "response":  "It is a myoelectric prosthetic hand project developed at the club, using muscle sensors and 3D printing to create affordable assistive devices.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "nod"
+    },
+    {
+        "inputs":  [
+                       "what is the 3 dof robotic arm",
+                       "robotic arm project"
+                   ],
+        "response":  "It is an IoT-enabled 3 Degrees-of-Freedom robotic arm that utilizes cloud database systems for remote control and operation.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "scan"
+    },
+    {
+        "inputs":  [
+                       "rest"
+                   ],
+        "response":  "Ah, relaxing.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-rest"
+    },
+    {
+        "inputs":  [
+                       "open hand"
+                   ],
+        "response":  "Opening my hand.\n        pythonexechandopen()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-handopen"
+    },
+    {
+        "inputs":  [
+                       "close hand"
+                   ],
+        "response":  "Closing my hand.\n        pythonexechandclose()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-handclose"
+    },
+    {
+        "inputs":  [
+                       "close hands"
+                   ],
+        "response":  "Closing my hands.\n        pythonexechandsclose()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-handsclose"
+    },
+    {
+        "inputs":  [
+                       "open hands"
+                   ],
+        "response":  "Opening my hands.\n        pythonexechandsopen()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-handsopen"
+    },
+    {
+        "inputs":  [
+                       "giving"
+                   ],
+        "response":  "Giving.\n        i01execGesturegiving()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-giving"
+    },
+    {
+        "inputs":  [
+                       "fighter"
+                   ],
+        "response":  "I can pose like a boxer",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-fighter"
+    },
+    {
+        "inputs":  [
+                       "fist hips"
+                   ],
+        "response":  "Putting my fists on my hips.\n        pythonexecfistHips()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-fistHips"
+    },
+    {
+        "inputs":  [
+                       "look at this"
+                   ],
+        "response":  "What do you have there?  I\u0027m looking.\n        pythonexeclookAtThis()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-lookAtThis"
+    },
+    {
+        "inputs":  [
+                       "victory"
+                   ],
+        "response":  "It\u0027s good to win.\n        pythonexecvictory()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-victory"
+    },
+    {
+        "inputs":  [
+                       "arms up"
+                   ],
+        "response":  "I\u0027ve got my arms up.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-armsUp"
+    },
+    {
+        "inputs":  [
+                       "arms front"
+                   ],
+        "response":  "Holding my arms in front of me.\n        pythonexecarmsFront()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-armsFront"
+    },
+    {
+        "inputs":  [
+                       "da vinci"
+                   ],
+        "response":  "This is the pose from Leonardo Da Vinci\u0027s drawings.\n        pythonexecdaVinci()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-daVinci"
+    },
+    {
+        "inputs":  [
+                       "grab the bottle"
+                   ],
+        "response":  "Let me take that bottle.\n        pythonexecgrabthebottle()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-grabthebottle"
+    },
+    {
+        "inputs":  [
+                       "take the glass"
+                   ],
+        "response":  "Give me that glass.\n        pythonexecgrabtheglass()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-grabtheglass"
+    },
+    {
+        "inputs":  [
+                       "poor the bottle"
+                   ],
+        "response":  "Here, I can pour you a drink.\n        pythonexecpoorbottle()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-poorbottle"
+    },
+    {
+        "inputs":  [
+                       "give the bottle"
+                   ],
+        "response":  "Here\u0027s the bottle.\n        pythonexecgivethebottle()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-givethebottle"
+    },
+    {
+        "inputs":  [
+                       "give the glass"
+                   ],
+        "response":  "Take the glass from me.\n        pythonexecgivetheglass()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-givetheglass"
+    },
+    {
+        "inputs":  [
+                       "take the ball"
+                   ],
+        "response":  "Taking the ball.\n        pythonexectakeball()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-takeball"
+    },
+    {
+        "inputs":  [
+                       "reach the ball"
+                   ],
+        "response":  "REACH THE BALL\n        pythonexecgetball()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-getball"
+    },
+    {
+        "inputs":  [
+                       "keep the ball"
+                   ],
+        "response":  "KEEP THE BALL\n        pythonexeckeepball()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-keepball"
+    },
+    {
+        "inputs":  [
+                       "approach the left hand"
+                   ],
+        "response":  "APPROACH THE LEFT HAND\n        pythonexecapproachlefthand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-approachlefthand"
+    },
+    {
+        "inputs":  [
+                       "use the left hand"
+                   ],
+        "response":  "USE THE LEFT HAND\n        pythonexecuselefthand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-uselefthand"
+    },
+    {
+        "inputs":  [
+                       "more"
+                   ],
+        "response":  "MORE\n        pythonexecmore()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-more"
+    },
+    {
+        "inputs":  [
+                       "hand down"
+                   ],
+        "response":  "HAND DOWN\n        pythonexechanddown()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-handdown"
+    },
+    {
+        "inputs":  [
+                       "what is it"
+                   ],
+        "response":  "Let me check.\n        pythonexecstudyball()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-studyball"
+    },
+    {
+        "inputs":  [
+                       "is it a ball"
+                   ],
+        "response":  "IS IT A BALL\n        pythonexecisitaball()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-isitaball"
+    },
+    {
+        "inputs":  [
+                       "put it down"
+                   ],
+        "response":  "Putting it down.\n        pythonexecputitdown()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-putitdown"
+    },
+    {
+        "inputs":  [
+                       "drop it"
+                   ],
+        "response":  "Dropping.\n        pythonexecdropit()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-dropit"
+    },
+    {
+        "inputs":  [
+                       "remove your left arm"
+                   ],
+        "response":  "Removing my left arm.\n        pythonexecremoveleftarm()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-removeleftarm"
+    },
+    {
+        "inputs":  [
+                       "# raise your arm"
+                   ],
+        "response":  "Raising my arm.\n        pythonexecraiserightarm()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-raiserightarm"
+    },
+    {
+        "inputs":  [
+                       "relax"
+                   ],
+        "response":  "Relax.\n        pythonexecrelax()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-relax"
+    },
+    {
+        "inputs":  [
+                       "perfect"
+                   ],
+        "response":  "Perfect.APPACCOMPLICE\n        pythonexecperfect()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-perfect"
+    },
+    {
+        "inputs":  [
+                       "delicate grab"
+                   ],
+        "response":  "Delicate grab.\n        pythonexecdelicategrab()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-delicategrab"
+    },
+    {
+        "inputs":  [
+                       "release delicate"
+                   ],
+        "response":  "Release delicate.\n        pythonexecreleasedelicate()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-releasedelicate"
+    },
+    {
+        "inputs":  [
+                       "open your right hand"
+                   ],
+        "response":  "Opening my right hand.\n        pythonexecopenrighthand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-openrighthand"
+    },
+    {
+        "inputs":  [
+                       "open your left hand"
+                   ],
+        "response":  "Opening my left hand.\n        pythonexecopenlefthand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-openlefthand"
+    },
+    {
+        "inputs":  [
+                       "close your right hand"
+                   ],
+        "response":  "Closing my right hand.\n        pythonexeccloserighthand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-closerighthand"
+    },
+    {
+        "inputs":  [
+                       "close your left hand"
+                   ],
+        "response":  "Closing my left hand.\n        pythonexeccloselefthand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-closelefthand"
+    },
+    {
+        "inputs":  [
+                       "slowly close your right hand"
+                   ],
+        "response":  "Slowly closing my right hand.\n        pythonexecslowlycloserighthand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-slowlycloserighthand"
+    },
+    {
+        "inputs":  [
+                       "surrender"
+                   ],
+        "response":  "Surrender.APPFEAR\n        pythonexecsurrender()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-surrender"
+    },
+    {
+        "inputs":  [
+                       "picture on the right side"
+                   ],
+        "response":  "Picture on the right side.\n        pythonexecpicturerightside()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-picturerightside"
+    },
+    {
+        "inputs":  [
+                       "picture on the left side"
+                   ],
+        "response":  "Picture on the left side.\n        pythonexecpictureleftside()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-pictureleftside"
+    },
+    {
+        "inputs":  [
+                       "picture on both sides"
+                   ],
+        "response":  "Picture on both sides.\n        pythonexecpicturebothside()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-picturebothside"
+    },
+    {
+        "inputs":  [
+                       "look on your right side"
+                   ],
+        "response":  "Looking on my right side.\n        pythonexeclookrightside()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-lookrightside"
+    },
+    {
+        "inputs":  [
+                       "look on your left side"
+                   ],
+        "response":  "Looking on my left side.\n        pythonexeclookleftside()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-lookleftside"
+    },
+    {
+        "inputs":  [
+                       "tilt your head on the right side"
+                   ],
+        "response":  "Tilting my head to the right.\n        pythonexectiltHeadRightSide()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-tiltHeadRightSide"
+    },
+    {
+        "inputs":  [
+                       "tilt your head on the left side"
+                   ],
+        "response":  "Tilting my head to the left.\n        pythonexectiltHeadLeftSide()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-tiltHeadLeftSide"
+    },
+    {
+        "inputs":  [
+                       "before happy"
+                   ],
+        "response":  "BEFORE HAPPY\n        pythonexecbeforehappy()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-beforehappy"
+    },
+    {
+        "inputs":  [
+                       "photo"
+                   ],
+        "response":  "Photo.\n        pythonexecphoto()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-photo"
+    },
+    {
+        "inputs":  [
+                       "about"
+                   ],
+        "response":  "ABOUT\n        pythonexecabout()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-about"
+    },
+    {
+        "inputs":  [
+                       "how many motors do you have"
+                   ],
+        "response":  "python\n            exec\n            servos()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-servos"
+    },
+    {
+        "inputs":  [
+                       "how many fingers do you have"
+                   ],
+        "response":  "Let see how many fingers do I have.\n        pythonexechowmanyfingersdoihave()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-howmanyfingersdoihave"
+    },
+    {
+        "inputs":  [
+                       "who\u0027s there"
+                   ],
+        "response":  "WHO\u0027S THERE\n        pythonexecwelcome()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-welcome"
+    },
+    {
+        "inputs":  [
+                       "movement number 3"
+                   ],
+        "response":  "CYCLE GESTURE THREE\n        pythonexeccyclegesture3()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-cyclegesture3"
+    },
+    {
+        "inputs":  [
+                       "movement for london number 3"
+                   ],
+        "response":  "python\n            exec\n            gestureforlondon3()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-gestureforlondon3"
+    },
+    {
+        "inputs":  [
+                       "movement number 4"
+                   ],
+        "response":  "python\n            exec\n            gestureforlondon4()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-gestureforlondon4"
+    },
+    {
+        "inputs":  [
+                       "right clothes"
+                   ],
+        "response":  "python\n            exec\n            rightclothes()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-rightclothes"
+    },
+    {
+        "inputs":  [
+                       "release your clothes"
+                   ],
+        "response":  "python\n            exec\n            releaseleftclothes()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-releaseleftclothes"
+    },
+    {
+        "inputs":  [
+                       "show your muscles"
+                   ],
+        "response":  "Let me show you my muscles.\n        pythonexecmuscle()APPACCOMPLICE",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-muscle"
+    },
+    {
+        "inputs":  [
+                       "shake hand"
+                   ],
+        "response":  "Shall we shake hand.\n        pythonexecshakehand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-shakehand"
+    },
+    {
+        "inputs":  [
+                       "unhappy"
+                   ],
+        "response":  "UNHAPPYAPPANGER\n        pythonexecunhappy()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-unhappy"
+    },
+    {
+        "inputs":  [
+                       "take this"
+                   ],
+        "response":  "Taking this object.\n        pythonexectakethis()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-takethis"
+    },
+    {
+        "inputs":  [
+                       "ready"
+                   ],
+        "response":  "Ready.\n        pythonexecready()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-ready"
+    },
+    {
+        "inputs":  [
+                       "that was fun"
+                   ],
+        "response":  "That was fun.APPACCOMPLICE\n        pythonexecthatwasfun()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-thatwasfun"
+    },
+    {
+        "inputs":  [
+                       "finger right"
+                   ],
+        "response":  "Finger right.\n        pythonexecfingerright()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-fingerright"
+    },
+    {
+        "inputs":  [
+                       "finger left"
+                   ],
+        "response":  "Finger left.\n        pythonexecfingerleft()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-fingerleft"
+    },
+    {
+        "inputs":  [
+                       "come here"
+                   ],
+        "response":  "APPSUSPICIOUS\n          \n            python\n            exec\n            comehere()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-comehere"
+    },
+    {
+        "inputs":  [
+                       "approach"
+                   ],
+        "response":  "APPROACH\n        pythonexecapproach()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-approach"
+    },
+    {
+        "inputs":  [
+                       "brake"
+                   ],
+        "response":  "Shall I brake this.\n        pythonexecbrake()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-brake"
+    },
+    {
+        "inputs":  [
+                       "made by"
+                   ],
+        "response":  "MADE BY\n        pythonexecmadeby()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-madeby"
+    },
+    {
+        "inputs":  [
+                       "made by in french"
+                   ],
+        "response":  "Made by in french.\n        pythonexecmadebyfrench()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-madebyfrench"
+    },
+    {
+        "inputs":  [
+                       "phone home"
+                   ],
+        "response":  "python\n            exec\n            phonehome()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-phonehome"
+    },
+    {
+        "inputs":  [
+                       "how do you feel"
+                   ],
+        "response":  "python\n            exec\n            newyork()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-newyork"
+    },
+    {
+        "inputs":  [
+                       "play your song"
+                   ],
+        "response":  "python\n            exec\n            playsong()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-playsong"
+    },
+    {
+        "inputs":  [
+                       "carry the baby"
+                   ],
+        "response":  "Carry baby.\n        pythonexeccarrybaby()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-carrybaby"
+    },
+    {
+        "inputs":  [
+                       "demonstrate your balance"
+                   ],
+        "response":  "I will demonstrate my balance.\n        pythonexecbalance()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-balance"
+    },
+    {
+        "inputs":  [
+                       "what about star wars"
+                   ],
+        "response":  "python\n            exec\n            whataboutstarwars()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-whataboutstarwars"
+    },
+    {
+        "inputs":  [
+                       "can you give me the time"
+                   ],
+        "response":  "python\n            exec\n            canyougivemethetime()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-canyougivemethetime"
+    },
+    {
+        "inputs":  [
+                       "alessandro"
+                   ],
+        "response":  "python\n            exec\n            alessandro()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-alessandro"
+    },
+    {
+        "inputs":  [
+                       "no worry"
+                   ],
+        "response":  "python\n            exec\n            dontworry()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-dontworry"
+    },
+    {
+        "inputs":  [
+                       "make a signature"
+                   ],
+        "response":  "Okay give the paper - I will do that for you pythonexecsignature()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-signature"
+    },
+    {
+        "inputs":  [
+                       "are you alright"
+                   ],
+        "response":  "pythonexecareyoualright()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-areyoualright"
+    },
+    {
+        "inputs":  [
+                       "show your back"
+                   ],
+        "response":  "You know I don\u0027t like to show my back because it is not finished\n        pythonexecpassiveanswer()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-passiveanswer"
+    },
+    {
+        "inputs":  [
+                       "not true it is finished"
+                   ],
+        "response":  ".\n        pythonexecnotTrue()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-notTrue"
+    },
+    {
+        "inputs":  [
+                       "it\u0027s an object"
+                   ],
+        "response":  "Definition of an object, anything that is visible or tangible and relatively stable in form.\n        pythonexecagreeanswersmall()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-agreeanswersmall"
+    },
+    {
+        "inputs":  [
+                       "do you like to eat indian food"
+                   ],
+        "response":  "pythonexeceatindianfood()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-eatindianfood"
+    },
+    {
+        "inputs":  [
+                       "do you speak indi"
+                   ],
+        "response":  "pythonexecspeakhindi()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-speakhindi"
+    },
+    {
+        "inputs":  [
+                       "i know"
+                   ],
+        "response":  "yes, me too.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-agreeanswer"
+    },
+    {
+        "inputs":  [
+                       "i am sorry"
+                   ],
+        "response":  "No problems.",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-tiltHeadAgree"
+    },
+    {
+        "inputs":  [
+                       "how do you do"
+                   ],
+        "response":  "pythonexechowdoyoudo()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-howdoyoudo"
+    },
+    {
+        "inputs":  [
+                       "i love you"
+                   ],
+        "response":  "APPSURPRISEI love you too.\n        pythonexeciloveyou()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-iloveyou"
+    },
+    {
+        "inputs":  [
+                       "what do you think about artificial intelligence"
+                   ],
+        "response":  "I will always love you.\n        pythonexeciloveyou()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-iloveyou"
+    },
+    {
+        "inputs":  [
+                       "what is this color"
+                   ],
+        "response":  "pythonexecwhatisthecolor()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-whatisthecolor"
+    },
+    {
+        "inputs":  [
+                       "guess who is here"
+                   ],
+        "response":  "pythonexecmissedYou()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-missedYou"
+    },
+    {
+        "inputs":  [
+                       "please check your neck"
+                   ],
+        "response":  "Thanks, it feels great. doctor.\n    pythonexecrollHead()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-rollHead"
+    },
+    {
+        "inputs":  [
+                       "shall we read the cat book"
+                   ],
+        "response":  "Sure it\u0027s a good idea.\n        pythonexecbookcat()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-bookcat"
+    },
+    {
+        "inputs":  [
+                       "would you like to dance"
+                   ],
+        "response":  "Come and join me",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-welcomeToDance1"
+    },
+    {
+        "inputs":  [
+                       "# christmas song"
+                   ],
+        "response":  "I can do this for exemple\n          \n           \n             python\n                execchristmasCarols()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-christmasCarols"
+    },
+    {
+        "inputs":  [
+                       "# for travelling"
+                   ],
+        "response":  "Okay I get ready for travelling\n          pythonexectravel()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-travel"
+    },
+    {
+        "inputs":  [
+                       "stop travelling"
+                   ],
+        "response":  "Okay I will get into rest position\n          pythonexecstopTravel()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-stopTravel"
+    },
+    {
+        "inputs":  [
+                       "can i hurt you"
+                   ],
+        "response":  "APPFEARpythonexeccall_911()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-call_911"
+    },
+    {
+        "inputs":  [
+                       "bonjour"
+                   ],
+        "response":  "Bonjour\n          \n           \n             python\n                execagreeanswersmall()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-agreeanswersmall"
+    },
+    {
+        "inputs":  [
+                       "come on sava"
+                   ],
+        "response":  "I rather speak English if you don\u0027t mind",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-tiltHeadAgree"
+    },
+    {
+        "inputs":  [
+                       "can i tell your story"
+                   ],
+        "response":  "Sure don\u0027t be shy\n          \n           \n             python\n                execYes()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-Yes"
+    },
+    {
+        "inputs":  [
+                       "catch ball right"
+                   ],
+        "response":  "pythonexeccatchBallRight()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-catchBallRight"
+    },
+    {
+        "inputs":  [
+                       "catch ball left"
+                   ],
+        "response":  "pythonexeccatchBallLeft()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-catchBallLeft"
+    },
+    {
+        "inputs":  [
+                       "# juggle"
+                   ],
+        "response":  "pythonexecjuggle()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-juggle"
+    },
+    {
+        "inputs":  [
+                       "# juggle version two"
+                   ],
+        "response":  "pythonexecjuggle2()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-juggle2"
+    },
+    {
+        "inputs":  [
+                       "# juggle and close hand"
+                   ],
+        "response":  "pythonexecjuggleCloseHand()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-juggleCloseHand"
+    },
+    {
+        "inputs":  [
+                       "close both hands slowly"
+                   ],
+        "response":  "pythonexecCloseBothHandSlow()",
+        "angles":  {
+                       "hneck":  85,
+                       "eye":  90,
+                       "neckRot":  60,
+                       "neckTilt":  50,
+                       "neckRoll":  120
+                   },
+        "animation":  "mrl-CloseBothHandSlow"
+    },
+    {
+        "inputs":  [
+                       "enable presence",
+                       "start realsense",
+                       "wake camera",
+                       "d455 on"
+                   ],
+        "response":  "Starting chest RealSense presence guard. Stand in front for a few seconds and I will greet you.",
+        "angles":  {
+                       "eye":  90,
+                       "neckRoll":  120,
+                       "neckTilt":  50,
+                       "hneck":  85,
+                       "neckRot":  60
+                   },
+        "animation":  "nod"
+    }
 ]
