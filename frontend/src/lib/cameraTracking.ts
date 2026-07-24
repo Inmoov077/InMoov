@@ -1,5 +1,9 @@
+﻿/**
+ * Browser MediaPipe face/hand tracking helpers.
+ * Complements the chest-mounted RealSense D455 presence guard (server-side).
+ */
 /**
- * MediaPipe face + hand tracking — ported from dashboard.html.
+ * MediaPipe face + hand tracking â€” ported from dashboard.html.
  * Loads CDN scripts dynamically (same as MyRobotLab InMoov2 OpenCV tracking intent).
  */
 
