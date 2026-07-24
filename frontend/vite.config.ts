@@ -1,7 +1,8 @@
-import path from 'path';
+﻿import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Dev server proxies /api to Flask so RealSense MJPEG and servo routes work under Vite.
 export default defineConfig({
   plugins: [react()],
   resolve: {
