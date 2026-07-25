@@ -1,3 +1,4 @@
+﻿/** Settings: serial port, pins, limits. D455 presence is configured on Vision. */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Cpu, Info, Pin, RefreshCw, Settings2 } from 'lucide-react';
@@ -101,7 +102,7 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <Label>{axis.label}</Label>
                   <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    {limits[axis.key].min}° – {limits[axis.key].max}°
+                    {limits[axis.key].min}Â° â€“ {limits[axis.key].max}Â°
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -136,9 +137,9 @@ export function SettingsPage() {
           <CardContent>
             {config ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <InfoItem label="Application" value={config.app_name ?? '—'} />
-                <InfoItem label="Firmware" value={config.firmware ?? '—'} />
-                <InfoItem label="Baud Rate" value={String(config.baud_rate ?? '—')} />
+                <InfoItem label="Application" value={config.app_name ?? 'â€”'} />
+                <InfoItem label="Firmware" value={config.firmware ?? 'â€”'} />
+                <InfoItem label="Baud Rate" value={String(config.baud_rate ?? 'â€”')} />
                 <div className="panel-inset p-4">
                   <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                     Gemini API
@@ -150,14 +151,14 @@ export function SettingsPage() {
                   </div>
                   {config.gemini_api_key && (
                     <p className="mt-2 font-mono text-xs text-muted-foreground">
-                      Key: {config.gemini_api_key.slice(0, 8)}…
+                      Key: {config.gemini_api_key.slice(0, 8)}â€¦
                     </p>
                   )}
                 </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Unable to load config — ensure Flask backend is running on port 5000.
+                Unable to load config â€” ensure Flask backend is running on port 5000.
               </p>
             )}
 
@@ -165,7 +166,7 @@ export function SettingsPage() {
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Cpu className="h-4 w-4" />
-              <span>InMoov Control Center · React + Vite frontend · Zustand servo store</span>
+              <span>InMoov Control Center Â· React + Vite frontend Â· Zustand servo store</span>
             </div>
           </CardContent>
         </Card>
