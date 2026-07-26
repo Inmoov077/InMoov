@@ -1,3 +1,4 @@
+﻿/** Browser/host speech helpers. Server wake greetings use InMoove Core TTS. */
 import { useServoStore } from '@/store/servoStore';
 
 export function speakText(
