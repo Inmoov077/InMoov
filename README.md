@@ -90,6 +90,8 @@ shared/servo_config.json   36-servo map
 frontend/                  React control deck
 full_body_servo_control.ino
 models/inmoov/             URDF + STL meshes
+docs/                      RealSense + API notes
+scripts/check_realsense.py Camera diagnostics
 ```
 
 ## CLI / RAG
@@ -103,4 +105,5 @@ python vector_db.py search "robotics club"
 ## License
 
 Built on the [InMoov](https://inmoov.fr/) open-source humanoid robot project.
+
 
