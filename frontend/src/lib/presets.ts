@@ -1,3 +1,4 @@
+﻿/** Named motion presets. Prefer gentle nods after presence wake greets. */
 import type { ArmJoints, HandJoints, LegJoints } from '@/lib/bodyConfig';
 import { MRL_PRESETS, MRL_PRESET_META, type MrlPresetCategory } from '@/lib/mrlPresets';
 
@@ -28,22 +29,22 @@ export interface PresetMetaEntry {
 }
 
 export const BUILTIN_PRESET_META: PresetMetaEntry[] = [
-  { id: 'nod', name: 'Nod Yes', desc: 'Tilt up and down', icon: '↕', category: 'builtin' },
-  { id: 'shake', name: 'Shake No', desc: 'Rotate left and right', icon: '↔', category: 'builtin' },
-  { id: 'tilt-side', name: 'Think / Tilt', desc: 'Side roll motion', icon: '↩', category: 'builtin' },
-  { id: 'look-around', name: 'Look Around', desc: 'Scan the environment', icon: '◎', category: 'builtin' },
-  { id: 'bow', name: 'Bow', desc: 'Polite greeting bow', icon: '⌄', category: 'builtin' },
-  { id: 'wave-head', name: 'Robot Dance', desc: 'Multi-axis pattern', icon: '✦', category: 'builtin' },
-  { id: 'happy-greet', name: 'Happy Greet', desc: 'Jaw + eye animation', icon: '☺', category: 'builtin' },
-  { id: 'scan-room', name: 'Scan Room', desc: 'Full pan sweep', icon: '⌖', category: 'builtin' },
-  { id: 'idle-breathe', name: 'Idle Breathe', desc: 'Subtle life motion', icon: '∿', category: 'builtin' },
-  { id: 'gallery-real', name: 'Gallery Pose', desc: 'Like real InMoov photo', icon: '📷', category: 'builtin' },
-  { id: 'wave-arm', name: 'Wave Arm', desc: 'Right arm greeting wave', icon: '👋', category: 'builtin' },
-  { id: 'handshake', name: 'Handshake', desc: 'Extend hand to greet', icon: '🤝', category: 'builtin' },
-  { id: 'leg-step', name: 'Leg Step', desc: 'Alternating walk motion', icon: '🦵', category: 'builtin' },
-  { id: 'circle-roll', name: 'Neck Circle', desc: 'Circular rolling motion', icon: '🌀', category: 'builtin' },
-  { id: 'diagonal-look', name: 'Diagonal Look', desc: 'Corner scan pattern', icon: '⤄', category: 'builtin' },
-  { id: 'curious-tilt', name: 'Curious Tilt', desc: 'Inquisitive head tilt', icon: '🤔', category: 'builtin' },
+  { id: 'nod', name: 'Nod Yes', desc: 'Tilt up and down', icon: 'â†•', category: 'builtin' },
+  { id: 'shake', name: 'Shake No', desc: 'Rotate left and right', icon: 'â†”', category: 'builtin' },
+  { id: 'tilt-side', name: 'Think / Tilt', desc: 'Side roll motion', icon: 'â†©', category: 'builtin' },
+  { id: 'look-around', name: 'Look Around', desc: 'Scan the environment', icon: 'â—Ž', category: 'builtin' },
+  { id: 'bow', name: 'Bow', desc: 'Polite greeting bow', icon: 'âŒ„', category: 'builtin' },
+  { id: 'wave-head', name: 'Robot Dance', desc: 'Multi-axis pattern', icon: 'âœ¦', category: 'builtin' },
+  { id: 'happy-greet', name: 'Happy Greet', desc: 'Jaw + eye animation', icon: 'â˜º', category: 'builtin' },
+  { id: 'scan-room', name: 'Scan Room', desc: 'Full pan sweep', icon: 'âŒ–', category: 'builtin' },
+  { id: 'idle-breathe', name: 'Idle Breathe', desc: 'Subtle life motion', icon: 'âˆ¿', category: 'builtin' },
+  { id: 'gallery-real', name: 'Gallery Pose', desc: 'Like real InMoov photo', icon: 'ðŸ“·', category: 'builtin' },
+  { id: 'wave-arm', name: 'Wave Arm', desc: 'Right arm greeting wave', icon: 'ðŸ‘‹', category: 'builtin' },
+  { id: 'handshake', name: 'Handshake', desc: 'Extend hand to greet', icon: 'ðŸ¤', category: 'builtin' },
+  { id: 'leg-step', name: 'Leg Step', desc: 'Alternating walk motion', icon: 'ðŸ¦µ', category: 'builtin' },
+  { id: 'circle-roll', name: 'Neck Circle', desc: 'Circular rolling motion', icon: 'ðŸŒ€', category: 'builtin' },
+  { id: 'diagonal-look', name: 'Diagonal Look', desc: 'Corner scan pattern', icon: 'â¤„', category: 'builtin' },
+  { id: 'curious-tilt', name: 'Curious Tilt', desc: 'Inquisitive head tilt', icon: 'ðŸ¤”', category: 'builtin' },
 ];
 
 /** Built-in + MyRobotLab 1.1.1610 official gestures */
