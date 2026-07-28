@@ -1,4 +1,4 @@
-﻿# Intel RealSense D455 — Presence Wake
+# Intel RealSense D455 — Presence Wake
 
 ## Hardware
 

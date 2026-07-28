@@ -1,4 +1,4 @@
-﻿# InMoove Control Deck (frontend)
+# InMoove Control Deck (frontend)
 
 React + TypeScript + Vite UI for the InMoove humanoid control system.
 

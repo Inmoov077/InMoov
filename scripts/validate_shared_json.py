@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Sanity-check shared JSON configs used by InMoove."""
 
 from __future__ import annotations

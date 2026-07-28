@@ -1,4 +1,4 @@
-﻿# InMoove
+# InMoove
 
 Open-source **InMoov humanoid robot control system** â€” Marwadi University Robotics & AI Club.
 

@@ -1,170 +1,178 @@
-﻿{
-    "version":  "1.0.0",
-    "product":  "InMoove Core",
-    "robotName":  "robot",
-    "state":  "idle",
-    "peers":  {
-                  "audioPlayer":  {
-                                      "label":  "Audio Player",
-                                      "type":  "AudioFile",
-                                      "autoStart":  true,
-                                      "started":  true
-                                  },
-                  "chatBot":  {
-                                  "label":  "Chat Bot / Brain",
-                                  "type":  "Chat",
-                                  "autoStart":  true,
-                                  "started":  true
-                              },
-                  "htmlFilter":  {
-                                     "label":  "HTML Filter",
-                                     "type":  "HtmlFilter",
-                                     "autoStart":  true,
-                                     "started":  true
-                                 },
-                  "head":  {
-                               "label":  "Head",
-                               "type":  "Head",
-                               "autoStart":  true,
-                               "started":  true
-                           },
-                  "leftArm":  {
-                                  "label":  "Left Arm",
-                                  "type":  "Arm",
-                                  "autoStart":  true,
-                                  "started":  true
-                              },
-                  "rightArm":  {
-                                   "label":  "Right Arm",
-                                   "type":  "Arm",
-                                   "autoStart":  true,
-                                   "started":  true
-                               },
-                  "leftHand":  {
-                                   "label":  "Left Hand",
-                                   "type":  "Hand",
-                                   "autoStart":  true,
-                                   "started":  true
-                               },
-                  "rightHand":  {
-                                    "label":  "Right Hand",
-                                    "type":  "Hand",
-                                    "autoStart":  true,
-                                    "started":  true
-                                },
-                  "torso":  {
-                                "label":  "Torso",
-                                "type":  "Torso",
-                                "autoStart":  true,
-                                "started":  true
-                            },
-                  "leftLeg":  {
-                                  "label":  "Left Leg",
-                                  "type":  "Leg",
-                                  "autoStart":  true,
-                                  "started":  true
-                              },
-                  "rightLeg":  {
-                                   "label":  "Right Leg",
-                                   "type":  "Leg",
-                                   "autoStart":  true,
-                                   "started":  true
-                               },
-                  "mouth":  {
-                                "label":  "Mouth / Speech",
-                                "type":  "Speech",
-                                "autoStart":  true,
-                                "started":  true
-                            },
-                  "ear":  {
-                              "label":  "Ear / Voice",
-                              "type":  "Ear",
-                              "autoStart":  false,
-                              "started":  false
-                          },
-                  "opencv":  {
-                                 "label":  "Vision",
-                                 "type":  "Vision",
-                                 "autoStart":  false,
-                                 "started":  false
-                             },
-                  "headTracking":  {
-                                       "label":  "Head Tracking",
-                                       "type":  "Tracking",
-                                       "autoStart":  false,
-                                       "started":  false
-                                   },
-                  "eyeTracking":  {
-                                      "label":  "Eye Tracking",
-                                      "type":  "Tracking",
-                                      "autoStart":  false,
-                                      "started":  false
-                                  },
-                  "fsm":  {
-                              "label":  "Life FSM",
-                              "type":  "FSM",
-                              "autoStart":  false,
-                              "started":  false
-                          },
-                  "llm":  {
-                              "label":  "LLM",
-                              "type":  "LLM",
-                              "autoStart":  false,
-                              "started":  false
-                          },
-                  "imageDisplay":  {
-                                       "label":  "Image Display",
-                                       "type":  "ImageDisplay",
-                                       "autoStart":  false,
-                                       "started":  false
-                                   },
-                  "leap":  {
-                               "label":  "Extra / Leap",
-                               "type":  "Extra",
-                               "autoStart":  false,
-                               "started":  false
-                           },
-                  "random":  {
-                                 "label":  "Random Motion",
-                                 "type":  "Random",
-                                 "autoStart":  false,
-                                 "started":  false
-                             },
-                  "servoMixer":  {
-                                     "label":  "Servo Mixer",
-                                     "type":  "ServoMixer",
-                                     "autoStart":  false,
-                                     "started":  false
-                                 },
-                  "neoPixel":  {
-                                   "label":  "NeoPixel",
-                                   "type":  "NeoPixel",
-                                   "autoStart":  false,
-                                   "started":  false
-                               },
-                  "pir":  {
-                              "label":  "PIR Sensor",
-                              "type":  "Pir",
-                              "autoStart":  false,
-                              "started":  false
-                          },
-                  "ultrasonicLeft":  {
-                                         "label":  "Ultrasonic L",
-                                         "type":  "Ultrasonic",
-                                         "autoStart":  false,
-                                         "started":  false
-                                     },
-                  "ultrasonicRight":  {
-                                          "label":  "Ultrasonic R",
-                                          "type":  "Ultrasonic",
-                                          "autoStart":  false,
-                                          "started":  false
-                                      }
-              },
-    "realsensePresence":  {
-                              "notes":  "Presence wake via /api/realsense",
-                              "mount":  "chest",
-                              "type":  "RealSenseD455",
-                              "enabled":  true
-                          }
+{
+  "version": "1.0.0",
+  "product": "InMoove Core",
+  "robotName": "robot",
+  "state": "idle",
+  "peers": {
+    "audioPlayer": {
+      "label": "Audio Player",
+      "type": "AudioFile",
+      "autoStart": true,
+      "started": true
+    },
+    "chatBot": {
+      "label": "Chat Bot / Brain",
+      "type": "Chat",
+      "autoStart": true,
+      "started": true
+    },
+    "htmlFilter": {
+      "label": "HTML Filter",
+      "type": "HtmlFilter",
+      "autoStart": true,
+      "started": true
+    },
+    "head": {
+      "label": "Head",
+      "type": "Head",
+      "autoStart": true,
+      "started": true
+    },
+    "leftArm": {
+      "label": "Left Arm",
+      "type": "Arm",
+      "autoStart": true,
+      "started": true
+    },
+    "rightArm": {
+      "label": "Right Arm",
+      "type": "Arm",
+      "autoStart": true,
+      "started": true
+    },
+    "leftHand": {
+      "label": "Left Hand",
+      "type": "Hand",
+      "autoStart": true,
+      "started": true
+    },
+    "rightHand": {
+      "label": "Right Hand",
+      "type": "Hand",
+      "autoStart": true,
+      "started": true
+    },
+    "torso": {
+      "label": "Torso",
+      "type": "Torso",
+      "autoStart": true,
+      "started": true
+    },
+    "leftLeg": {
+      "label": "Left Leg",
+      "type": "Leg",
+      "autoStart": true,
+      "started": true
+    },
+    "rightLeg": {
+      "label": "Right Leg",
+      "type": "Leg",
+      "autoStart": true,
+      "started": true
+    },
+    "mouth": {
+      "label": "Mouth / Speech",
+      "type": "Speech",
+      "autoStart": true,
+      "started": true
+    },
+    "ear": {
+      "label": "Ear / Voice",
+      "type": "Ear",
+      "autoStart": false,
+      "started": false
+    },
+    "opencv": {
+      "label": "Vision",
+      "type": "Vision",
+      "autoStart": false,
+      "started": false
+    },
+    "headTracking": {
+      "label": "Head Tracking",
+      "type": "Tracking",
+      "autoStart": false,
+      "started": false
+    },
+    "eyeTracking": {
+      "label": "Eye Tracking",
+      "type": "Tracking",
+      "autoStart": false,
+      "started": false
+    },
+    "fsm": {
+      "label": "Life FSM",
+      "type": "FSM",
+      "autoStart": false,
+      "started": false
+    },
+    "llm": {
+      "label": "LLM",
+      "type": "LLM",
+      "autoStart": false,
+      "started": false
+    },
+    "imageDisplay": {
+      "label": "Image Display",
+      "type": "ImageDisplay",
+      "autoStart": false,
+      "started": false
+    },
+    "leap": {
+      "label": "Extra / Leap",
+      "type": "Extra",
+      "autoStart": false,
+      "started": false
+    },
+    "random": {
+      "label": "Random Motion",
+      "type": "Random",
+      "autoStart": false,
+      "started": false
+    },
+    "servoMixer": {
+      "label": "Servo Mixer",
+      "type": "ServoMixer",
+      "autoStart": false,
+      "started": false
+    },
+    "neoPixel": {
+      "label": "NeoPixel",
+      "type": "NeoPixel",
+      "autoStart": false,
+      "started": false
+    },
+    "pir": {
+      "label": "PIR Sensor",
+      "type": "Pir",
+      "autoStart": false,
+      "started": false
+    },
+    "ultrasonicLeft": {
+      "label": "Ultrasonic L",
+      "type": "Ultrasonic",
+      "autoStart": false,
+      "started": false
+    },
+    "ultrasonicRight": {
+      "label": "Ultrasonic R",
+      "type": "Ultrasonic",
+      "autoStart": false,
+      "started": false
+    },
+    "realsensePresence": {
+      "label": "RealSense Presence",
+      "type": "RealSenseD455",
+      "mount": "chest",
+      "autoStart": false,
+      "started": false,
+      "notes": "Presence wake via /api/realsense"
+    }
+  },
+  "realsensePresence": {
+    "notes": "Presence wake via /api/realsense",
+    "mount": "chest",
+    "type": "RealSenseD455",
+    "enabled": true
+  }
 }

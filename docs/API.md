@@ -1,4 +1,4 @@
-﻿# REST API overview (InMoove)
+# REST API overview (InMoove)
 
 Base URL: `http://localhost:5000`
 

@@ -1,4 +1,4 @@
-﻿# Serial enable mask (firmware)
+# Serial enable mask (firmware)
 
 The full-body firmware accepts:
 

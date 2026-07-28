@@ -1,4 +1,4 @@
-﻿"""InMoove Core — native robot runtime (no external MyRobotLab process)."""
+"""InMoove Core — native robot runtime (no external MyRobotLab process)."""
 
 from .runtime import InMooveCore, get_core
 

@@ -1,4 +1,4 @@
-﻿# Contributing to InMoove
+# Contributing to InMoove
 
 Thanks for helping improve the Marwadi University InMoove control stack.
 

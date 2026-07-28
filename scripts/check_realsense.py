@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Quick diagnostic for Intel RealSense presence stack."""
 
 from __future__ import annotations
