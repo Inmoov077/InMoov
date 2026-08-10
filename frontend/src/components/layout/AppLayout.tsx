@@ -43,6 +43,7 @@ export function AppLayout() {
   const location = useLocation();
   const connected = useServoStore((s) => s.connected);
   const port = useServoStore((s) => s.port);
+  const reconnecting = useServoStore((s) => s.reconnecting);
   const emergencyStop = useServoStore((s) => s.emergencyStop);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -50,7 +51,12 @@ export function AppLayout() {
   const showStats = location.pathname !== '/' && !isStudio && location.pathname !== '/features';
 
   useEffect(() => {
-    useServoStore.getState().refreshConnection();
+    const s = useServoStore.getState();
+    void s.refreshConnection();
+    s.startConnectionWatchdog();
+    return () => {
+      // keep watchdog across routes — only stop on full unmount
+    };
   }, []);
 
   const NavPills = ({ mobile, onNav }: { mobile?: boolean; onNav?: () => void }) => (
@@ -99,14 +105,21 @@ export function AppLayout() {
           <NavPills />
 
           <div className="ml-auto flex items-center gap-2">
-            <Badge variant={connected ? 'online' : 'offline'} className="hidden sm:flex">
+            <Badge
+              variant={connected ? 'online' : reconnecting ? 'default' : 'offline'}
+              className="hidden sm:flex"
+            >
               <span
                 className={cn(
                   'mr-1.5 h-2 w-2 rounded-full',
-                  connected ? 'animate-pulseDot bg-success' : 'bg-destructive',
+                  connected
+                    ? 'animate-pulseDot bg-success'
+                    : reconnecting
+                      ? 'animate-pulse bg-amber-400'
+                      : 'bg-destructive',
                 )}
               />
-              {connected ? port ?? 'Connected' : 'Offline'}
+              {connected ? port ?? 'Connected' : reconnecting ? 'Reconnecting…' : 'Offline'}
             </Badge>
             <Button variant="destructive" size="sm" onClick={() => emergencyStop()} title="Stop all motors">
               <Octagon className="h-4 w-4" />
@@ -125,8 +138,12 @@ export function AppLayout() {
                 </div>
                 <NavPills mobile onNav={() => setMenuOpen(false)} />
                 <div className="border-t border-border/50 p-4">
-                  <Badge variant={connected ? 'online' : 'offline'}>
-                    {connected ? `Connected · ${port}` : 'Not connected'}
+                  <Badge variant={connected ? 'online' : reconnecting ? 'default' : 'offline'}>
+                    {connected
+                      ? `Connected · ${port}`
+                      : reconnecting
+                        ? 'Reconnecting USB…'
+                        : 'Not connected'}
                   </Badge>
                 </div>
               </SheetContent>

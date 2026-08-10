@@ -15,6 +15,24 @@ export async function getPorts() {
     current?: string | null;
     connected?: boolean;
     last_error?: string | null;
+    desired_port?: string | null;
+    reconnecting?: boolean;
+    auto_reconnect?: boolean;
+  }>;
+}
+
+/** Lightweight serial health for connection watchdog (poll every few seconds). */
+export async function getSerialStatus() {
+  const res = await fetch('/api/serial/status');
+  return res.json() as Promise<{
+    ok?: boolean;
+    connected: boolean;
+    port?: string | null;
+    desired_port?: string | null;
+    last_error?: string | null;
+    auto_reconnect?: boolean;
+    reconnecting?: boolean;
+    fail_streak?: number;
   }>;
 }
 

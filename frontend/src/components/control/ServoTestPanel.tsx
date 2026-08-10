@@ -99,13 +99,28 @@ export function ServoTestPanel({ className }: { className?: string }) {
     }
   }, [group, list, selectedKey, limits]);
 
+  /** Map hobby PWM: 360° continuous / typed values → 0–180, then clamp to working limits. */
+  const mapAngle = useCallback(
+    (a: number) => {
+      let n = Math.round(Number(a));
+      if (!Number.isFinite(n)) n = rest;
+      if (n > 180) {
+        // 0–360 style → 0–180 PWM
+        n = n <= 360 ? Math.round((n * 180) / 360) : 180;
+      }
+      if (n < 0) n = 0;
+      return Math.max(min, Math.min(max, n));
+    },
+    [min, max, rest],
+  );
+
   const sendAngle = useCallback(
     (a: number, immediate = false) => {
       if (!useServoStore.getState().connected) {
         if (immediate) toast.error('USB not connected — open USB tab and Connect first');
         return;
       }
-      const clamped = Math.max(min, Math.min(max, Math.round(a)));
+      const clamped = mapAngle(a);
       pending.current = clamped;
       const fire = () => {
         throttle.current = null;
@@ -113,8 +128,13 @@ export function ServoTestPanel({ className }: { className?: string }) {
         if (v == null || v === lastSent.current) return;
         lastSent.current = v;
         void api.moveServoByKey(selectedKey, v).then((res) => {
-          if (!res.ok && immediate) {
+          if (res.ok) {
+            if (typeof res.angle === 'number') setAngle(res.angle);
+            if (res.note && immediate) toast.message(String(res.note));
+          } else if (immediate) {
             toast.error(res.error || 'Move failed — reconnect USB');
+            // Keep UI status honest if COM dropped mid-test
+            void useServoStore.getState().refreshConnection();
           }
         });
       };
@@ -126,7 +146,7 @@ export function ServoTestPanel({ className }: { className?: string }) {
       if (throttle.current) return;
       throttle.current = setTimeout(fire, 40);
     },
-    [max, min, selectedKey],
+    [mapAngle, selectedKey],
   );
 
   const selectServo = (key: string) => {
@@ -145,14 +165,20 @@ export function ServoTestPanel({ className }: { className?: string }) {
     }
     setBusy(true);
     try {
-      const res = await api.setServoPin(selectedKey, safe, true);
+      // test=false avoids extra moves that brown-out / drop COM
+      const res = await api.setServoPin(selectedKey, safe, false);
       if (res.ok && res.serial_sent) {
-        toast.success(
-          `Pin ${selectedKey} → ${safe}` + (res.test_sent ? ' · rest pulse sent' : ''),
-        );
+        toast.success(`Pin ${selectedKey} → D${safe} programmed`);
+        // Soft rest so user sees the motor
+        lastSent.current = null;
+        sendAngle(rest, true);
+      } else if (res.saved && !res.serial_sent) {
+        toast.warning(res.error || 'Saved to disk — connect USB and Apply again');
       } else {
         toast.error(res.error || res.hint || 'Pin not sent to board');
+        void useServoStore.getState().refreshConnection();
       }
+      if (res.warning) toast.warning(String(res.warning));
     } finally {
       setBusy(false);
     }
@@ -160,18 +186,42 @@ export function ServoTestPanel({ className }: { className?: string }) {
 
   const saveLimits = async () => {
     const lim = limits[selectedKey] ?? { min, max, rest };
+    // Normalize 360-style entries before save
+    const body = {
+      min: lim.min > 180 ? Math.round((lim.min * 180) / 360) : lim.min,
+      max: lim.max > 180 ? Math.round((Math.min(lim.max, 360) * 180) / 360) : lim.max,
+      rest: lim.rest > 180 ? Math.round((lim.rest * 180) / 360) : lim.rest,
+    };
     setBusy(true);
     try {
-      const res = await api.setServoLimits(selectedKey, lim);
-      if (res.ok) toast.success('Limits saved');
-      else toast.error(res.error || 'Limits failed');
+      const res = await api.setServoLimits(selectedKey, body);
+      if (res.ok) {
+        const next = {
+          min: Number(res.min ?? body.min),
+          max: Number(res.max ?? body.max),
+          rest: Number(res.rest ?? body.rest),
+        };
+        setLimits((l) => ({ ...l, [selectedKey]: next }));
+        setAngle((a) => Math.max(next.min, Math.min(next.max, a)));
+        toast.success(
+          res.serial_sent
+            ? `Limits live: ${next.min}–${next.max}° (rest ${next.rest}°)`
+            : `Limits saved offline: ${next.min}–${next.max}° — connect USB to push to board`,
+        );
+        if (res.note) toast.message(String(res.note));
+      } else {
+        toast.error(res.error || 'Limits failed');
+      }
     } finally {
       setBusy(false);
     }
   };
 
   const go = (a: number) => {
-    const clamped = Math.max(min, Math.min(max, Math.round(a)));
+    const clamped = mapAngle(a);
+    if (Math.round(Number(a)) > 180) {
+      toast.message(`Hobby servos use 0–180° PWM — using ${clamped}°`);
+    }
     setAngle(clamped);
     sendAngle(clamped, true);
   };
@@ -293,16 +343,33 @@ export function ServoTestPanel({ className }: { className?: string }) {
               </div>
 
               <div className="space-y-2 rounded-lg border border-border/40 bg-muted/20 p-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Angle — drag for live move</Label>
-                  <span className="font-mono text-lg font-bold tabular-nums text-primary">{angle}°</span>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-sm">Angle — drag or type, then Go</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={360}
+                      className="h-8 w-20 font-mono text-center text-sm"
+                      value={angle}
+                      onChange={(e) => setAngle(Number(e.target.value))}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') go(angle);
+                      }}
+                      title="0–180 PWM (360 maps to 180)"
+                    />
+                    <span className="text-sm text-muted-foreground">°</span>
+                    <Button size="sm" className="h-8" disabled={busy || !connected} onClick={() => go(angle)}>
+                      Go
+                    </Button>
+                  </div>
                 </div>
                 <Slider
                   accent="copper"
-                  min={min}
-                  max={max}
+                  min={Math.min(min, max)}
+                  max={Math.max(min, max, min + 1)}
                   step={1}
-                  value={[angle]}
+                  value={[Math.max(min, Math.min(max, angle))]}
                   onValueChange={([v]) => {
                     setAngle(v);
                     sendAngle(v);
@@ -330,11 +397,21 @@ export function ServoTestPanel({ className }: { className?: string }) {
                   >
                     Mid
                   </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => go(0)}>
+                    0°
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => go(90)}>
+                    90°
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => go(180)}>
+                    180°
+                  </Button>
                 </div>
               </div>
 
               <p className="text-[11px] text-muted-foreground">
-                1:1 test: select motor → set pin → drag or jump Min/Rest/Max. Safe clamp uses your factory limits.
+                1:1: set pin → Save min/rest/max (0–180°) → drag or type angle → Go. Hobby servos are not
+                360° mechanical; typing 360 maps to 180° PWM. Expand limits past defaults with Save.
               </p>
             </>
           )}

@@ -53,10 +53,40 @@ def _write_json(path, data):
         json.dump(data, f, indent=2)
 
 
+def _normalize_pwm_angle(val, default=90):
+    """Hobby servos use 0–180° PWM. Map 360-style input into that range."""
+    try:
+        n = int(round(float(val)))
+    except (TypeError, ValueError):
+        return int(default)
+    # Continuous / user typed 360 → full travel 180
+    if n > 180:
+        # 0–360 continuous: map proportionally into 0–180
+        if n <= 360:
+            n = int(round(n * 180.0 / 360.0))
+        else:
+            n = 180
+    if n < 0:
+        n = 0
+    return n
+
+
+def _sanitize_limits(mn, mx, rs, default_rest=90):
+    """Absolute PWM walls 0–180. User calibration may expand past factory defaults."""
+    mn = _normalize_pwm_angle(mn, 0)
+    mx = _normalize_pwm_angle(mx, 180)
+    rs = _normalize_pwm_angle(rs, default_rest)
+    if mn > mx:
+        mn, mx = mx, mn
+    rs = max(mn, min(mx, rs))
+    return mn, mx, rs
+
+
 def _load_servo_config():
     """Load canonical servo map with user pin/calibration overrides applied.
 
-    Calibration may only narrow limits (never expand beyond shared/servo_config.json).
+    User calibration (calibration_overrides.json) is authoritative for min/max/rest
+    within absolute PWM range 0–180. Factory values are defaults only.
     """
     base = _read_json(SERVO_CONFIG_PATH)
     if not base:
@@ -68,7 +98,6 @@ def _load_servo_config():
     for s in base.get('servos', []):
         entry = dict(s)
         key = entry.get('key')
-        # Factory walls from file — absolute maximum travel allowed
         factory_min = int(entry.get('min', 0))
         factory_max = int(entry.get('max', 180))
         factory_rest = int(entry.get('rest', 90))
@@ -79,19 +108,20 @@ def _load_servo_config():
             entry['pinOverride'] = True
         if key in cal_ov:
             ov = cal_ov[key] or {}
-            # Overrides can only tighten inside factory walls
             mn = int(ov.get('min', factory_min))
             mx = int(ov.get('max', factory_max))
             rs = int(ov.get('rest', factory_rest))
-            mn = max(factory_min, min(factory_max, mn))
-            mx = max(factory_min, min(factory_max, mx))
-            if mn > mx:
-                mn, mx = factory_min, factory_max
-            rs = max(mn, min(mx, rs))
+            mn, mx, rs = _sanitize_limits(mn, mx, rs, factory_rest)
             entry['min'] = mn
             entry['max'] = mx
             entry['rest'] = rs
             entry['calibrationSource'] = 'user'
+        else:
+            # Still clamp factory to PWM walls
+            mn, mx, rs = _sanitize_limits(factory_min, factory_max, factory_rest, factory_rest)
+            entry['min'] = mn
+            entry['max'] = mx
+            entry['rest'] = rs
         servos.append(entry)
     base['servos'] = servos
     base['pinOverrides'] = pin_ov
@@ -159,62 +189,86 @@ def _push_config_to_firmware(include_limits=True, include_pins=True):
     if conflicts:
         logger.warning("Pin conflicts before firmware sync: %s", conflicts)
 
-    # Pause POS spam interference: small gap, then ordered writes
-    # Heavy motors first (arms), then head/neck, hands, legs — reduces brownouts
-    order_groups = (
-        "leftArm",
-        "rightArm",
-        "head",
-        "neck",
-        "leftHand",
-        "rightHand",
-        "leftLeg",
-        "rightLeg",
-    )
-    servos_sorted = []
-    for g in order_groups:
-        servos_sorted.extend([s for s in cfg.get("servos", []) if s.get("group") == g])
-    # Any remaining
-    seen = {s.get("key") for s in servos_sorted}
-    servos_sorted.extend([s for s in cfg.get("servos", []) if s.get("key") not in seen])
+    # Bulk mode: never auto-drop COM while programming pins/limits
+    serial_mgr.begin_batch()
+    try:
+        # Heavy motors first (arms), then head/neck, hands, legs — reduces brownouts
+        order_groups = (
+            "leftArm",
+            "rightArm",
+            "head",
+            "neck",
+            "leftHand",
+            "rightHand",
+            "leftLeg",
+            "rightLeg",
+        )
+        servos_sorted = []
+        for g in order_groups:
+            servos_sorted.extend([s for s in cfg.get("servos", []) if s.get("group") == g])
+        seen = {s.get("key") for s in servos_sorted}
+        servos_sorted.extend([s for s in cfg.get("servos", []) if s.get("key") not in seen])
 
-    for s in servos_sorted:
-        key = s.get("key")
-        sid = s.get("id")
-        if sid is None:
-            continue
-        if include_pins:
-            pin = int(s.get("pin", 0))
-            if 2 <= pin <= 53:
-                ok = serial_mgr.send_cmd(f"W,{sid},{pin}\n", drain=True)
+        for s in servos_sorted:
+            if not serial_mgr.is_connected():
+                result["ok"] = False
+                result["error"] = "USB dropped during firmware sync"
+                break
+            key = s.get("key")
+            sid = s.get("id")
+            if sid is None:
+                continue
+            if include_pins:
+                pin = int(s.get("pin", 0))
+                if 2 <= pin <= 53:
+                    ok = serial_mgr.send_cmd(f"W,{sid},{pin}\n", drain=True, wait_ms=20)
+                    if ok:
+                        result["pins"].append(key)
+                    else:
+                        # One retry after settle
+                        time.sleep(0.08)
+                        ok = serial_mgr.send_cmd(f"W,{sid},{pin}\n", drain=True, wait_ms=30)
+                        if ok:
+                            result["pins"].append(key)
+                        else:
+                            result["failed_pins"].append(key)
+                    time.sleep(0.055)  # rebindPin delay on Mega
+            if include_limits:
+                mn, mx, rs = _sanitize_limits(s["min"], s["max"], s["rest"], s.get("rest", 90))
+                ok = serial_mgr.send_cmd(f"U,{sid},{mn},{mx},{rs}\n", drain=True, wait_ms=10)
                 if ok:
-                    result["pins"].append(key)
+                    result["limits"].append(key)
                 else:
-                    result["failed_pins"].append(key)
-                time.sleep(0.035)  # let detach/attach settle on Mega
-        if include_limits:
-            mn, mx, rs = int(s["min"]), int(s["max"]), int(s["rest"])
-            ok = serial_mgr.send_cmd(f"U,{sid},{mn},{mx},{rs}\n", drain=True)
-            if ok:
-                result["limits"].append(key)
-            else:
-                result["failed_limits"].append(key)
-            time.sleep(0.02)
+                    time.sleep(0.05)
+                    ok = serial_mgr.send_cmd(f"U,{sid},{mn},{mx},{rs}\n", drain=True)
+                    if ok:
+                        result["limits"].append(key)
+                    else:
+                        result["failed_limits"].append(key)
+                time.sleep(0.025)
 
-    # Enable all body groups + rest pose (weight-balanced rest in config)
-    serial_mgr.send_cmd("E,255\n", drain=True)
-    time.sleep(0.05)
-    # Soft rest — avoid slamming all heavy servos at once
-    serial_mgr.send_cmd("S\n", drain=True)
+        if serial_mgr.is_connected():
+            serial_mgr.send_cmd("E,255\n", drain=True)
+            time.sleep(0.05)
+            # Soft rest — avoid slamming all heavy servos at once
+            serial_mgr.send_cmd("S\n", drain=True)
+    finally:
+        serial_mgr.end_batch()
 
-    result["ok"] = not result["failed_pins"] and not result["failed_limits"]
+    result["ok"] = (
+        serial_mgr.is_connected()
+        and not result["failed_pins"]
+        and not result["failed_limits"]
+    )
+    result["connected"] = serial_mgr.is_connected()
     logger.info(
-        "Firmware sync: pins ok=%s fail=%s limits ok=%s fail=%s conflicts=%s",
+        "Firmware sync: pins ok=%s fail=%s limits ok=%s fail=%s conflicts=%s connected=%s",
         len(result["pins"]),
         len(result["failed_pins"]),
         len(result["limits"]),
         len(result["failed_limits"]),
         len(conflicts),
+        serial_mgr.is_connected(),
     )
     return result
 
@@ -223,29 +277,42 @@ def _send_move_by_key(key, angle):
     """
     Move one servo by config key over serial.
     Uses firmware M,<id>,<angle> when possible, else group packets.
+    Accepts 0–360 style input and maps into this servo's min–max (PWM 0–180).
     """
     s = _servo_by_key(key)
     if not s:
         return {"ok": False, "error": f"Unknown servo: {key}", "serial_sent": False}
+
+    raw_in = angle
+    note = None
+    try:
+        if int(angle) > 180:
+            note = f"Mapped {int(angle)}° → PWM range (hobby servos are 0–180°)"
+    except (TypeError, ValueError):
+        pass
     angle = _clamp_servo_key(key, angle, s.get("rest", 90))
+
     if not serial_mgr.is_connected():
         return {
             "ok": False,
             "error": "USB not connected — open Studio → USB and Connect first",
             "key": key,
             "angle": angle,
+            "requested": raw_in,
             "serial_sent": False,
+            "note": note,
         }
 
-    # Warn if this pin is shared (often "sometimes works")
     pin = int(s.get("pin", 0))
     conflicts = [c for c in _pin_conflicts() if c["pin"] == pin]
-
     sid = int(s["id"])
-    # Prefer single-index move (firmware 1.2.0+)
-    sent = serial_mgr.send_cmd(f"M,{sid},{int(angle)}\n", drain=True)
+
+    # Single M command — quiet, no disconnect on one glitch
+    sent = serial_mgr.send_cmd(f"M,{sid},{int(angle)}\n", drain=True, wait_ms=15)
     if not sent:
-        # Fallback group pack via core
+        time.sleep(0.05)
+        sent = serial_mgr.send_cmd(f"M,{sid},{int(angle)}\n", drain=True, wait_ms=25)
+    if not sent:
         try:
             core = _get_inmoove_core()
             sent = bool(core._send_key_angle(key, int(angle)))
@@ -253,7 +320,6 @@ def _send_move_by_key(key, angle):
             logger.warning("move fallback: %s", e)
             sent = False
 
-    # Keep core virtual position in sync
     try:
         core = _get_inmoove_core()
         for vs in core.servos.values():
@@ -273,26 +339,25 @@ def _send_move_by_key(key, angle):
         "id": sid,
         "pin": pin,
         "angle": int(angle),
+        "requested": raw_in,
         "serial_sent": sent,
+        "serial_connected": serial_mgr.is_connected(),
         "warning": warn,
+        "note": note,
+        "limits": {"min": int(s["min"]), "max": int(s["max"]), "rest": int(s["rest"])},
         "error": None if sent else "Serial write failed — reconnect USB",
     }
 
 def _clamp_angle(val, lo=0, hi=180):
-    try:
-        n = int(val)
-    except (TypeError, ValueError):
-        n = lo
+    n = _normalize_pwm_angle(val, lo)
     return max(lo, min(hi, n))
 
 
 def _clamp_servo_key(key, val, default=90):
+    """Clamp to this servo's working min/max (user calibration), after 360→180 map."""
     s = _servo_by_key(key)
     if s:
-        try:
-            n = int(val)
-        except (TypeError, ValueError):
-            n = int(s.get('rest', default))
+        n = _normalize_pwm_angle(val, s.get('rest', default))
         return max(int(s['min']), min(int(s['max']), n))
     return _clamp_angle(val)
 
@@ -500,16 +565,67 @@ def _friendly_serial_error(port_name: str, exc: Exception) -> str:
 
 # Global Serial Connection State
 class SerialManager:
+    """
+    Durable USB serial manager for Arduino Mega servo firmware.
+
+    Design goals:
+    - Never drop the link on a single write glitch (streak threshold).
+    - Continuously drain RX so POS / chatter never fills the OS buffer.
+    - Auto-reconnect after unplug/replug or Access-denied recovery.
+    - Quiet firmware POS flood (Q,0) so host commands always get through.
+    """
+
     def __init__(self):
         self.conn = None
         self.port = None
         self.last_error = None
+        self.desired_port = None  # last user-requested port (for auto-reconnect)
+        self.auto_reconnect = True
+        self._fail_streak = 0
+        self._reconnect_lock = threading.Lock()
+        self._reconnect_thread = None
+        self._manual_disconnect = False
+        self.connected_at = None
+        self.last_ok_write = None
+        self.reconnecting = False
+        self._batch_depth = 0  # >0: bulk pin/limit writes — never hard-drop link
+        self._drain_stop = threading.Event()
+        self._drain_thread = None
+        self._watchdog_stop = threading.Event()
+        self._watchdog_thread = None
+        self._start_watchdog()
+
+    def begin_batch(self):
+        """Bulk pin/limit ops — suppress disconnect on transient write fails."""
+        self._batch_depth += 1
+        if self.is_connected():
+            self.send_cmd("Q,0\n", drain=True)
+
+    def end_batch(self):
+        self._batch_depth = max(0, self._batch_depth - 1)
+        if self._batch_depth == 0 and self.is_connected():
+            self.send_cmd("Q,0\n", drain=True)
+            self._fail_streak = 0
 
     def is_connected(self):
         try:
             return self.conn is not None and getattr(self.conn, "is_open", False)
         except Exception:
             return False
+
+    def status_dict(self):
+        return {
+            "connected": self.is_connected(),
+            "port": self.port,
+            "desired_port": self.desired_port,
+            "last_error": self.last_error,
+            "auto_reconnect": self.auto_reconnect,
+            "fail_streak": self._fail_streak,
+            "connected_at": self.connected_at,
+            "last_ok_write": self.last_ok_write,
+            "reconnecting": self.reconnecting,
+            "manual_disconnect": self._manual_disconnect,
+        }
 
     def _open_port(self, port_name: str, timeout: float = 1.0):
         """Open COM with Windows-friendly flags (no RTS/DTR handshake spam)."""
@@ -520,11 +636,116 @@ class SerialManager:
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             timeout=timeout,
-            write_timeout=timeout,
+            write_timeout=max(3.0, timeout),  # generous under POS / multi-W traffic
             xonxoff=False,
             rtscts=False,
             dsrdtr=False,
+            # Larger buffers help when firmware still floods POS (pre-reflash)
+            inter_byte_timeout=None,
         )
+
+    def _start_drain_thread(self):
+        """Background RX drain — prevents input buffer fill → write timeout.
+
+        Never takes serial_lock (avoids deadlock with connect/send_cmd).
+        pyserial read of in_waiting bytes is safe concurrent with write.
+        """
+        self._stop_drain_thread()
+        self._drain_stop.clear()
+
+        def _drain():
+            while not self._drain_stop.is_set():
+                try:
+                    c = self.conn
+                    if c is None or not getattr(c, "is_open", False):
+                        break
+                    try:
+                        waiting = getattr(c, "in_waiting", 0) or 0
+                        if waiting > 0:
+                            c.read(waiting)
+                    except Exception:
+                        pass
+                    time.sleep(0.05)
+                except Exception:
+                    time.sleep(0.15)
+
+        self._drain_thread = threading.Thread(target=_drain, daemon=True, name="serial-drain")
+        self._drain_thread.start()
+
+    def _stop_drain_thread(self):
+        self._drain_stop.set()
+        t = self._drain_thread
+        self._drain_thread = None
+        # Do not join while holding serial_lock — just signal stop (daemon thread)
+        if t and t.is_alive() and t is not threading.current_thread():
+            try:
+                t.join(timeout=0.25)
+            except Exception:
+                pass
+
+    def _start_watchdog(self):
+        """Periodic: if we want a port but lost it, auto-reconnect."""
+        if self._watchdog_thread and self._watchdog_thread.is_alive():
+            return
+        self._watchdog_stop.clear()
+
+        def _watch():
+            while not self._watchdog_stop.is_set():
+                try:
+                    if (
+                        not self._manual_disconnect
+                        and self.auto_reconnect
+                        and self.desired_port
+                        and not self.is_connected()
+                        and not self.reconnecting
+                    ):
+                        logger.info(
+                            "Watchdog: desired %s offline — scheduling reconnect",
+                            self.desired_port,
+                        )
+                        self._schedule_reconnect()
+                    # Soft health: if connected but write has been stale, drain + quiet
+                    elif self.is_connected() and self.last_ok_write:
+                        age = time.time() - self.last_ok_write
+                        if age > 30:
+                            try:
+                                with serial_lock:
+                                    if self.is_connected():
+                                        try:
+                                            self.conn.reset_input_buffer()
+                                        except Exception:
+                                            pass
+                                        self.conn.write(b"Q,0\n")
+                                        self.conn.flush()
+                                        self.last_ok_write = time.time()
+                            except Exception as e:
+                                logger.warning("Watchdog quiet pulse failed: %s", e)
+                                self._fail_streak += 1
+                                if self._fail_streak >= 5:
+                                    with serial_lock:
+                                        self.disconnect_unsafe(clear_desired=False)
+                                    self._schedule_reconnect()
+                except Exception as e:
+                    logger.debug("Watchdog tick error: %s", e)
+                self._watchdog_stop.wait(4.0)
+
+        self._watchdog_thread = threading.Thread(target=_watch, daemon=True, name="serial-watchdog")
+        self._watchdog_thread.start()
+
+    def _quiet_firmware(self):
+        """Tell board to stop POS flood (safe if firmware lacks Q — just ignored)."""
+        if not self.is_connected():
+            return
+        try:
+            self.conn.write(b"Q,0\n")
+            self.conn.flush()
+            time.sleep(0.04)
+            try:
+                self.conn.reset_input_buffer()
+            except Exception:
+                pass
+        except Exception:
+            pass
 
     def connect(self, port_name: str, retries: int = 4, force: bool = True):
         """
@@ -536,12 +757,17 @@ class SerialManager:
         if not port_name:
             raise ValueError("No port specified")
 
+        self.desired_port = port_name
+        self._manual_disconnect = False
+        self.auto_reconnect = True
+
         with serial_lock:
-            # Always release our own handle first
+            # Only close if already open on same or other port
             if force or self.is_connected():
-                self.disconnect_unsafe()
+                self._stop_drain_thread()
+                self.disconnect_unsafe(clear_desired=False)
                 # Windows needs a beat before the same COM can reopen
-                time.sleep(0.45)
+                time.sleep(0.5)
 
             last_err = None
             for attempt in range(1, retries + 1):
@@ -550,13 +776,21 @@ class SerialManager:
                     self.conn = self._open_port(port_name, timeout=1.5)
                     self.port = port_name
                     self.last_error = None
+                    self._fail_streak = 0
+                    self.connected_at = time.time()
+                    self.last_ok_write = time.time()
+                    self.reconnecting = False
                     # Arduino resets on open — wait for bootloader
-                    time.sleep(1.6)
+                    time.sleep(1.8)
                     try:
                         self.conn.reset_input_buffer()
                         self.conn.reset_output_buffer()
                     except Exception:
                         pass
+                    # Quiet POS spam so command writes don't timeout
+                    self._quiet_firmware()
+                    time.sleep(0.05)
+                    self._quiet_firmware()  # twice: boot noise can swallow first
                     # Optional soft handshake (non-fatal)
                     try:
                         self.conn.write(b"?")
@@ -566,14 +800,16 @@ class SerialManager:
                             logger.info("Post-connect reply on %s: %s", port_name, line)
                     except Exception:
                         pass
+                    self._start_drain_thread()
                     logger.info("Connected to %s", port_name)
                     return True
                 except Exception as e:
                     last_err = e
                     logger.warning("Connect attempt %s failed on %s: %s", attempt, port_name, e)
-                    self.disconnect_unsafe()
+                    self._stop_drain_thread()
+                    self.disconnect_unsafe(clear_desired=False)
                     # Backoff longer on access-denied
-                    delay = 0.7 * attempt if "denied" in str(e).lower() or "permission" in str(e).lower() else 0.35 * attempt
+                    delay = 0.85 * attempt if "denied" in str(e).lower() or "permission" in str(e).lower() else 0.4 * attempt
                     time.sleep(delay)
 
             self.last_error = _friendly_serial_error(port_name, last_err or Exception("unknown"))
@@ -581,11 +817,17 @@ class SerialManager:
                 "denied" in str(last_err).lower() or isinstance(last_err, PermissionError)
             ) else OSError(self.last_error)
 
-    def disconnect(self):
+    def disconnect(self, permanent=True):
         with serial_lock:
-            self.disconnect_unsafe()
+            if permanent:
+                self._manual_disconnect = True
+                self.auto_reconnect = False
+                self.desired_port = None
+                self.reconnecting = False
+            self._stop_drain_thread()
+            self.disconnect_unsafe(clear_desired=permanent)
 
-    def disconnect_unsafe(self):
+    def disconnect_unsafe(self, clear_desired=True):
         if self.conn:
             try:
                 logger.info("Closing serial connection to %s", self.port)
@@ -599,38 +841,206 @@ class SerialManager:
                 self.conn = None
         self.conn = None
         self.port = None
+        if clear_desired:
+            pass  # desired_port managed by disconnect/connect
 
     def force_release(self, port_name=None):
-        """Disconnect and pause so Windows frees the COM port."""
+        """Disconnect and pause so Windows frees the COM port. Stops auto-reconnect."""
         with serial_lock:
-            target = port_name or self.port
-            self.disconnect_unsafe()
+            target = port_name or self.port or self.desired_port
+            self._manual_disconnect = True
+            self.auto_reconnect = False
+            self.reconnecting = False
+            self._stop_drain_thread()
+            self.disconnect_unsafe(clear_desired=True)
+            self.desired_port = None
             time.sleep(0.8)
             return {"ok": True, "released": target, "hint": "Port handle released. Try Connect again."}
 
+    def _schedule_reconnect(self):
+        """Background auto-reconnect after transient USB drop (not after user Disconnect)."""
+        if self._manual_disconnect or not self.auto_reconnect or not self.desired_port:
+            return
+        if not self._reconnect_lock.acquire(blocking=False):
+            return
+
+        self.reconnecting = True
+
+        def worker():
+            try:
+                port = self.desired_port
+                if not port or self._manual_disconnect:
+                    return
+                for attempt in range(1, 8):
+                    if self.is_connected() or self._manual_disconnect:
+                        return
+                    # Port may disappear briefly on USB re-enumerate
+                    present = {p.device for p in serial.tools.list_ports.comports()}
+                    if port not in present:
+                        logger.info("Auto-reconnect wait: %s not in system ports yet", port)
+                        time.sleep(1.0 * attempt)
+                        continue
+                    logger.info("Auto-reconnect %s attempt %s/7...", port, attempt)
+                    try:
+                        self.connect(port, force=True, retries=2)
+                        logger.info("Auto-reconnect OK on %s", port)
+                        try:
+                            _push_config_to_firmware(include_pins=True, include_limits=True)
+                        except Exception as e:
+                            logger.warning("post-reconnect sync: %s", e)
+                        return
+                    except Exception as e:
+                        logger.warning("Auto-reconnect failed: %s", e)
+                        time.sleep(1.3 * attempt)
+                self.last_error = f"Auto-reconnect gave up on {port}"
+            finally:
+                self.reconnecting = False
+                try:
+                    self._reconnect_lock.release()
+                except Exception:
+                    pass
+
+        if self._reconnect_thread and self._reconnect_thread.is_alive():
+            # Already running — release the lock we just took carefully
+            try:
+                self._reconnect_lock.release()
+            except Exception:
+                pass
+            return
+        self._reconnect_thread = threading.Thread(target=worker, daemon=True, name="serial-reconnect")
+        self._reconnect_thread.start()
+
     def send_cmd(self, cmd_str, drain=False, wait_ms=0):
-        """Write a command. If drain=True, clear input buffer first so POS spam doesn't fill it."""
+        """Write a command. Retries transient write errors; only drops link after streak."""
+        should_reconnect = False
         with serial_lock:
             if not self.is_connected():
                 logger.warning("Attempted to send command while disconnected")
-                return False
-            try:
-                if not cmd_str.endswith("\n") and cmd_str not in ("?",):
-                    cmd_str = cmd_str + "\n"
-                if drain:
-                    try:
-                        self.conn.reset_input_buffer()
-                    except Exception:
-                        pass
-                self.conn.write(cmd_str.encode("utf-8"))
+                should_reconnect = (
+                    self.auto_reconnect
+                    and self.desired_port
+                    and not self._manual_disconnect
+                )
+            else:
+                try:
+                    if not cmd_str.endswith("\n") and cmd_str not in ("?",):
+                        cmd_str = cmd_str + "\n"
+                    if drain:
+                        try:
+                            n = self.conn.in_waiting or 0
+                            if n:
+                                self.conn.read(n)
+                        except Exception:
+                            try:
+                                self.conn.reset_input_buffer()
+                            except Exception:
+                                pass
+                    # Retry write up to 3 times without closing port
+                    last_exc = None
+                    for attempt in range(3):
+                        try:
+                            # Soft quiet every few drains when buffer is noisy
+                            if drain and attempt == 0:
+                                try:
+                                    waiting = self.conn.in_waiting or 0
+                                    if waiting > 200:
+                                        self.conn.write(b"Q,0\n")
+                                        self.conn.flush()
+                                        time.sleep(0.03)
+                                        n = self.conn.in_waiting or 0
+                                        if n:
+                                            self.conn.read(n)
+                                except Exception:
+                                    pass
+                            self.conn.write(cmd_str.encode("utf-8"))
+                            self.conn.flush()
+                            self._fail_streak = 0
+                            self.last_ok_write = time.time()
+                            self.last_error = None
+                            if wait_ms > 0:
+                                time.sleep(wait_ms / 1000.0)
+                            return True
+                        except Exception as e:
+                            last_exc = e
+                            logger.warning(
+                                "Serial write retry %s on %s: %s", attempt + 1, self.port, e
+                            )
+                            try:
+                                self.conn.reset_output_buffer()
+                                self.conn.reset_input_buffer()
+                            except Exception:
+                                pass
+                            time.sleep(0.08 * (attempt + 1))
+                    # After retries, count failure — do NOT drop on first glitch
+                    self._fail_streak += 1
+                    self.last_error = str(last_exc) if last_exc else "write failed"
+                    logger.error(
+                        "Serial write failed (streak=%s) on %s: %s",
+                        self._fail_streak,
+                        self.port,
+                        last_exc,
+                    )
+                    # Only disconnect after repeated hard failures (USB unplug etc.)
+                    # Never drop during pin/limit batch programming.
+                    threshold = 12 if self._batch_depth > 0 else 5
+                    if self._fail_streak >= threshold and self._batch_depth == 0:
+                        logger.error("Serial fail streak high — closing and scheduling reconnect")
+                        self._stop_drain_thread()
+                        self.disconnect_unsafe(clear_desired=False)
+                        should_reconnect = self.auto_reconnect and not self._manual_disconnect
+                    return False
+                except Exception as e:
+                    logger.error("Unexpected serial error on %s: %s", self.port, e)
+                    self._fail_streak += 1
+                    if self._fail_streak >= 5 and self._batch_depth == 0:
+                        self._stop_drain_thread()
+                        self.disconnect_unsafe(clear_desired=False)
+                        should_reconnect = self.auto_reconnect and not self._manual_disconnect
+                    return False
+
+        if should_reconnect:
+            self._schedule_reconnect()
+        return False
+
+    def ping(self):
+        """Lightweight health check — True if link still usable."""
+        if not self.is_connected():
+            if (
+                self.auto_reconnect
+                and self.desired_port
+                and not self._manual_disconnect
+            ):
+                self._schedule_reconnect()
+            return False
+        try:
+            with serial_lock:
+                if not self.is_connected():
+                    return False
+                try:
+                    n = self.conn.in_waiting or 0
+                    if n:
+                        self.conn.read(n)
+                except Exception:
+                    pass
+                self.conn.write(b"V\n")
                 self.conn.flush()
-                if wait_ms > 0:
-                    time.sleep(wait_ms / 1000.0)
-                return True
-            except Exception as e:
-                logger.error("Failed to write to serial port %s: %s", self.port, e)
-                self.disconnect_unsafe()
-                return False
+                deadline = time.time() + 0.35
+                while time.time() < deadline:
+                    line = self.conn.readline().decode("utf-8", errors="ignore").strip()
+                    if line:
+                        self._fail_streak = 0
+                        self.last_ok_write = time.time()
+                        return True
+                return True  # write OK — still consider up
+        except Exception as e:
+            logger.warning("Serial ping failed: %s", e)
+            self._fail_streak += 1
+            if self._fail_streak >= 4:
+                with serial_lock:
+                    self._stop_drain_thread()
+                    self.disconnect_unsafe(clear_desired=False)
+                self._schedule_reconnect()
+            return False
 
     def query_handshake(self, port_name: str) -> bool:
         """Open briefly, ask '?', close cleanly (always)."""
@@ -639,6 +1049,7 @@ class SerialManager:
             logger.info("Testing port %s for handshake...", port_name)
             # Ensure we are not holding the port
             if self.port == port_name:
+                self._stop_drain_thread()
                 self.disconnect_unsafe()
                 time.sleep(0.4)
             test_conn = self._open_port(port_name, timeout=2.0)
@@ -933,17 +1344,24 @@ def get_ports():
         "current": serial_mgr.port if serial_mgr.is_connected() else None,
         "connected": serial_mgr.is_connected(),
         "last_error": serial_mgr.last_error,
+        "desired_port": serial_mgr.desired_port,
+        "reconnecting": serial_mgr.reconnecting,
+        "auto_reconnect": serial_mgr.auto_reconnect,
     })
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
     return jsonify({
-        "serial": {
-            "connected": serial_mgr.is_connected(),
-            "port": serial_mgr.port,
-            "last_error": serial_mgr.last_error,
-        }
+        "serial": serial_mgr.status_dict(),
     })
+
+
+@app.route('/api/serial/status', methods=['GET'])
+def serial_status():
+    """Full serial health for frontend connection watchdog."""
+    st = serial_mgr.status_dict()
+    st["ok"] = True
+    return jsonify(st)
 
 @app.route('/api/serial/connect', methods=['POST'])
 def connect_port():
@@ -1228,13 +1646,15 @@ def neck_emergency_stop():
 
 @app.route('/api/scripts/stop', methods=['POST'])
 def emergency_stop():
+    """Rest all servos — keep USB open (disconnect was a major 'auto drop' bug)."""
     logger.warning("EMERGENCY STOP TRIGGERED")
-    # Centering command to safety reset
-    cmd = "H,85,90,8\n"
+    sent = False
     if serial_mgr.is_connected():
-        serial_mgr.send_cmd(cmd)
-    serial_mgr.disconnect()
-    return jsonify({"ok": True})
+        # Abort patterns + rest all + quiet
+        serial_mgr.send_cmd("X\n", drain=True)
+        sent = serial_mgr.send_cmd("S\n", drain=True)
+        serial_mgr.send_cmd("Q,0\n", drain=True)
+    return jsonify({"ok": True, "serial_sent": sent, "connected": serial_mgr.is_connected()})
 
 @app.route('/api/servo/config', methods=['GET'])
 def get_servo_config():
@@ -1254,27 +1674,52 @@ def servo_pins():
     if not isinstance(pins, dict):
         return jsonify({"ok": False, "error": "pins must be an object"}), 400
 
-    cleaned = {k: int(v) for k, v in pins.items() if 2 <= int(v) <= 53}
+    cleaned = {}
+    for k, v in pins.items():
+        try:
+            p = int(v)
+        except (TypeError, ValueError):
+            continue
+        if 2 <= p <= 53:
+            cleaned[str(k)] = p
     _write_json(PIN_OVERRIDES_PATH, cleaned)
     _reload_servo_config()
 
     sent = []
+    failed = []
     connected = serial_mgr.is_connected()
-    if connected and data.get('applyToFirmware', True):
-        for s in SERVO_CONFIG.get('servos', []):
-            key = s.get('key')
-            if key in cleaned:
+    apply = bool(data.get('applyToFirmware', True))
+    if connected and apply:
+        serial_mgr.begin_batch()
+        try:
+            for s in SERVO_CONFIG.get('servos', []):
+                key = s.get('key')
+                if key not in cleaned:
+                    continue
                 cmd = f"W,{s['id']},{cleaned[key]}\n"
-                if serial_mgr.send_cmd(cmd):
+                ok = serial_mgr.send_cmd(cmd, drain=True, wait_ms=25)
+                if not ok:
+                    time.sleep(0.08)
+                    ok = serial_mgr.send_cmd(cmd, drain=True, wait_ms=40)
+                if ok:
                     sent.append(key)
-                time.sleep(0.02)
+                else:
+                    failed.append(key)
+                time.sleep(0.055)  # let rebindPin settle — do not flood
+        finally:
+            serial_mgr.end_batch()
+        connected = serial_mgr.is_connected()
 
     return jsonify({
         "ok": True,
         "pins": cleaned,
         "firmware_applied": sent,
+        "firmware_failed": failed,
         "serial_connected": connected,
-        "warning": None if connected else "Pins saved to disk only — connect USB to apply to Arduino",
+        "warning": (
+            None if connected
+            else "Pins saved to disk only — connect USB to apply to Arduino"
+        ) if apply else "Saved to disk only (applyToFirmware=false)",
     })
 
 
@@ -1301,39 +1746,42 @@ def set_servo_pin():
         return jsonify({"ok": False, "error": f"Unknown servo: {key}"}), 400
 
     connected = serial_mgr.is_connected()
-    # Conflict check (same Mega pin used by multiple servos)
     conflicts = [c for c in _pin_conflicts() if c["pin"] == pin]
     conflict_keys = conflicts[0]["keys"] if conflicts else []
 
     sent = False
     tested = False
-    if connected:
-        # Re-bind index → physical pin on firmware (drain POS spam first)
-        sent = serial_mgr.send_cmd(f"W,{servo['id']},{pin}\n", drain=True, wait_ms=40)
-        time.sleep(0.08)
-        # Nudge rest angle so user sees the motor respond (proves pin wiring)
-        if sent and data.get('test', True):
-            rest = int(servo.get('rest', 90))
-            # Small wiggle: rest → rest+5 (clamped) → rest — proves life without crash
-            mid = max(int(servo['min']), min(int(servo['max']), rest + 8))
-            tested = serial_mgr.send_cmd(f"M,{servo['id']},{mid}\n", drain=True, wait_ms=30)
-            time.sleep(0.18)
-            serial_mgr.send_cmd(f"M,{servo['id']},{rest}\n", drain=True, wait_ms=20)
-            if not tested:
-                r = _send_move_by_key(key, rest)
-                tested = bool(r.get("serial_sent"))
-    else:
+    if not connected:
         return jsonify({
-            "ok": False,
-            "error": "USB not connected — connect Arduino first, then set pin",
+            "ok": True,  # disk save succeeded
+            "error": "USB not connected — pin saved to disk; connect then Apply again",
             "key": key,
             "pin": pin,
             "serial_sent": False,
             "saved": True,
             "conflicts": conflict_keys,
-            "hint": "Pin was saved to pin_overrides.json; connect USB and Apply again to program the board",
-        }), 400
+            "hint": "Connect USB and Apply again to program the board",
+        }), 200
 
+    # Soft batch: one W must not kill COM
+    serial_mgr.begin_batch()
+    try:
+        sent = serial_mgr.send_cmd(f"W,{servo['id']},{pin}\n", drain=True, wait_ms=50)
+        if not sent:
+            time.sleep(0.12)
+            sent = serial_mgr.send_cmd(f"W,{servo['id']},{pin}\n", drain=True, wait_ms=60)
+        time.sleep(0.1)  # Mega rebindPin settle
+        # Gentle rest pulse only (no big wiggle — avoids brownout / disconnect)
+        if sent and data.get('test', True):
+            rest = int(servo.get('rest', 90))
+            tested = serial_mgr.send_cmd(f"M,{servo['id']},{rest}\n", drain=True, wait_ms=30)
+            if not tested:
+                r = _send_move_by_key(key, rest)
+                tested = bool(r.get("serial_sent"))
+    finally:
+        serial_mgr.end_batch()
+
+    connected = serial_mgr.is_connected()
     warn = None
     if conflict_keys and len(conflict_keys) > 1:
         warn = f"Pin {pin} is also used by {conflict_keys} — reassign duplicates or motors will fight"
@@ -1348,7 +1796,7 @@ def set_servo_pin():
         "serial_connected": connected,
         "conflicts": conflict_keys,
         "warning": warn,
-        "error": None if sent else "Failed to send W command — reconnect USB",
+        "error": None if sent else "Failed to send W command — try Force free + Connect, then Apply again",
     })
 
 
@@ -1362,7 +1810,6 @@ def servo_calibration():
     if not isinstance(cal, dict):
         return jsonify({"ok": False, "error": "calibration must be an object"}), 400
 
-    # Use factory walls from disk (not already-overridden config)
     factory = _read_json(SERVO_CONFIG_PATH, {}) or {}
     factory_by_key = {s.get('key'): s for s in factory.get('servos', []) if s.get('key')}
 
@@ -1374,66 +1821,104 @@ def servo_calibration():
         fmin = int(fac.get('min', 0))
         fmax = int(fac.get('max', 180))
         frest = int(fac.get('rest', 90))
-        entry = {}
-        mn = int(vals.get('min', fmin)) if 'min' in vals or 'max' in vals or 'rest' in vals else fmin
-        mx = int(vals.get('max', fmax)) if 'min' in vals or 'max' in vals or 'rest' in vals else fmax
-        rs = int(vals.get('rest', frest)) if 'rest' in vals or 'min' in vals or 'max' in vals else frest
-        # Never expand past factory hard walls from shared/servo_config.json
-        mn = max(fmin, min(fmax, max(0, min(180, mn))))
-        mx = max(fmin, min(fmax, max(0, min(180, mx))))
-        if mn > mx:
-            mn, mx = fmin, fmax
-        rs = max(mn, min(mx, max(0, min(180, rs))))
-        entry = {'min': mn, 'max': mx, 'rest': rs}
-        cleaned[key] = entry
+        mn = int(vals.get('min', fmin)) if any(k in vals for k in ('min', 'max', 'rest')) else fmin
+        mx = int(vals.get('max', fmax)) if any(k in vals for k in ('min', 'max', 'rest')) else fmax
+        rs = int(vals.get('rest', frest)) if any(k in vals for k in ('min', 'max', 'rest')) else frest
+        # User may expand past factory (PWM 0–180 absolute)
+        mn, mx, rs = _sanitize_limits(mn, mx, rs, frest)
+        cleaned[key] = {'min': mn, 'max': mx, 'rest': rs}
 
     _write_json(CALIB_OVERRIDES_PATH, cleaned)
     _reload_servo_config()
 
     sent = []
+    failed = []
     if serial_mgr.is_connected() and data.get('applyToFirmware', True):
-        for s in SERVO_CONFIG.get('servos', []):
-            key = s.get('key')
-            if key in cleaned:
+        serial_mgr.begin_batch()
+        try:
+            for s in SERVO_CONFIG.get('servos', []):
+                key = s.get('key')
+                if key not in cleaned:
+                    continue
                 v = cleaned[key]
-                mn = v.get('min', s['min'])
-                mx = v.get('max', s['max'])
-                rs = v.get('rest', s['rest'])
-                cmd = f"U,{s['id']},{mn},{mx},{rs}\n"
-                if serial_mgr.send_cmd(cmd):
+                cmd = f"U,{s['id']},{v['min']},{v['max']},{v['rest']}\n"
+                ok = serial_mgr.send_cmd(cmd, drain=True, wait_ms=15)
+                if ok:
                     sent.append(key)
+                else:
+                    failed.append(key)
+                time.sleep(0.03)
+        finally:
+            serial_mgr.end_batch()
 
-    return jsonify({"ok": True, "calibration": cleaned, "firmware_applied": sent})
+    return jsonify({
+        "ok": True,
+        "calibration": cleaned,
+        "firmware_applied": sent,
+        "firmware_failed": failed,
+        "serial_connected": serial_mgr.is_connected(),
+    })
 
 
 @app.route('/api/servo/limits', methods=['POST'])
 def set_servo_limits():
+    """Set working min/max/rest for one servo (0–180 PWM). Expands past factory defaults."""
     data = request.get_json() or {}
     key = (data.get('key') or '').strip()
     factory = _read_json(SERVO_CONFIG_PATH, {}) or {}
     fac = next((s for s in factory.get('servos', []) if s.get('key') == key), None)
     servo = _servo_by_key(key)
-    if not fac or not servo:
+    if not fac and not servo:
         return jsonify({"ok": False, "error": f"Unknown servo: {key}"}), 400
+    if not fac:
+        fac = servo
+    if not servo:
+        servo = fac
 
     fmin = int(fac.get('min', 0))
     fmax = int(fac.get('max', 180))
-    # Absolute walls — cannot go beyond factory limits you configured
-    mn = max(fmin, min(fmax, max(0, min(180, int(data.get('min', servo['min']))))))
-    mx = max(fmin, min(fmax, max(0, min(180, int(data.get('max', servo['max']))))))
-    rs = max(0, min(180, int(data.get('rest', servo['rest']))))
-    if mn > mx:
-        return jsonify({"ok": False, "error": "min must be <= max"}), 400
-    rs = max(mn, min(mx, rs))
+    try:
+        raw_min = data.get('min', servo.get('min', fmin))
+        raw_max = data.get('max', servo.get('max', fmax))
+        raw_rest = data.get('rest', servo.get('rest', 90))
+        mn, mx, rs = _sanitize_limits(raw_min, raw_max, raw_rest, servo.get('rest', 90))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "min/max/rest must be numbers"}), 400
+
+    note = None
+    # Surface 360-style inputs clearly
+    for label, raw in (("min", data.get("min")), ("max", data.get("max")), ("rest", data.get("rest"))):
+        try:
+            if raw is not None and int(raw) > 180:
+                note = (
+                    f"Hobby servos use 0–180° PWM (not 360). "
+                    f"Mapped your values into 0–180 (e.g. 360 → 180)."
+                )
+                break
+        except (TypeError, ValueError):
+            pass
 
     overrides = _read_json(CALIB_OVERRIDES_PATH, {})
     overrides[key] = {"min": mn, "max": mx, "rest": rs}
     _write_json(CALIB_OVERRIDES_PATH, overrides)
     _reload_servo_config()
+    servo = _servo_by_key(key) or servo
 
     sent = False
     if serial_mgr.is_connected():
-        sent = serial_mgr.send_cmd(f"U,{servo['id']},{mn},{mx},{rs}\n")
+        serial_mgr.begin_batch()
+        try:
+            sent = serial_mgr.send_cmd(
+                f"U,{servo['id']},{mn},{mx},{rs}\n", drain=True, wait_ms=30
+            )
+            if not sent:
+                time.sleep(0.08)
+                sent = serial_mgr.send_cmd(
+                    f"U,{servo['id']},{mn},{mx},{rs}\n", drain=True, wait_ms=40
+                )
+        finally:
+            serial_mgr.end_batch()
+
     return jsonify({
         "ok": True,
         "key": key,
@@ -1443,6 +1928,9 @@ def set_servo_limits():
         "factoryMin": fmin,
         "factoryMax": fmax,
         "serial_sent": sent,
+        "serial_connected": serial_mgr.is_connected(),
+        "note": note,
+        "error": None if sent or not serial_mgr.is_connected() else "U command failed",
     })
 
 
