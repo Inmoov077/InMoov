@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Pin, Play, RotateCcw, Target } from 'lucide-react';
+import { FlipHorizontal2, Loader2, Pin, Play, RotateCcw, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import * as api from '@/lib/api';
 import { SERVOS, type ServoDef } from '@/lib/servoConfig';
@@ -11,6 +11,20 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+
+/** Arm walkthrough defaults (same as host) when API not loaded yet */
+const DEFAULT_INVERT: Record<string, boolean> = {
+  l_shoulder: true,
+  l_lift: true,
+  l_rotate: true,
+  l_elbow: true,
+  l_wrist: true,
+  r_shoulder: true,
+  r_lift: false,
+  r_rotate: true,
+  r_elbow: true,
+  r_wrist: true,
+};
 
 const GROUPS = [
   { id: 'all', label: 'All servos' },
@@ -33,6 +47,7 @@ export function ServoTestPanel({ className }: { className?: string }) {
   const [selectedKey, setSelectedKey] = useState<string>('l_shoulder');
   const [pins, setPins] = useState<Record<string, number>>({});
   const [limits, setLimits] = useState<Record<string, { min: number; max: number; rest: number }>>({});
+  const [invert, setInvert] = useState<Record<string, boolean>>({ ...DEFAULT_INVERT });
   const [angle, setAngle] = useState(90);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -54,27 +69,36 @@ export function ServoTestPanel({ className }: { className?: string }) {
   const max = limits[selectedKey]?.max ?? servo?.max ?? 180;
   const rest = limits[selectedKey]?.rest ?? servo?.rest ?? 90;
   const pin = pins[selectedKey] ?? servo?.pin ?? 0;
+  const inverted = invert[selectedKey] ?? DEFAULT_INVERT[selectedKey] ?? false;
+  const hwPreview = inverted ? min + max - Math.max(min, Math.min(max, angle)) : Math.max(min, Math.min(max, angle));
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [cfg, pinRes, calRes] = await Promise.all([
+      const [cfg, pinRes, calRes, invRes] = await Promise.all([
         api.getServoConfig(),
         api.getServoPins(),
         api.getServoCalibration(),
+        api.getServoInvert().catch(() => ({ invert: {} })),
       ]);
       const pinMap: Record<string, number> = {};
       const limMap: Record<string, { min: number; max: number; rest: number }> = {};
+      const invMap: Record<string, boolean> = { ...DEFAULT_INVERT };
       for (const s of cfg.servos ?? SERVOS) {
         pinMap[s.key] = s.pin;
         limMap[s.key] = { min: s.min, max: s.max, rest: s.rest };
+        if (typeof (s as ServoDef).inverted === 'boolean') {
+          invMap[s.key] = !!(s as ServoDef).inverted;
+        }
       }
       Object.assign(pinMap, pinRes.pins ?? {});
+      if (invRes.invert) Object.assign(invMap, invRes.invert);
       for (const [k, v] of Object.entries(calRes.calibration ?? {})) {
         if (v && typeof v === 'object') limMap[k] = { ...limMap[k], ...(v as object) };
       }
       setPins(pinMap);
       setLimits(limMap);
+      setInvert(invMap);
       const key = selectedKey in limMap ? selectedKey : SERVOS[0]?.key;
       if (key) {
         setSelectedKey(key);
@@ -179,6 +203,30 @@ export function ServoTestPanel({ className }: { className?: string }) {
         void useServoStore.getState().refreshConnection();
       }
       if (res.warning) toast.warning(String(res.warning));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setInvertMode = async (on: boolean) => {
+    setInvert((prev) => ({ ...prev, [selectedKey]: on }));
+    setBusy(true);
+    try {
+      const res = await api.setServoInvert(selectedKey, on, connected);
+      if (res.ok) {
+        toast.success(
+          on
+            ? `Invert ON · ${selectedKey} (hw = min+max−logical)`
+            : `Invert OFF · ${selectedKey} (direct)`,
+        );
+        // Resend current angle so motion matches new invert immediately
+        lastSent.current = null;
+        if (connected) sendAngle(angle, true);
+      } else {
+        toast.error(res.error || 'Invert save failed');
+        // revert UI
+        setInvert((prev) => ({ ...prev, [selectedKey]: !on }));
+      }
     } finally {
       setBusy(false);
     }
@@ -313,6 +361,50 @@ export function ServoTestPanel({ className }: { className?: string }) {
                 </div>
                 <div className="space-y-1">
                   <Label className="flex items-center gap-1 text-xs">
+                    <FlipHorizontal2 className="h-3 w-3" /> Invert
+                  </Label>
+                  {/* MRL-style Off / On pair */}
+                  <div className="flex items-center gap-1.5">
+                    <div className="inline-flex overflow-hidden rounded-lg border border-border/60 bg-muted/30 p-0.5">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void setInvertMode(false)}
+                        className={cn(
+                          'h-8 min-w-[3.25rem] rounded-md px-3 text-xs font-semibold transition-colors',
+                          !inverted
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:bg-muted/80',
+                        )}
+                      >
+                        off
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void setInvertMode(true)}
+                        className={cn(
+                          'h-8 min-w-[3.25rem] rounded-md px-3 text-xs font-semibold transition-colors',
+                          inverted
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'text-muted-foreground hover:bg-muted/80',
+                        )}
+                      >
+                        on
+                      </button>
+                    </div>
+                    <Badge variant={inverted ? 'copper' : 'default'} className="text-[10px]">
+                      {inverted ? 'mirrored' : 'direct'}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {inverted
+                      ? `HW write = ${min}+${max}−logical → now ${hwPreview}°`
+                      : `HW write = logical → ${hwPreview}°`}
+                  </p>
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label className="flex items-center gap-1 text-xs">
                     <Target className="h-3 w-3" /> Limits (min / rest / max)
                   </Label>
                   <div className="flex gap-1">
@@ -410,8 +502,8 @@ export function ServoTestPanel({ className }: { className?: string }) {
               </div>
 
               <p className="text-[11px] text-muted-foreground">
-                1:1: set pin → Save min/rest/max (0–180°) → drag or type angle → Go. Hobby servos are not
-                360° mechanical; typing 360 maps to 180° PWM. Expand limits past defaults with Save.
+                1:1 like MRL: pin · <strong>Invert off/on</strong> · min/rest/max · angle. Invert mirrors
+                travel (hw = min+max−logical) when motors move the wrong way. Hobby servos use 0–180° PWM.
               </p>
             </>
           )}
