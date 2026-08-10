@@ -14,6 +14,7 @@ import {
   type HandJoints,
   type LegJoints,
 } from '@/lib/bodyConfig';
+import { getArmEffectiveLimits, getArmHardLimits, sanitizeArm } from '@/lib/armSafety';
 import { useBodyStore } from '@/store/bodyStore';
 import { cn } from '@/lib/utils';
 
@@ -54,7 +55,7 @@ export function BodyJointPanel({ tab, onTabChange }: BodyJointPanelProps) {
 
   const applyPreset = (side: BodySide, name: string) => {
     if (tab === 'arms' && name in ARM_PRESETS) {
-      setArm(side, ARM_PRESETS[name as keyof typeof ARM_PRESETS] as ArmJoints);
+      setArm(side, sanitizeArm(side, ARM_PRESETS[name as keyof typeof ARM_PRESETS] as ArmJoints));
     } else if (tab === 'hands' && name in HAND_PRESETS) {
       setHand(side, HAND_PRESETS[name as keyof typeof HAND_PRESETS] as HandJoints);
     } else if (tab === 'legs' && name in LEG_PRESETS) {
@@ -69,19 +70,36 @@ export function BodyJointPanel({ tab, onTabChange }: BodyJointPanelProps) {
     const leg = isLeft ? leftLeg : rightLeg;
 
     if (tab === 'arms') {
-      return ARM_JOINT_META.map((joint) => (
-        <ServoControl
-          key={`${side}-${joint.key}`}
-          label={joint.label}
-          pin={joint.pin[side]}
-          value={arm[joint.key]}
-          min={joint.min}
-          max={joint.max}
-          onChange={(v) => setArmJoint(side, joint.key, v)}
-          accent={isLeft ? 'signal' : 'copper'}
-          presets={[joint.min ?? 0, 90, joint.max ?? 180]}
-        />
-      ));
+      const hard = getArmHardLimits(side);
+      const effective = getArmEffectiveLimits(side, arm);
+      return ARM_JOINT_META.map((joint) => {
+        // Sliders use hard walls so the full safe travel is always visible;
+        // live coupling is enforced in sanitizeArm on every change.
+        const min = hard[joint.key].min;
+        const max = hard[joint.key].max;
+        const effMax = effective[joint.key].max;
+        const effMin = effective[joint.key].min;
+        const mid = Math.round((min + max) / 2);
+        const limited = arm[joint.key] > effMax || arm[joint.key] < effMin;
+        return (
+          <ServoControl
+            key={`${side}-${joint.key}`}
+            label={joint.label}
+            hint={
+              limited
+                ? `${joint.hint} · live safe ${effMin}–${effMax}° (anti-overlap)`
+                : `${joint.hint} · limit ${min}–${max}°`
+            }
+            pin={joint.pin[side]}
+            value={arm[joint.key]}
+            min={min}
+            max={max}
+            onChange={(v) => setArmJoint(side, joint.key, v)}
+            accent={isLeft ? 'signal' : 'copper'}
+            presets={[min, mid, max].filter((p, i, a) => a.indexOf(p) === i)}
+          />
+        );
+      });
     }
     if (tab === 'hands') {
       return HAND_JOINT_META.map((joint) => (

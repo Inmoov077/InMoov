@@ -20,7 +20,7 @@ interface MrlState {
   selectService: (name: string | null) => void;
   refreshServo: (service: string) => Promise<MrlServoState | null>;
   execGesture: (name: string) => Promise<boolean>;
-  moveServo: (service: string, angle: number) => Promise<boolean>;
+  moveServo: (service: string, angle: number, opts?: { refresh?: boolean }) => Promise<boolean>;
 }
 
 export const useMrlStore = create<MrlState>((set, get) => ({
@@ -98,10 +98,17 @@ export const useMrlStore = create<MrlState>((set, get) => ({
     return res.ok;
   },
 
-  moveServo: async (service, angle) => {
+  moveServo: async (service, angle, opts?: { refresh?: boolean }) => {
     const res = await mrl.mrlMoveTo(service, angle);
     if (res.ok) {
-      await get().refreshServo(service);
+      // Optimistic cache update for smooth drag; full refresh only when requested
+      set((s) => ({
+        servoCache: {
+          ...s.servoCache,
+          [service]: { ...(s.servoCache[service] ?? { service }), getPosition: angle, ok: true },
+        },
+      }));
+      if (opts?.refresh) await get().refreshServo(service);
     }
     return res.ok;
   },

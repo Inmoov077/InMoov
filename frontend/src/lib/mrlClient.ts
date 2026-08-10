@@ -174,6 +174,47 @@ export async function getMrlI01Config() {
   return parseJson<{ ok: boolean; data?: { peers?: Record<string, unknown> } }>(res);
 }
 
+export interface MrlPeer {
+  name: string;
+  label: string;
+  type: string;
+  autoStart: boolean;
+  started: boolean;
+  service: string;
+}
+
+export async function getMrlPeers() {
+  const res = await fetch('/api/core/peers');
+  return parseJson<{ ok: boolean; peers: MrlPeer[]; count: number }>(res);
+}
+
+export async function getMrlLifeStatus() {
+  const res = await fetch('/api/core/life');
+  return parseJson<{
+    ok: boolean;
+    lifeMode: string;
+    state: string;
+    actions: string[];
+    log: string[];
+    randomRunning: boolean;
+  }>(res);
+}
+
+export async function mrlLifeAction(action: string) {
+  const res = await fetch(`/api/core/life/${encodeURIComponent(action)}`, { method: 'POST' });
+  return parseJson<{ ok: boolean; action?: string; error?: string; report?: unknown }>(res);
+}
+
+export async function mrlStopAll() {
+  const res = await fetch('/api/core/stop', { method: 'POST' });
+  return parseJson<{ ok: boolean }>(res);
+}
+
+export async function mrlRestAll() {
+  const res = await fetch('/api/core/rest', { method: 'POST' });
+  return parseJson<{ ok: boolean; action?: string }>(res);
+}
+
 export const MRL_BODY_PARTS = [
   { id: 'head', label: 'Head', services: ['i01.head'] },
   { id: 'leftArm', label: 'Left arm', services: ['i01.leftArm'] },

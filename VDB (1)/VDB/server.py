@@ -34,11 +34,11 @@ bytes_recv = 0
 
 # ─────────────────────────── Servo Config ────────────────────────
 SERVO_LIMITS = {
-    # Right arm (DS5160 60kg)
-    "r_shoulder":  {"min": 0,  "max": 150, "rest": 30,  "type": "DS5160", "pin": 23,  "group": "r_arm"},
-    "r_omoplate": {"min": 10, "max": 70,  "rest": 10,  "type": "DS5160", "pin": 25,  "group": "r_arm"},
-    "r_bicep":    {"min": 0,  "max": 85,  "rest": 5,   "type": "DS5160", "pin": 27,  "group": "r_arm"},
-    "r_rotate":   {"min": 40, "max": 150, "rest": 90,  "type": "DS5160", "pin": 29,  "group": "r_arm"},
+    # Right arm (DS5160 60kg) — hardware-safe ranges for smooth real-time motion
+    "r_shoulder":  {"min": 30, "max": 180, "rest": 30,  "type": "DS5160", "pin": 23,  "group": "r_arm"},
+    "r_omoplate": {"min": 10, "max": 65,  "rest": 10,  "type": "DS5160", "pin": 25,  "group": "r_arm"},
+    "r_bicep":    {"min": 0,  "max": 90,  "rest": 5,   "type": "DS5160", "pin": 27,  "group": "r_arm"},
+    "r_rotate":   {"min": 40, "max": 180, "rest": 90,  "type": "DS5160", "pin": 29,  "group": "r_arm"},
     # Right hand (MG996R via PCA9685)
     "r_thumb":    {"min": 10, "max": 130, "rest": 10,  "type": "MG996R", "ch": 0,    "group": "r_hand"},
     "r_index":    {"min": 10, "max": 130, "rest": 10,  "type": "MG996R", "ch": 1,    "group": "r_hand"},
@@ -46,11 +46,11 @@ SERVO_LIMITS = {
     "r_ring":     {"min": 10, "max": 130, "rest": 10,  "type": "MG996R", "ch": 3,    "group": "r_hand"},
     "r_pinky":    {"min": 10, "max": 130, "rest": 10,  "type": "MG996R", "ch": 4,    "group": "r_hand"},
     "r_wrist":    {"min": 10, "max": 160, "rest": 90,  "type": "MG996R", "ch": 5,    "group": "r_hand"},
-    # Left arm (DS5160 60kg)
-    "l_shoulder":  {"min": 0,  "max": 150, "rest": 30,  "type": "DS5160", "pin": 22,  "group": "l_arm"},
-    "l_omoplate": {"min": 10, "max": 70,  "rest": 10,  "type": "DS5160", "pin": 24,  "group": "l_arm"},
-    "l_bicep":    {"min": 0,  "max": 85,  "rest": 5,   "type": "DS5160", "pin": 26,  "group": "l_arm"},
-    "l_rotate":   {"min": 40, "max": 150, "rest": 90,  "type": "DS5160", "pin": 28,  "group": "l_arm"},
+    # Left arm (DS5160 60kg) — hardware-safe ranges for smooth real-time motion
+    "l_shoulder":  {"min": 30, "max": 180, "rest": 30,  "type": "DS5160", "pin": 22,  "group": "l_arm"},
+    "l_omoplate": {"min": 10, "max": 60,  "rest": 10,  "type": "DS5160", "pin": 24,  "group": "l_arm"},
+    "l_bicep":    {"min": 0,  "max": 80,  "rest": 5,   "type": "DS5160", "pin": 26,  "group": "l_arm"},
+    "l_rotate":   {"min": 40, "max": 180, "rest": 90,  "type": "DS5160", "pin": 28,  "group": "l_arm"},
     # Left hand (MG996R via PCA9685)
     "l_thumb":    {"min": 10, "max": 130, "rest": 10,  "type": "MG996R", "ch": 6,    "group": "l_hand"},
     "l_index":    {"min": 10, "max": 130, "rest": 10,  "type": "MG996R", "ch": 7,    "group": "l_hand"},

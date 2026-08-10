@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 
-/** Head controls live in the unified Control studio. */
+/** Head controls live in Studio → Pose → Head. */
 export function HeadPage() {
-  return <Navigate to="/control?tab=head" replace />;
+  return <Navigate to="/control" replace />;
 }

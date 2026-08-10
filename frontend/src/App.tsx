@@ -22,7 +22,7 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/control" element={<AllServosPage />} />
-          {/* Legacy paths → unified Control tabs (no duplicate UIs) */}
+          {/* Legacy paths → unified Studio (no duplicate UIs) */}
           <Route path="/head" element={<HeadPage />} />
           <Route path="/neck" element={<NeckPage />} />
           <Route path="/body" element={<BodyPage />} />
@@ -35,8 +35,9 @@ export default function App() {
           <Route path="/calibration" element={<CalibrationPage />} />
           <Route path="/robot" element={<MrlLivePage />} />
           <Route path="/features" element={<MrlHubPage />} />
-          <Route path="/mrl" element={<Navigate to="/features" replace />} />
-          <Route path="/mrl-live" element={<Navigate to="/robot" replace />} />
+          <Route path="/mrl" element={<Navigate to="/control?mode=core&view=map" replace />} />
+          <Route path="/mrl-live" element={<Navigate to="/control?mode=core&view=map" replace />} />
+          <Route path="/studio" element={<Navigate to="/control" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

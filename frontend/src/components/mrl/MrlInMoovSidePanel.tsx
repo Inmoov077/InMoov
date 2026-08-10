@@ -9,8 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   ARM_SERVOS,
+  HAND_SERVOS,
   HEAD_SERVOS,
   I01_PEERS,
+  LEG_SERVOS,
   MRL_ASSET,
   TORSO_SERVOS,
   type InMoovPanel,
@@ -22,13 +24,23 @@ interface MrlInMoovSidePanelProps {
   panel: InMoovPanel;
   onOpenGestures?: () => void;
   onOpenRuntime?: () => void;
+  onOpenLife?: () => void;
+  onOpenPeers?: () => void;
 }
 
-export function MrlInMoovSidePanel({ panel, onOpenGestures, onOpenRuntime }: MrlInMoovSidePanelProps) {
+export function MrlInMoovSidePanel({
+  panel,
+  onOpenGestures,
+  onOpenRuntime,
+  onOpenLife,
+  onOpenPeers,
+}: MrlInMoovSidePanelProps) {
   const execGesture = useMrlStore((s) => s.execGesture);
   const [utterance, setUtterance] = useState('');
   const [speakText, setSpeakText] = useState('');
   const [armSide, setArmSide] = useState<'left' | 'right'>('left');
+  const [handSide, setHandSide] = useState<'left' | 'right'>('left');
+  const [legSide, setLegSide] = useState<'left' | 'right'>('left');
   const [headServo, setHeadServo] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
 
@@ -143,50 +155,120 @@ export function MrlInMoovSidePanel({ panel, onOpenGestures, onOpenRuntime }: Mrl
         </div>
       );
 
-    case 'hand':
+    case 'hand': {
+      const handServos = HAND_SERVOS[handSide];
       return (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Hands</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <MrlPeerToggle peerKey="leftHand" label="Left hand" />
-            <MrlPeerToggle peerKey="rightHand" label="Right hand" />
-            <p className="text-xs text-muted-foreground">Start hand peers in MRL, then finger servos appear here.</p>
-            <Button size="sm" variant="outline" onClick={() => void runGesture('handopen')}>handopen()</Button>
-            <Button size="sm" variant="outline" onClick={() => void runGesture('handclose')}>handclose()</Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Button size="sm" variant={handSide === 'left' ? 'default' : 'outline'} onClick={() => setHandSide('left')}>
+              Left hand
+            </Button>
+            <Button size="sm" variant={handSide === 'right' ? 'default' : 'outline'} onClick={() => setHandSide('right')}>
+              Right hand
+            </Button>
+          </div>
+          <MrlPeerToggle
+            peerKey={handSide === 'left' ? 'leftHand' : 'rightHand'}
+            label={`${handSide} hand`}
+            icon={MRL_ASSET('InMoov2Hand.png')}
+            started
+          />
+          <div className="flex flex-wrap gap-1.5">
+            <Button size="sm" variant="outline" disabled={running} onClick={() => void runGesture('handopen')}>
+              handopen()
+            </Button>
+            <Button size="sm" variant="outline" disabled={running} onClick={() => void runGesture('handclose')}>
+              handclose()
+            </Button>
+            <Button size="sm" variant="outline" disabled={running} onClick={() => void runGesture('openlefthand')}>
+              open left
+            </Button>
+            <Button size="sm" variant="outline" disabled={running} onClick={() => void runGesture('openrighthand')}>
+              open right
+            </Button>
+          </div>
+          {handServos.map((s) => (
+            <MrlServoPanel key={s.service} service={s.service} label={s.label} />
+          ))}
+        </div>
       );
+    }
 
     case 'ear':
       return (
         <Card>
-          <CardHeader><CardTitle className="text-base">Ear / Voice recognition</CardTitle></CardHeader>
-          <CardContent>
+          <CardHeader>
+            <CardTitle className="text-base">Ear / Voice recognition</CardTitle>
+            <CardDescription>MRL WebkitSpeech / offline voice path</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
             <MrlPeerToggle peerKey="ear" label="Ear (WebkitSpeech)" icon={MRL_ASSET('InMoov2Ear.png')} />
+            <p className="text-xs text-muted-foreground">
+              Full offline command map also lives under{' '}
+              <strong>Voice</strong> in the app menu (163 commands).
+            </p>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/offline">Open Voice page →</a>
+            </Button>
           </CardContent>
         </Card>
       );
 
-    case 'leg':
+    case 'leg': {
+      const legServos = LEG_SERVOS[legSide];
       return (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Legs</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            <MrlPeerToggle peerKey="leftLeg" label="Left leg" />
-            <MrlPeerToggle peerKey="rightLeg" label="Right leg" />
-          </CardContent>
-        </Card>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Button size="sm" variant={legSide === 'left' ? 'default' : 'outline'} onClick={() => setLegSide('left')}>
+              Left leg
+            </Button>
+            <Button size="sm" variant={legSide === 'right' ? 'default' : 'outline'} onClick={() => setLegSide('right')}>
+              Right leg
+            </Button>
+          </div>
+          <MrlPeerToggle
+            peerKey={legSide === 'left' ? 'leftLeg' : 'rightLeg'}
+            label={`${legSide} leg`}
+            started
+          />
+          {legServos.map((s) => (
+            <MrlServoPanel key={s.service} service={s.service} label={s.label} />
+          ))}
+        </div>
       );
+    }
 
     case 'sensor':
     case 'extra':
       return (
         <Card>
-          <CardHeader><CardTitle className="text-base">{I01_PEERS[panel]?.label ?? panel}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">{I01_PEERS[panel]?.label ?? panel}</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
-            <MrlPeerToggle peerKey={I01_PEERS[panel]?.peerKey ?? 'opencv'} label={I01_PEERS[panel]?.label ?? panel} icon={I01_PEERS[panel]?.icon} />
+            <MrlPeerToggle
+              peerKey={I01_PEERS[panel]?.peerKey ?? 'opencv'}
+              label={I01_PEERS[panel]?.label ?? panel}
+              icon={I01_PEERS[panel]?.icon}
+            />
             {panel === 'sensor' && (
-              <Button variant="outline" size="sm" onClick={() => void mrl.mrlCall('i01.opencv', 'capture')}>Start OpenCV capture</Button>
+              <>
+                <MrlPeerToggle peerKey="pir" label="PIR" />
+                <MrlPeerToggle peerKey="ultrasonicLeft" label="Ultrasonic L" />
+                <MrlPeerToggle peerKey="ultrasonicRight" label="Ultrasonic R" />
+                <MrlPeerToggle peerKey="realsensePresence" label="RealSense D455" />
+                <Button variant="outline" size="sm" onClick={() => void mrl.mrlCall('i01.opencv', 'capture')}>
+                  Start OpenCV capture
+                </Button>
+              </>
+            )}
+            {panel === 'extra' && (
+              <>
+                <MrlPeerToggle peerKey="leap" label="Leap / Extra" />
+                <MrlPeerToggle peerKey="neoPixel" label="NeoPixel" />
+                <MrlPeerToggle peerKey="servoMixer" label="Servo Mixer" />
+                <MrlPeerToggle peerKey="imageDisplay" label="Image Display" />
+              </>
             )}
           </CardContent>
         </Card>
@@ -207,7 +289,9 @@ export function MrlInMoovSidePanel({ panel, onOpenGestures, onOpenRuntime }: Mrl
         <Card>
           <CardHeader>
             <CardTitle className="text-base">InMoov2 Control</CardTitle>
-            <CardDescription>Native MyRobotLab dashboard — no embed</CardDescription>
+            <CardDescription>
+              Full native clone of MyRobotLab InMoov2 home — click the body map, or use tools below
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
@@ -217,10 +301,44 @@ export function MrlInMoovSidePanel({ panel, onOpenGestures, onOpenRuntime }: Mrl
                   {g}
                 </Button>
               ))}
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={running}
+                onClick={() => void mrl.mrlRestAll().then((r) => r.ok && toast.success('rest()'))}
+              >
+                rest
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={running}
+                onClick={() =>
+                  void mrl.mrlLifeAction('power_up').then((r) =>
+                    r.ok ? toast.success('power_up') : toast.error(r.error ?? 'failed'),
+                  )
+                }
+              >
+                power_up
+              </Button>
             </div>
-            <Button variant="outline" className="w-full" onClick={onOpenGestures}>All 136 gestures →</Button>
-            <Button variant="outline" className="w-full" onClick={onOpenRuntime}>Runtime &amp; services →</Button>
-            <MrlPeerToggle peerKey="fsm" label="Finite state machine" started />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button variant="outline" className="w-full" onClick={onOpenGestures}>
+                All gestures →
+              </Button>
+              <Button variant="outline" className="w-full" onClick={onOpenRuntime}>
+                Runtime →
+              </Button>
+              <Button variant="outline" className="w-full" onClick={onOpenLife}>
+                Life (sleep / random) →
+              </Button>
+              <Button variant="outline" className="w-full" onClick={onOpenPeers}>
+                All peers →
+              </Button>
+            </div>
+            <MrlPeerToggle peerKey="fsm" label="Finite state machine" />
+            <MrlPeerToggle peerKey="random" label="Random motion" />
+            <MrlPeerToggle peerKey="chatBot" label="Chat Bot / Brain" started />
           </CardContent>
         </Card>
       );

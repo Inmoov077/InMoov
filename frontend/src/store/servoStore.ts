@@ -107,12 +107,19 @@ export const useServoStore = create<ServoState>((set, get) => ({
   },
 
   connect: async (port) => {
-    const res = await api.connectPort(port);
+    // Always force-release first so Windows can re-open a sticky COM handle
+    try {
+      await api.forceReleasePort(port);
+    } catch {
+      /* ignore */
+    }
+    const res = await api.connectPort(port, true);
     if (res.ok) {
       get().setConnected(true, port);
       get().log('system', `Connected to ${port}`);
       return true;
     }
+    get().setConnected(false, null);
     get().log('error', res.error || 'Connection failed');
     return false;
   },

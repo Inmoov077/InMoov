@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 
-/** Body controls live in the unified Control studio. */
+/** Body controls live in Studio → Pose → Body. */
 export function BodyPage() {
-  return <Navigate to="/control?tab=body" replace />;
+  return <Navigate to="/control?pose=body" replace />;
 }

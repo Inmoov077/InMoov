@@ -145,8 +145,11 @@ export function MrlServoPanel({ service, label }: MrlServoPanelProps) {
             min={min}
             max={max}
             step={1}
-            onValueChange={([v]) => setPosition(v)}
-            onValueCommit={([v]) => void moveServo(service, v)}
+            onValueChange={([v]) => {
+              setPosition(v);
+              void moveServo(service, v, { refresh: false });
+            }}
+            onValueCommit={([v]) => void moveServo(service, v, { refresh: true })}
           />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => run(() => mrl.mrlRest(service), 'Rest')}>
