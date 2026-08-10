@@ -325,6 +325,33 @@ export async function setServoLimits(key: string, limits: { min: number; max: nu
   return res.json();
 }
 
+/** MRL-style Invert on/off for one servo (host maps hw = min+max-logical when on). */
+export async function getServoInvert() {
+  const res = await fetch('/api/servo/invert');
+  return res.json() as Promise<{
+    ok: boolean;
+    invert?: Record<string, boolean>;
+    overrides?: Record<string, boolean>;
+    defaults?: Record<string, boolean>;
+  }>;
+}
+
+export async function setServoInvert(key: string, inverted: boolean, apply = true) {
+  const res = await fetch('/api/servo/invert', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ key, inverted, apply }),
+  });
+  return res.json() as Promise<{
+    ok: boolean;
+    key?: string;
+    inverted?: boolean;
+    rest_applied?: boolean;
+    formula?: string;
+    error?: string;
+  }>;
+}
+
 export async function sendGrip(side: 'L' | 'R' | 'B', percent: number) {
   const res = await fetch('/api/servo/grip', {
     method: 'POST',

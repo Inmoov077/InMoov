@@ -1,0 +1,12 @@
+{
+  "l_shoulder": true,
+  "l_lift": true,
+  "l_rotate": true,
+  "l_elbow": true,
+  "l_wrist": true,
+  "r_shoulder": true,
+  "r_lift": false,
+  "r_rotate": true,
+  "r_elbow": true,
+  "r_wrist": true
+}

@@ -28,6 +28,7 @@ FRONTEND_DIST = os.path.join(BASE_DIR, 'frontend', 'dist')
 SERVO_CONFIG_PATH = os.path.join(BASE_DIR, 'shared', 'servo_config.json')
 PIN_OVERRIDES_PATH = os.path.join(BASE_DIR, 'shared', 'pin_overrides.json')
 CALIB_OVERRIDES_PATH = os.path.join(BASE_DIR, 'shared', 'calibration_overrides.json')
+INVERT_OVERRIDES_PATH = os.path.join(BASE_DIR, 'shared', 'invert_overrides.json')
 WAVE_PATTERNS_PATH = os.path.join(BASE_DIR, 'shared', 'wave_patterns.json')
 GESTURES_PATH = os.path.join(BASE_DIR, 'shared', 'gestures.json')
 if not os.path.isfile(GESTURES_PATH):
@@ -82,11 +83,44 @@ def _sanitize_limits(mn, mx, rs, default_rest=90):
     return mn, mx, rs
 
 
+# Default host-side invert (MRL walkthrough). User invert_overrides.json wins.
+_DEFAULT_INVERT_KEYS = {
+    'l_shoulder': True, 'l_lift': True, 'l_rotate': True, 'l_elbow': True, 'l_wrist': True,
+    'r_shoulder': True, 'r_lift': False, 'r_rotate': True, 'r_elbow': True, 'r_wrist': True,
+}
+
+
+def _default_invert_for_key(key: str) -> bool:
+    if key in _DEFAULT_INVERT_KEYS:
+        return bool(_DEFAULT_INVERT_KEYS[key])
+    # Map arm joint short names used in packets
+    return False
+
+
+def _is_servo_inverted(key: str, servo=None) -> bool:
+    s = servo or _servo_by_key(key)
+    if s is not None and 'inverted' in s:
+        return bool(s.get('inverted'))
+    return _default_invert_for_key(key)
+
+
+def _logical_to_hw_angle(key: str, logical: int, servo=None) -> int:
+    """UI logical angle → hardware write angle (min+max-input when inverted)."""
+    s = servo or _servo_by_key(key) or {}
+    mn = int(s.get('min', 0))
+    mx = int(s.get('max', 180))
+    v = max(mn, min(mx, int(logical)))
+    if _is_servo_inverted(key, s):
+        return mn + mx - v
+    return v
+
+
 def _load_servo_config():
-    """Load canonical servo map with user pin/calibration overrides applied.
+    """Load canonical servo map with user pin/calibration/invert overrides applied.
 
     User calibration (calibration_overrides.json) is authoritative for min/max/rest
     within absolute PWM range 0–180. Factory values are defaults only.
+    Invert (invert_overrides.json) mirrors MRL Servo Invert on/off.
     """
     base = _read_json(SERVO_CONFIG_PATH)
     if not base:
@@ -94,6 +128,7 @@ def _load_servo_config():
         return None
     pin_ov = _read_json(PIN_OVERRIDES_PATH, {})
     cal_ov = _read_json(CALIB_OVERRIDES_PATH, {})
+    inv_ov = _read_json(INVERT_OVERRIDES_PATH, {})
     servos = []
     for s in base.get('servos', []):
         entry = dict(s)
@@ -122,10 +157,18 @@ def _load_servo_config():
             entry['min'] = mn
             entry['max'] = mx
             entry['rest'] = rs
+        # Invert: user override > default arm map > false
+        if key in inv_ov:
+            entry['inverted'] = bool(inv_ov[key])
+            entry['invertOverride'] = True
+        else:
+            entry['inverted'] = _default_invert_for_key(key)
+            entry['invertOverride'] = False
         servos.append(entry)
     base['servos'] = servos
     base['pinOverrides'] = pin_ov
     base['calibrationOverrides'] = cal_ov
+    base['invertOverrides'] = inv_ov
     return base
 
 
@@ -278,6 +321,7 @@ def _send_move_by_key(key, angle):
     Move one servo by config key over serial.
     Uses firmware M,<id>,<angle> when possible, else group packets.
     Accepts 0–360 style input and maps into this servo's min–max (PWM 0–180).
+    Applies Invert (min+max-input) when inverted is on for this key.
     """
     s = _servo_by_key(key)
     if not s:
@@ -290,14 +334,18 @@ def _send_move_by_key(key, angle):
             note = f"Mapped {int(angle)}° → PWM range (hobby servos are 0–180°)"
     except (TypeError, ValueError):
         pass
-    angle = _clamp_servo_key(key, angle, s.get("rest", 90))
+    logical = _clamp_servo_key(key, angle, s.get("rest", 90))
+    hw_angle = _logical_to_hw_angle(key, logical, s)
+    inverted = _is_servo_inverted(key, s)
 
     if not serial_mgr.is_connected():
         return {
             "ok": False,
             "error": "USB not connected — open Studio → USB and Connect first",
             "key": key,
-            "angle": angle,
+            "angle": logical,
+            "hw_angle": hw_angle,
+            "inverted": inverted,
             "requested": raw_in,
             "serial_sent": False,
             "note": note,
@@ -307,15 +355,15 @@ def _send_move_by_key(key, angle):
     conflicts = [c for c in _pin_conflicts() if c["pin"] == pin]
     sid = int(s["id"])
 
-    # Single M command — quiet, no disconnect on one glitch
-    sent = serial_mgr.send_cmd(f"M,{sid},{int(angle)}\n", drain=True, wait_ms=15)
+    # Hardware angle after invert — firmware stores no runtime invert for M path
+    sent = serial_mgr.send_cmd(f"M,{sid},{int(hw_angle)}\n", drain=True, wait_ms=15)
     if not sent:
         time.sleep(0.05)
-        sent = serial_mgr.send_cmd(f"M,{sid},{int(angle)}\n", drain=True, wait_ms=25)
+        sent = serial_mgr.send_cmd(f"M,{sid},{int(hw_angle)}\n", drain=True, wait_ms=25)
     if not sent:
         try:
             core = _get_inmoove_core()
-            sent = bool(core._send_key_angle(key, int(angle)))
+            sent = bool(core._send_key_angle(key, int(logical)))
         except Exception as e:
             logger.warning("move fallback: %s", e)
             sent = False
@@ -324,7 +372,8 @@ def _send_move_by_key(key, angle):
         core = _get_inmoove_core()
         for vs in core.servos.values():
             if vs.key == key:
-                vs.position = int(angle)
+                vs.position = int(logical)
+                vs.inverted = inverted
                 break
     except Exception:
         pass
@@ -338,7 +387,9 @@ def _send_move_by_key(key, angle):
         "key": key,
         "id": sid,
         "pin": pin,
-        "angle": int(angle),
+        "angle": int(logical),
+        "hw_angle": int(hw_angle),
+        "inverted": inverted,
         "requested": raw_in,
         "serial_sent": sent,
         "serial_connected": serial_mgr.is_connected(),
@@ -495,10 +546,22 @@ def _safe_arm(side, data):
 
 
 # Hardware inversion (walkthrough): output = min + max - input.
-# All arm joints inverted except right omoplate (right lift).
+# All arm joints inverted except right omoplate (right lift) — defaults;
+# per-servo invert_overrides / UI Invert on|off override these.
 _ARM_INVERT = {
     'left': {'shoulder': True, 'lift': True, 'rotate': True, 'elbow': True, 'wrist': True},
     'right': {'shoulder': True, 'lift': False, 'rotate': True, 'elbow': True, 'wrist': True},
+}
+
+_ARM_JOINT_TO_KEY = {
+    'left': {
+        'shoulder': 'l_shoulder', 'lift': 'l_lift', 'rotate': 'l_rotate',
+        'elbow': 'l_elbow', 'wrist': 'l_wrist',
+    },
+    'right': {
+        'shoulder': 'r_shoulder', 'lift': 'r_lift', 'rotate': 'r_rotate',
+        'elbow': 'r_elbow', 'wrist': 'r_wrist',
+    },
 }
 
 
@@ -510,13 +573,19 @@ def _invert_joint_angle(angle: int, mn: int, mx: int) -> int:
 def _arm_to_hw(side: str, arm: dict) -> dict:
     """Convert logical UI angles → hardware serial angles (with inversions)."""
     hard = _arm_hard_limits(side)
-    inv = _ARM_INVERT.get(side, _ARM_INVERT['left'])
+    keys = _ARM_JOINT_TO_KEY.get(side, _ARM_JOINT_TO_KEY['left'])
+    fallback_inv = _ARM_INVERT.get(side, _ARM_INVERT['left'])
     out = {}
     for joint, value in arm.items():
         r = hard.get(joint) or {'min': 0, 'max': 180}
         mn, mx = int(r['min']), int(r['max'])
         v = max(mn, min(mx, int(value)))
-        out[joint] = _invert_joint_angle(v, mn, mx) if inv.get(joint) else v
+        skey = keys.get(joint)
+        if skey:
+            inverted = _is_servo_inverted(skey)
+        else:
+            inverted = bool(fallback_inv.get(joint))
+        out[joint] = _invert_joint_angle(v, mn, mx) if inverted else v
     return out
 
 
@@ -1797,6 +1866,65 @@ def set_servo_pin():
         "conflicts": conflict_keys,
         "warning": warn,
         "error": None if sent else "Failed to send W command — try Force free + Connect, then Apply again",
+    })
+
+
+@app.route('/api/servo/invert', methods=['GET', 'POST'])
+def servo_invert():
+    """
+    MRL-style Invert on/off per servo.
+    GET  → all invert flags
+    POST → { key, inverted: true|false }  saves + optionally re-sends rest with new map
+    """
+    if request.method == 'GET':
+        cfg = SERVO_CONFIG or _reload_servo_config() or {}
+        flags = {s['key']: bool(s.get('inverted')) for s in cfg.get('servos', []) if s.get('key')}
+        return jsonify({
+            "ok": True,
+            "invert": flags,
+            "overrides": _read_json(INVERT_OVERRIDES_PATH, {}),
+            "defaults": dict(_DEFAULT_INVERT_KEYS),
+        })
+
+    data = request.get_json() or {}
+    key = (data.get('key') or '').strip()
+    if not key:
+        return jsonify({"ok": False, "error": "key required"}), 400
+
+    servo = _servo_by_key(key)
+    if not servo:
+        # Allow setting before full reload if key exists in factory
+        factory = _read_json(SERVO_CONFIG_PATH, {}) or {}
+        if not any(s.get('key') == key for s in factory.get('servos', [])):
+            return jsonify({"ok": False, "error": f"Unknown servo: {key}"}), 400
+
+    if 'inverted' in data:
+        inverted = bool(data.get('inverted'))
+    else:
+        # toggle
+        cur = _is_servo_inverted(key)
+        inverted = not cur
+
+    overrides = _read_json(INVERT_OVERRIDES_PATH, {})
+    overrides[key] = inverted
+    _write_json(INVERT_OVERRIDES_PATH, overrides)
+    _reload_servo_config()
+    servo = _servo_by_key(key) or servo or {}
+
+    # Re-apply current rest as logical so hardware reflects new invert immediately
+    applied = False
+    rest = int(servo.get('rest', 90)) if servo else 90
+    if data.get('apply', True) and serial_mgr.is_connected() and servo:
+        r = _send_move_by_key(key, rest)
+        applied = bool(r.get('serial_sent'))
+
+    return jsonify({
+        "ok": True,
+        "key": key,
+        "inverted": inverted,
+        "rest_applied": applied,
+        "serial_connected": serial_mgr.is_connected(),
+        "formula": "hw = min + max - logical" if inverted else "hw = logical",
     })
 
 

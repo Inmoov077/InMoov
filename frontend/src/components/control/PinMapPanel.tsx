@@ -9,6 +9,19 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
+const DEFAULT_INVERT: Record<string, boolean> = {
+  l_shoulder: true,
+  l_lift: true,
+  l_rotate: true,
+  l_elbow: true,
+  l_wrist: true,
+  r_shoulder: true,
+  r_lift: false,
+  r_rotate: true,
+  r_elbow: true,
+  r_wrist: true,
+};
+
 const GROUP_ORDER = [
   'head',
   'neck',
@@ -34,6 +47,7 @@ const GROUP_LABELS: Record<string, string> = {
 export function PinMapPanel({ className }: { className?: string }) {
   const connected = useServoStore((s) => s.connected);
   const [pins, setPins] = useState<Record<string, number>>({});
+  const [invert, setInvert] = useState<Record<string, boolean>>({ ...DEFAULT_INVERT });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -51,11 +65,21 @@ export function PinMapPanel({ className }: { className?: string }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [cfg, pinRes] = await Promise.all([api.getServoConfig(), api.getServoPins()]);
+      const [cfg, pinRes, invRes] = await Promise.all([
+        api.getServoConfig(),
+        api.getServoPins(),
+        api.getServoInvert().catch(() => ({ invert: {} })),
+      ]);
       const pinMap: Record<string, number> = {};
-      for (const s of cfg.servos ?? SERVOS) pinMap[s.key] = s.pin;
+      const invMap: Record<string, boolean> = { ...DEFAULT_INVERT };
+      for (const s of cfg.servos ?? SERVOS) {
+        pinMap[s.key] = s.pin;
+        if (typeof (s as ServoDef).inverted === 'boolean') invMap[s.key] = !!(s as ServoDef).inverted;
+      }
       Object.assign(pinMap, pinRes.pins ?? {});
+      if (invRes.invert) Object.assign(invMap, invRes.invert);
       setPins(pinMap);
+      setInvert(invMap);
       setDirty(false);
     } catch {
       toast.error('Could not load pin map');
@@ -72,6 +96,22 @@ export function PinMapPanel({ className }: { className?: string }) {
     const safe = Math.max(2, Math.min(53, Math.round(pin) || 2));
     setPins((p) => ({ ...p, [key]: safe }));
     setDirty(true);
+  };
+
+  const toggleInvert = async (key: string, on: boolean) => {
+    setInvert((prev) => ({ ...prev, [key]: on }));
+    try {
+      const res = await api.setServoInvert(key, on, connected);
+      if (res.ok) {
+        toast.success(`${key}: Invert ${on ? 'ON' : 'OFF'}`);
+      } else {
+        toast.error(res.error || 'Invert failed');
+        setInvert((prev) => ({ ...prev, [key]: !on }));
+      }
+    } catch {
+      toast.error('Invert failed');
+      setInvert((prev) => ({ ...prev, [key]: !on }));
+    }
   };
 
   /** Apply one pin immediately to Arduino (and save override). */
@@ -206,7 +246,8 @@ export function PinMapPanel({ className }: { className?: string }) {
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Assign Mega pin (2–53) per motor. <strong>Apply</strong> programs the board; <strong>Save pins</strong> writes all.
+        Assign Mega pin (2–53) per motor. <strong>Invert off/on</strong> mirrors direction (like MRL).{' '}
+        <strong>Apply</strong> programs the pin; <strong>Save pins</strong> writes all.
         Red rows = pin conflict (two motors on one pin — fix these first).
       </p>
       {Object.keys(conflicts).length > 0 && (
@@ -232,11 +273,13 @@ export function PinMapPanel({ className }: { className?: string }) {
               {GROUP_LABELS[group] ?? group}
             </p>
             <div className="space-y-1">
-              {servos.map((s) => (
+              {servos.map((s) => {
+                const inv = invert[s.key] ?? DEFAULT_INVERT[s.key] ?? false;
+                return (
                 <div
                   key={s.key}
                   className={cn(
-                    'grid grid-cols-[1fr_auto_auto_4rem_auto] items-center gap-2 rounded-lg border bg-background/60 px-2 py-1.5',
+                    'grid grid-cols-[1fr_auto_auto_4rem_auto_auto] items-center gap-2 rounded-lg border bg-background/60 px-2 py-1.5',
                     conflicts[s.key]
                       ? 'border-destructive/60 bg-destructive/5'
                       : 'border-border/40',
@@ -249,10 +292,11 @@ export function PinMapPanel({ className }: { className?: string }) {
                   <Badge variant="default" className="text-[9px]">
                     {s.motor ?? 'Servo'}
                   </Badge>
-                  {s.vdbPin != null && (
+                  {s.vdbPin != null ? (
                     <span className="text-[10px] text-muted-foreground">VDB {s.vdbPin}</span>
+                  ) : (
+                    <span />
                   )}
-                  {s.vdbPin == null && <span />}
                   <Input
                     type="number"
                     min={2}
@@ -262,6 +306,31 @@ export function PinMapPanel({ className }: { className?: string }) {
                     onChange={(e) => void onPinChange(s.key, Number(e.target.value))}
                     title="Arduino pin"
                   />
+                  <div
+                    className="inline-flex overflow-hidden rounded-md border border-border/50 p-0.5"
+                    title="Invert direction (MRL Invert)"
+                  >
+                    <button
+                      type="button"
+                      className={cn(
+                        'h-7 px-2 text-[10px] font-semibold',
+                        !inv ? 'rounded bg-primary text-primary-foreground' : 'text-muted-foreground',
+                      )}
+                      onClick={() => void toggleInvert(s.key, false)}
+                    >
+                      off
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        'h-7 px-2 text-[10px] font-semibold',
+                        inv ? 'rounded bg-sky-600 text-white' : 'text-muted-foreground',
+                      )}
+                      onClick={() => void toggleInvert(s.key, true)}
+                    >
+                      on
+                    </button>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
@@ -273,7 +342,8 @@ export function PinMapPanel({ className }: { className?: string }) {
                     Apply
                   </Button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );

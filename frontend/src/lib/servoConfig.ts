@@ -18,6 +18,9 @@ export interface ServoDef {
   vdbKey?: string;
   calibrationSource?: string;
   pinOverride?: boolean;
+  /** Host-side invert (MRL Invert on): hw = min + max - logical */
+  inverted?: boolean;
+  invertOverride?: boolean;
 }
 
 export const SERVO_CONFIG: {
