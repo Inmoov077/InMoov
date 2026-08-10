@@ -3,7 +3,7 @@
 #pragma once
 
 #define SERVO_COUNT 36
-#define FIRMWARE_VERSION "1.2.0"
+#define FIRMWARE_VERSION "1.2.1"
 
 // Index map:
 //  0-2 head, 3-5 neck, 6-10 L arm, 11-15 R arm,

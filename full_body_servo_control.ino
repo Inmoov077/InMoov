@@ -31,6 +31,7 @@
 //   R                            Read positions (HEAD/NECK/BODY)
 //   S                            Emergency stop — rest all
 //   V                            Print firmware version
+//   Q,<0|1>                      Quiet mode: 0=stop POS flood (default), 1=enable POS
 // ============================================================
 
 #include <Servo.h>
@@ -58,7 +59,9 @@ const float DEAD_ZONE = 0.25f;
 unsigned long lastUpdate = 0;
 const unsigned long UPDATE_MS = 12;   // smoother motion loop
 unsigned long lastFeedback = 0;
-const unsigned long FEEDBACK_MS = 500;
+const unsigned long FEEDBACK_MS = 1000;  // only when quietFeedback == false
+// Default QUIET: continuous POS spam fills USB buffers → host write timeouts / disconnects
+bool quietFeedback = true;
 
 // Pattern runner state
 bool patternActive = false;
@@ -142,20 +145,27 @@ void detachServo(int i) {
 }
 
 // Safe pin rebind — detaches any other servo already on that pin (prevents "sometimes works")
+// Keep delays short so host serial does not time out during bulk pin maps.
 void rebindPin(int idx, int pin) {
   if (idx < 0 || idx >= ACTIVE_SERVOS) return;
   if (pin < 2 || pin > 53) return;
+  // Already on this pin and attached — no-op (avoids blink / disconnect noise)
+  if (pins[idx] == (uint8_t)pin && servos[idx].attached()) {
+    return;
+  }
   for (int i = 0; i < ACTIVE_SERVOS; i++) {
     if (i != idx && pins[i] == (uint8_t)pin && servos[i].attached()) {
       detachServo(i);
+      // free conflicting index pin so it is not left half-attached
+      pins[i] = 0;
     }
   }
   detachServo(idx);
-  delay(25);
+  delay(12);
   pins[idx] = (uint8_t)pin;
-  delay(10);
+  delay(5);
   attachServo(idx);
-  delay(15);
+  delay(8);
   writeServoHw(idx, (int)round(current[idx]));
 }
 
@@ -511,6 +521,16 @@ void loop() {
     } else if (cmd == 'S') {
       centerAllNow();
       Serial.println(F("STOPPED"));
+    } else if (cmd == 'Q' || cmd == 'q') {
+      // Q,0 = quiet (no POS flood)  |  Q,1 = enable periodic POS
+      int mode = 0;
+      if (args.length() > 0) {
+        if (args.charAt(0) == ',') mode = args.substring(1).toInt();
+        else mode = args.toInt();
+      }
+      quietFeedback = (mode == 0);
+      Serial.print(F("QUIET,"));
+      Serial.println(quietFeedback ? 1 : 0);
     }
   }
 
@@ -530,7 +550,8 @@ void loop() {
     }
   }
 
-  if (now - lastFeedback >= FEEDBACK_MS) {
+  // POS stream only when host explicitly enables feedback (Q,1)
+  if (!quietFeedback && (now - lastFeedback >= FEEDBACK_MS)) {
     lastFeedback = now;
     Serial.print(F("POS,"));
     for (int i = 0; i < ACTIVE_SERVOS; i++) {

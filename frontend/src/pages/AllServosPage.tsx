@@ -84,6 +84,7 @@ export function AllServosPage() {
   const [peersStarted, setPeersStarted] = useState<Record<string, boolean>>({});
 
   const connected = useServoStore((s) => s.connected);
+  const reconnecting = useServoStore((s) => s.reconnecting);
   const centerAll = useServoStore((s) => s.centerAll);
   const centerBody = useBodyStore((s) => s.centerBody);
   const gestures = useMrlStore((s) => s.gestures);
@@ -247,8 +248,11 @@ export function AllServosPage() {
               <Map className="h-3.5 w-3.5" /> Map
             </button>
           </div>
-          <Badge variant={connected ? 'online' : 'offline'} className="hidden sm:flex">
-            {connected ? 'USB on' : 'USB off'}
+          <Badge
+            variant={connected ? 'online' : reconnecting ? 'default' : 'offline'}
+            className="hidden sm:flex"
+          >
+            {connected ? 'USB on' : reconnecting ? 'USB…' : 'USB off'}
           </Badge>
           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => void restAll()}>
             <RotateCcw className="h-3.5 w-3.5" /> Rest

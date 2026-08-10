@@ -112,14 +112,17 @@ export function PinMapPanel({ className }: { className?: string }) {
       const res = await api.saveServoPins(pins, true);
       if (res.ok) {
         const n = res.firmware_applied?.length ?? 0;
+        const fail = (res.firmware_failed as string[] | undefined)?.length ?? 0;
         if (n > 0) {
-          toast.success(`Saved & pushed ${n} pins to Arduino`);
-          // Full sync limits too
-          await api.syncFirmwareConfig().catch(() => null);
+          toast.success(
+            `Saved & pushed ${n} pins to Arduino` + (fail ? ` (${fail} failed — keep USB connected)` : ''),
+          );
+          // Do NOT full sync here — re-pushing all W+U floods serial and drops COM
         } else {
           toast.warning(res.warning || 'Saved but board did not confirm pin writes');
         }
         setDirty(false);
+        void useServoStore.getState().refreshConnection();
       } else toast.error(res.error || 'Save failed');
     } finally {
       setSaving(false);

@@ -104,7 +104,7 @@ def main() -> None:
     lines.append("#pragma once")
     lines.append("")
     lines.append("#define SERVO_COUNT 36")
-    lines.append('#define FIRMWARE_VERSION "1.2.0"')
+    lines.append('#define FIRMWARE_VERSION "1.2.1"')
     lines.append("")
     lines.append("// Index map:")
     lines.append("//  0-2 head, 3-5 neck, 6-10 L arm, 11-15 R arm,")

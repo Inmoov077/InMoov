@@ -33,6 +33,8 @@ interface ServoState {
   roll: number;
   connected: boolean;
   port: string | null;
+  reconnecting: boolean;
+  lastSerialError: string | null;
   limits: Record<Axis, Limits>;
   outputInversions: Record<Axis, boolean>;
   linked: boolean;
@@ -48,12 +50,16 @@ interface ServoState {
   log: (type: LogEntry['type'], msg: string) => void;
   clearLogs: () => void;
   refreshConnection: () => Promise<void>;
+  startConnectionWatchdog: () => void;
+  stopConnectionWatchdog: () => void;
   connect: (port: string) => Promise<boolean>;
   disconnect: () => Promise<void>;
   autoDetect: () => Promise<string | null>;
   emergencyStop: () => Promise<void>;
   sendCombined: () => Promise<void>;
 }
+
+let connectionWatchdog: ReturnType<typeof setInterval> | null = null;
 
 let throttleTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSend = 0;
@@ -79,6 +85,8 @@ export const useServoStore = create<ServoState>((set, get) => ({
   roll: 120,
   connected: false,
   port: null,
+  reconnecting: false,
+  lastSerialError: null,
   limits: {
     rot: { min: NECK_ROT?.min ?? 0, max: NECK_ROT?.max ?? 180 },
     tilt: { min: NECK_TILT?.min ?? 0, max: NECK_TILT?.max ?? 180 },
@@ -95,27 +103,65 @@ export const useServoStore = create<ServoState>((set, get) => ({
 
   clearLogs: () => set({ logs: [] }),
 
-  setConnected: (online, port = null) => set({ connected: online, port }),
+  setConnected: (online, port = null) =>
+    set({
+      connected: online,
+      port: online ? port : port ?? null,
+      reconnecting: online ? false : get().reconnecting,
+      lastSerialError: online ? null : get().lastSerialError,
+    }),
 
   refreshConnection: async () => {
     try {
-      const data = await api.getPorts();
-      if (data.current) get().setConnected(true, data.current);
+      const data = await api.getSerialStatus().catch(async () => {
+        const ports = await api.getPorts();
+        return {
+          connected: !!ports.connected || !!ports.current,
+          port: ports.current ?? null,
+          last_error: ports.last_error ?? null,
+          reconnecting: !!ports.reconnecting,
+        };
+      });
+      const online = !!data.connected;
+      const was = get().connected;
+      set({
+        connected: online,
+        port: online ? (data.port ?? get().port) : data.port ?? null,
+        reconnecting: !!data.reconnecting,
+        lastSerialError: data.last_error ?? null,
+      });
+      if (online && !was) {
+        get().log('system', `USB reconnected · ${data.port ?? 'port'}`);
+      } else if (!online && was && !data.reconnecting) {
+        get().log('error', data.last_error || 'USB dropped — auto-reconnect running if enabled');
+      }
     } catch {
       /* offline UI */
     }
   },
 
-  connect: async (port) => {
-    // Always force-release first so Windows can re-open a sticky COM handle
-    try {
-      await api.forceReleasePort(port);
-    } catch {
-      /* ignore */
+  startConnectionWatchdog: () => {
+    if (connectionWatchdog) return;
+    // Keep UI in sync with server auto-reconnect / drop
+    void get().refreshConnection();
+    connectionWatchdog = setInterval(() => {
+      void get().refreshConnection();
+    }, 2500);
+  },
+
+  stopConnectionWatchdog: () => {
+    if (connectionWatchdog) {
+      clearInterval(connectionWatchdog);
+      connectionWatchdog = null;
     }
+  },
+
+  connect: async (port) => {
+    // Do NOT force-release before every connect — that closes a healthy link
+    // and reboots the Mega. Force free is only for Access-denied recovery.
     const res = await api.connectPort(port, true);
     if (res.ok) {
-      get().setConnected(true, port);
+      set({ connected: true, port, reconnecting: false, lastSerialError: null });
       const nPins = res.firmware_sync?.pins?.length ?? 0;
       const nLim = res.firmware_sync?.limits?.length ?? 0;
       get().log(
@@ -132,24 +178,62 @@ export const useServoStore = create<ServoState>((set, get) => ({
       } catch {
         /* optional */
       }
+      get().startConnectionWatchdog();
       return true;
     }
-    get().setConnected(false, null);
+
+    // Sticky Access denied: one Force free + retry (only on failure)
+    const errText = String(res.error || '').toLowerCase();
+    if (errText.includes('denied') || errText.includes('access') || errText.includes('busy')) {
+      get().log('system', 'Port busy — Force free + retry…');
+      try {
+        await api.forceReleasePort(port);
+        await new Promise((r) => setTimeout(r, 900));
+        const retry = await api.connectPort(port, true);
+        if (retry.ok) {
+          set({ connected: true, port, reconnecting: false, lastSerialError: null });
+          get().log('system', `Connected to ${port} after Force free`);
+          try {
+            await api.syncFirmwareConfig();
+          } catch {
+            /* optional */
+          }
+          get().startConnectionWatchdog();
+          return true;
+        }
+        set({
+          connected: false,
+          port: null,
+          lastSerialError: retry.error || res.error || 'Connection failed',
+        });
+        get().log('error', retry.error || res.error || 'Connection failed');
+        return false;
+      } catch {
+        /* fall through */
+      }
+    }
+
+    set({
+      connected: false,
+      port: null,
+      lastSerialError: res.error || 'Connection failed',
+    });
     get().log('error', res.error || 'Connection failed');
     return false;
   },
 
   disconnect: async () => {
     await api.disconnectPort();
-    get().setConnected(false, null);
+    set({ connected: false, port: null, reconnecting: false, lastSerialError: null });
     get().log('system', 'Disconnected');
   },
 
   autoDetect: async () => {
     const res = await api.autoDetectPort();
     if (res.ok && res.port) {
-      get().setConnected(true, res.port);
+      set({ connected: true, port: res.port, reconnecting: false, lastSerialError: null });
       get().log('system', `Auto-detected ${res.port}`);
+      get().startConnectionWatchdog();
       return res.port as string;
     }
     get().log('error', res.error || 'Auto-detect failed');
@@ -157,9 +241,10 @@ export const useServoStore = create<ServoState>((set, get) => ({
   },
 
   emergencyStop: async () => {
+    // E-stop should rest motors — do NOT mark USB disconnected
     await api.emergencyStop();
-    get().setConnected(false, null);
     get().log('error', 'EMERGENCY STOP');
+    void get().refreshConnection();
   },
 
   setHead: (joint, value, send = true) => {
