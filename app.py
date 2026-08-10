@@ -102,10 +102,19 @@ def _load_servo_config():
 def _reload_servo_config():
     global SERVO_CONFIG
     SERVO_CONFIG = _load_servo_config()
+    # Keep native core virtual servos in sync with pin/limit overrides
+    try:
+        from inmoove_core.runtime import get_core as _gc
+        core = _gc(project_root=BASE_DIR)
+        if core is not None and hasattr(core, "_rebuild_servos"):
+            core._rebuild_servos()
+    except Exception as e:
+        logger.debug("core rebuild after config reload: %s", e)
     return SERVO_CONFIG
 
 
 SERVO_CONFIG = _load_servo_config()
+
 
 def _servo_by_key(key):
     if not SERVO_CONFIG:
@@ -114,6 +123,160 @@ def _servo_by_key(key):
         if s.get('key') == key:
             return s
     return None
+
+
+def _pin_conflicts(cfg=None):
+    """Return list of {pin, keys} where more than one servo shares a Mega pin."""
+    cfg = cfg or SERVO_CONFIG or {}
+    by_pin = {}
+    for s in cfg.get("servos", []):
+        pin = int(s.get("pin", 0))
+        if pin < 2:
+            continue
+        by_pin.setdefault(pin, []).append(s.get("key"))
+    return [{"pin": p, "keys": keys} for p, keys in sorted(by_pin.items()) if len(keys) > 1]
+
+
+def _push_config_to_firmware(include_limits=True, include_pins=True):
+    """After USB connect (or pin save), push pins + limits so board matches software."""
+    result = {
+        "pins": [],
+        "limits": [],
+        "failed_pins": [],
+        "failed_limits": [],
+        "conflicts": [],
+        "ok": True,
+        "connected": serial_mgr.is_connected(),
+    }
+    if not serial_mgr.is_connected():
+        result["ok"] = False
+        result["error"] = "serial not connected"
+        return result
+
+    cfg = SERVO_CONFIG or _reload_servo_config() or {}
+    conflicts = _pin_conflicts(cfg)
+    result["conflicts"] = conflicts
+    if conflicts:
+        logger.warning("Pin conflicts before firmware sync: %s", conflicts)
+
+    # Pause POS spam interference: small gap, then ordered writes
+    # Heavy motors first (arms), then head/neck, hands, legs — reduces brownouts
+    order_groups = (
+        "leftArm",
+        "rightArm",
+        "head",
+        "neck",
+        "leftHand",
+        "rightHand",
+        "leftLeg",
+        "rightLeg",
+    )
+    servos_sorted = []
+    for g in order_groups:
+        servos_sorted.extend([s for s in cfg.get("servos", []) if s.get("group") == g])
+    # Any remaining
+    seen = {s.get("key") for s in servos_sorted}
+    servos_sorted.extend([s for s in cfg.get("servos", []) if s.get("key") not in seen])
+
+    for s in servos_sorted:
+        key = s.get("key")
+        sid = s.get("id")
+        if sid is None:
+            continue
+        if include_pins:
+            pin = int(s.get("pin", 0))
+            if 2 <= pin <= 53:
+                ok = serial_mgr.send_cmd(f"W,{sid},{pin}\n", drain=True)
+                if ok:
+                    result["pins"].append(key)
+                else:
+                    result["failed_pins"].append(key)
+                time.sleep(0.035)  # let detach/attach settle on Mega
+        if include_limits:
+            mn, mx, rs = int(s["min"]), int(s["max"]), int(s["rest"])
+            ok = serial_mgr.send_cmd(f"U,{sid},{mn},{mx},{rs}\n", drain=True)
+            if ok:
+                result["limits"].append(key)
+            else:
+                result["failed_limits"].append(key)
+            time.sleep(0.02)
+
+    # Enable all body groups + rest pose (weight-balanced rest in config)
+    serial_mgr.send_cmd("E,255\n", drain=True)
+    time.sleep(0.05)
+    # Soft rest — avoid slamming all heavy servos at once
+    serial_mgr.send_cmd("S\n", drain=True)
+
+    result["ok"] = not result["failed_pins"] and not result["failed_limits"]
+    logger.info(
+        "Firmware sync: pins ok=%s fail=%s limits ok=%s fail=%s conflicts=%s",
+        len(result["pins"]),
+        len(result["failed_pins"]),
+        len(result["limits"]),
+        len(result["failed_limits"]),
+        len(conflicts),
+    )
+    return result
+
+
+def _send_move_by_key(key, angle):
+    """
+    Move one servo by config key over serial.
+    Uses firmware M,<id>,<angle> when possible, else group packets.
+    """
+    s = _servo_by_key(key)
+    if not s:
+        return {"ok": False, "error": f"Unknown servo: {key}", "serial_sent": False}
+    angle = _clamp_servo_key(key, angle, s.get("rest", 90))
+    if not serial_mgr.is_connected():
+        return {
+            "ok": False,
+            "error": "USB not connected — open Studio → USB and Connect first",
+            "key": key,
+            "angle": angle,
+            "serial_sent": False,
+        }
+
+    # Warn if this pin is shared (often "sometimes works")
+    pin = int(s.get("pin", 0))
+    conflicts = [c for c in _pin_conflicts() if c["pin"] == pin]
+
+    sid = int(s["id"])
+    # Prefer single-index move (firmware 1.2.0+)
+    sent = serial_mgr.send_cmd(f"M,{sid},{int(angle)}\n", drain=True)
+    if not sent:
+        # Fallback group pack via core
+        try:
+            core = _get_inmoove_core()
+            sent = bool(core._send_key_angle(key, int(angle)))
+        except Exception as e:
+            logger.warning("move fallback: %s", e)
+            sent = False
+
+    # Keep core virtual position in sync
+    try:
+        core = _get_inmoove_core()
+        for vs in core.servos.values():
+            if vs.key == key:
+                vs.position = int(angle)
+                break
+    except Exception:
+        pass
+
+    warn = None
+    if conflicts:
+        warn = f"Pin {pin} is shared by {conflicts[0]['keys']} — moves may fight each other"
+
+    return {
+        "ok": sent,
+        "key": key,
+        "id": sid,
+        "pin": pin,
+        "angle": int(angle),
+        "serial_sent": sent,
+        "warning": warn,
+        "error": None if sent else "Serial write failed — reconnect USB",
+    }
 
 def _clamp_angle(val, lo=0, hi=180):
     try:
@@ -445,14 +608,24 @@ class SerialManager:
             time.sleep(0.8)
             return {"ok": True, "released": target, "hint": "Port handle released. Try Connect again."}
 
-    def send_cmd(self, cmd_str):
+    def send_cmd(self, cmd_str, drain=False, wait_ms=0):
+        """Write a command. If drain=True, clear input buffer first so POS spam doesn't fill it."""
         with serial_lock:
             if not self.is_connected():
                 logger.warning("Attempted to send command while disconnected")
                 return False
             try:
+                if not cmd_str.endswith("\n") and cmd_str not in ("?",):
+                    cmd_str = cmd_str + "\n"
+                if drain:
+                    try:
+                        self.conn.reset_input_buffer()
+                    except Exception:
+                        pass
                 self.conn.write(cmd_str.encode("utf-8"))
                 self.conn.flush()
+                if wait_ms > 0:
+                    time.sleep(wait_ms / 1000.0)
                 return True
             except Exception as e:
                 logger.error("Failed to write to serial port %s: %s", self.port, e)
@@ -777,12 +950,23 @@ def connect_port():
     data = request.get_json() or {}
     port = (data.get('port') or '').strip()
     force = bool(data.get('force', True))
+    sync = bool(data.get('sync', True))
     if not port:
         return jsonify({"ok": False, "error": "No port specified"}), 400
 
     try:
         serial_mgr.connect(port, force=force)
-        return jsonify({"ok": True, "port": port, "connected": True})
+        sync_result = None
+        if sync:
+            # Push pin map + limits so board matches software (critical after pin edits)
+            time.sleep(0.2)
+            sync_result = _push_config_to_firmware(include_pins=True, include_limits=True)
+        return jsonify({
+            "ok": True,
+            "port": port,
+            "connected": True,
+            "firmware_sync": sync_result,
+        })
     except Exception as e:
         err = serial_mgr.last_error or _friendly_serial_error(port, e)
         logger.error("Connect API failed: %s", err)
@@ -1075,37 +1259,97 @@ def servo_pins():
     _reload_servo_config()
 
     sent = []
-    if serial_mgr.is_connected() and data.get('applyToFirmware', True):
+    connected = serial_mgr.is_connected()
+    if connected and data.get('applyToFirmware', True):
         for s in SERVO_CONFIG.get('servos', []):
             key = s.get('key')
             if key in cleaned:
                 cmd = f"W,{s['id']},{cleaned[key]}\n"
                 if serial_mgr.send_cmd(cmd):
                     sent.append(key)
+                time.sleep(0.02)
 
-    return jsonify({"ok": True, "pins": cleaned, "firmware_applied": sent})
+    return jsonify({
+        "ok": True,
+        "pins": cleaned,
+        "firmware_applied": sent,
+        "serial_connected": connected,
+        "warning": None if connected else "Pins saved to disk only — connect USB to apply to Arduino",
+    })
 
 
 @app.route('/api/servo/pin', methods=['POST'])
 def set_servo_pin():
     data = request.get_json() or {}
     key = (data.get('key') or '').strip()
-    pin = int(data.get('pin', 0))
-    servo = _servo_by_key(key)
-    if not servo:
-        return jsonify({"ok": False, "error": f"Unknown servo: {key}"}), 400
+    try:
+        pin = int(data.get('pin', 0))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "pin must be a number"}), 400
+
     if pin < 2 or pin > 53:
         return jsonify({"ok": False, "error": "Pin must be 2–53"}), 400
 
+    # Save override first, then reload so id/pin match
     overrides = _read_json(PIN_OVERRIDES_PATH, {})
     overrides[key] = pin
     _write_json(PIN_OVERRIDES_PATH, overrides)
     _reload_servo_config()
 
+    servo = _servo_by_key(key)
+    if not servo:
+        return jsonify({"ok": False, "error": f"Unknown servo: {key}"}), 400
+
+    connected = serial_mgr.is_connected()
+    # Conflict check (same Mega pin used by multiple servos)
+    conflicts = [c for c in _pin_conflicts() if c["pin"] == pin]
+    conflict_keys = conflicts[0]["keys"] if conflicts else []
+
     sent = False
-    if serial_mgr.is_connected():
-        sent = serial_mgr.send_cmd(f"W,{servo['id']},{pin}\n")
-    return jsonify({"ok": True, "key": key, "pin": pin, "serial_sent": sent})
+    tested = False
+    if connected:
+        # Re-bind index → physical pin on firmware (drain POS spam first)
+        sent = serial_mgr.send_cmd(f"W,{servo['id']},{pin}\n", drain=True, wait_ms=40)
+        time.sleep(0.08)
+        # Nudge rest angle so user sees the motor respond (proves pin wiring)
+        if sent and data.get('test', True):
+            rest = int(servo.get('rest', 90))
+            # Small wiggle: rest → rest+5 (clamped) → rest — proves life without crash
+            mid = max(int(servo['min']), min(int(servo['max']), rest + 8))
+            tested = serial_mgr.send_cmd(f"M,{servo['id']},{mid}\n", drain=True, wait_ms=30)
+            time.sleep(0.18)
+            serial_mgr.send_cmd(f"M,{servo['id']},{rest}\n", drain=True, wait_ms=20)
+            if not tested:
+                r = _send_move_by_key(key, rest)
+                tested = bool(r.get("serial_sent"))
+    else:
+        return jsonify({
+            "ok": False,
+            "error": "USB not connected — connect Arduino first, then set pin",
+            "key": key,
+            "pin": pin,
+            "serial_sent": False,
+            "saved": True,
+            "conflicts": conflict_keys,
+            "hint": "Pin was saved to pin_overrides.json; connect USB and Apply again to program the board",
+        }), 400
+
+    warn = None
+    if conflict_keys and len(conflict_keys) > 1:
+        warn = f"Pin {pin} is also used by {conflict_keys} — reassign duplicates or motors will fight"
+
+    return jsonify({
+        "ok": bool(sent),
+        "key": key,
+        "id": servo["id"],
+        "pin": pin,
+        "serial_sent": sent,
+        "test_sent": tested,
+        "serial_connected": connected,
+        "conflicts": conflict_keys,
+        "warning": warn,
+        "error": None if sent else "Failed to send W command — reconnect USB",
+    })
 
 
 @app.route('/api/servo/calibration', methods=['GET', 'POST'])
@@ -1209,58 +1453,18 @@ def servo_move_by_key():
     key = (data.get('key') or '').strip()
     if not key:
         return jsonify({"ok": False, "error": "key required"}), 400
-    angle = _clamp_servo_key(key, data.get('angle', 90), 90)
+    result = _send_move_by_key(key, data.get('angle', 90))
+    status = 200 if result.get("ok") else 400
+    return jsonify(result), status
 
-    # Prefer native core (updates virtual state + serial pack)
-    try:
-        core = _get_inmoove_core()
-        # Find any virtual servo with this key
-        svc = None
-        for s in core.servos.values():
-            if s.key == key:
-                svc = s.service
-                break
-        if svc:
-            result = core.call(svc, 'moveTo', [str(angle)])
-            return jsonify({
-                "ok": bool(result.get('ok', True)),
-                "key": key,
-                "angle": angle,
-                "service": svc,
-                "serial_sent": True,
-            })
-        # Fallback: direct group pack via core helper
-        if core._send_key_angle(key, angle):
-            return jsonify({"ok": True, "key": key, "angle": angle, "serial_sent": True})
-    except Exception as e:
-        logger.warning("servo_move core path: %s", e)
 
-    # Last resort: build group packet from live config rests
-    sent = False
-    if serial_mgr.is_connected():
-        groups = {
-            'head': (['head_neck', 'head_eye', 'head_jaw'], 'H'),
-            'neck': (['neck_rot', 'neck_tilt', 'neck_roll'], 'N'),
-            'l_arm': (['l_shoulder', 'l_lift', 'l_rotate', 'l_elbow', 'l_wrist'], 'LA'),
-            'r_arm': (['r_shoulder', 'r_lift', 'r_rotate', 'r_elbow', 'r_wrist'], 'RA'),
-            'l_hand': (['l_thumb', 'l_index', 'l_middle', 'l_ring', 'l_pinky'], 'LH'),
-            'r_hand': (['r_thumb', 'r_index', 'r_middle', 'r_ring', 'r_pinky'], 'RH'),
-            'l_leg': (['l_hip', 'l_thigh', 'l_knee', 'l_ankle', 'l_foot'], 'LL'),
-            'r_leg': (['r_hip', 'r_thigh', 'r_knee', 'r_ankle', 'r_foot'], 'RL'),
-        }
-        for keys, prefix in groups.values():
-            if key in keys:
-                vals = []
-                for k in keys:
-                    if k == key:
-                        vals.append(angle)
-                    else:
-                        s = _servo_by_key(k)
-                        vals.append(int(s['rest']) if s else 90)
-                cmd = f"{prefix},{','.join(str(v) for v in vals)}\n"
-                sent = serial_mgr.send_cmd(cmd)
-                break
-    return jsonify({"ok": True, "key": key, "angle": angle, "serial_sent": sent})
+@app.route('/api/servo/sync-firmware', methods=['POST'])
+def sync_firmware_config():
+    """Push all pins + limits to Arduino (call after connect or pin edits)."""
+    if not serial_mgr.is_connected():
+        return jsonify({"ok": False, "error": "USB not connected"}), 400
+    result = _push_config_to_firmware(include_pins=True, include_limits=True)
+    return jsonify(result)
 
 
 @app.route('/api/servo/grip', methods=['POST'])

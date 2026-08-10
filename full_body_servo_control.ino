@@ -130,12 +130,33 @@ void applyGrip(char side, int pct) {
 
 void attachServo(int i) {
   if (i >= ACTIVE_SERVOS) return;
+  if (pins[i] < 2 || pins[i] > 53) return;
   // Wider pulse range helps MG996R / DS5160 travel
   servos[i].attach(pins[i], 500, 2500);
 }
 
 void detachServo(int i) {
-  if (i < ACTIVE_SERVOS) servos[i].detach();
+  if (i < ACTIVE_SERVOS && servos[i].attached()) {
+    servos[i].detach();
+  }
+}
+
+// Safe pin rebind — detaches any other servo already on that pin (prevents "sometimes works")
+void rebindPin(int idx, int pin) {
+  if (idx < 0 || idx >= ACTIVE_SERVOS) return;
+  if (pin < 2 || pin > 53) return;
+  for (int i = 0; i < ACTIVE_SERVOS; i++) {
+    if (i != idx && pins[i] == (uint8_t)pin && servos[i].attached()) {
+      detachServo(i);
+    }
+  }
+  detachServo(idx);
+  delay(25);
+  pins[idx] = (uint8_t)pin;
+  delay(10);
+  attachServo(idx);
+  delay(15);
+  writeServoHw(idx, (int)round(current[idx]));
 }
 
 void setTarget(int idx, int v) {
@@ -155,12 +176,27 @@ void writeServoHw(int idx, int logicalAngle) {
 }
 
 void centerAllNow() {
+  // Weight-aware rest: ease targets toward rest (don't hard-slam all heavy arms at once)
   patternActive = false;
+  // Phase 1: set targets only (motion loop eases there)
   for (int i = 0; i < ACTIVE_SERVOS; i++) {
-    int r = readRest(i);
-    targets[i] = r;
-    current[i] = r;
-    writeServoHw(i, r);
+    targets[i] = readRest(i);
+  }
+  // Phase 2: stagger immediate write for light groups first, heavy arms last
+  // head/neck (0-5), hands (16-25), legs (26-35), arms (6-15)
+  const int order[] = {
+    0,1,2,3,4,5,
+    16,17,18,19,20,21,22,23,24,25,
+    26,27,28,29,30,31,32,33,34,35,
+    6,7,8,9,10,11,12,13,14,15
+  };
+  for (unsigned k = 0; k < sizeof(order)/sizeof(order[0]); k++) {
+    int i = order[k];
+    if (i >= ACTIVE_SERVOS) continue;
+    current[i] = readRest(i);
+    writeServoHw(i, readRest(i));
+    if (i >= 6 && i <= 15) delay(8);  // heavy DS5160 spacing
+    else delay(2);
   }
 }
 
@@ -409,14 +445,13 @@ void loop() {
       int idx = -1, pin = -1;
       if (sscanf(args.c_str(), ",%d,%d", &idx, &pin) == 2) {
         if (idx >= 0 && idx < ACTIVE_SERVOS && pin >= 2 && pin <= 53) {
-          detachServo(idx);
-          pins[idx] = (uint8_t)pin;
-          attachServo(idx);
-          writeServoHw(idx, (int)round(current[idx]));
+          rebindPin(idx, pin);
           Serial.print(F("PIN_SET,"));
           Serial.print(idx);
           Serial.print(F(","));
           Serial.println(pin);
+        } else {
+          Serial.println(F("PIN_ERR"));
         }
       }
     } else if (cmd == 'U') {

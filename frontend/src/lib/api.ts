@@ -256,11 +256,11 @@ export async function saveServoPins(pins: Record<string, number>, applyToFirmwar
   return res.json();
 }
 
-export async function setServoPin(key: string, pin: number) {
+export async function setServoPin(key: string, pin: number, test = true) {
   const res = await fetch('/api/servo/pin', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ key, pin }),
+    body: JSON.stringify({ key, pin, test }),
   });
   return res.json();
 }
@@ -272,6 +272,12 @@ export async function moveServoByKey(key: string, angle: number) {
     headers: JSON_HEADERS,
     body: JSON.stringify({ key, angle }),
   });
+  return res.json();
+}
+
+/** Push full pin map + limits to Arduino after connect */
+export async function syncFirmwareConfig() {
+  const res = await fetch('/api/servo/sync-firmware', { method: 'POST' });
   return res.json();
 }
 
