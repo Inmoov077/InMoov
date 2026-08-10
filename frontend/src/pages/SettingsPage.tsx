@@ -1,9 +1,9 @@
-﻿/** Settings: serial port, pins, limits. D455 presence is configured on Vision. */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Cpu, Info, Pin, RefreshCw, Settings2 } from 'lucide-react';
+import { Crosshair, Info, Pin, RefreshCw, Settings2, Usb } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ConnectionPanel } from '@/components/servo/ConnectionPanel';
+import { PinMapPanel } from '@/components/control/PinMapPanel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -29,14 +29,16 @@ const AXES: { key: Axis; label: string }[] = [
 
 export function SettingsPage() {
   const limits = useServoStore((s) => s.limits);
+  const connected = useServoStore((s) => s.connected);
+  const port = useServoStore((s) => s.port);
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [section, setSection] = useState<'connect' | 'pins' | 'neck'>('connect');
 
   const loadConfig = async () => {
     setLoading(true);
     try {
-      const data = await api.getConfig();
-      setConfig(data);
+      setConfig(await api.getConfig());
     } catch {
       setConfig(null);
     } finally {
@@ -45,7 +47,7 @@ export function SettingsPage() {
   };
 
   useEffect(() => {
-    loadConfig();
+    void loadConfig();
   }, []);
 
   const updateLimit = (axis: Axis, field: 'min' | 'max', value: number) => {
@@ -58,130 +60,148 @@ export function SettingsPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title="Settings"
-        description="Connect your Arduino, check system info, and adjust neck safety limits."
+        description="USB · pin map · neck safety · system info"
         actions={
-          <Button variant="outline" size="sm" onClick={loadConfig} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => void loadConfig()} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button size="sm" asChild>
+              <Link to="/control">Open Control</Link>
+            </Button>
+          </div>
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ConnectionPanel />
+      <div className="flex flex-wrap gap-1.5">
+        {(
+          [
+            { id: 'connect' as const, label: 'USB', icon: Usb },
+            { id: 'pins' as const, label: 'Pins', icon: Pin },
+            { id: 'neck' as const, label: 'Neck limits', icon: Settings2 },
+          ] as const
+        ).map((s) => (
+          <Button
+            key={s.id}
+            size="sm"
+            variant={section === s.id ? 'default' : 'outline'}
+            onClick={() => setSection(s.id)}
+          >
+            <s.icon className="h-4 w-4" />
+            {s.label}
+          </Button>
+        ))}
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/control?panel=test">
+            <Crosshair className="h-4 w-4" /> 1:1 Test
+          </Link>
+        </Button>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/calibration">Full calibration lab</Link>
+        </Button>
+      </div>
 
+      {section === 'connect' && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ConnectionPanel />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Info className="h-4 w-4 text-primary" /> System
+              </CardTitle>
+              <CardDescription>Firmware & AI config</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">USB</span>
+                <Badge variant={connected ? 'online' : 'offline'}>
+                  {connected ? port ?? 'On' : 'Off'}
+                </Badge>
+              </div>
+              <Separator />
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">App</span>
+                <span className="font-medium">{config?.app_name ?? 'InMoove'}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Firmware</span>
+                <span className="font-mono text-xs">{config?.firmware ?? 'full_body_servo_control'}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Baud</span>
+                <span className="font-mono">{config?.baud_rate ?? 9600}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted-foreground">Gemini</span>
+                <Badge variant={config?.gemini_configured ? 'online' : 'offline'}>
+                  {config?.gemini_configured ? 'Configured' : 'Not set'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {section === 'pins' && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Pin className="h-4 w-4 text-primary" />
-              Pin & Motor Calibration
-            </CardTitle>
-            <CardDescription>VDB hardware-tested limits + editable pin map</CardDescription>
+            <CardTitle className="text-base">Pin map</CardTitle>
+            <CardDescription>Every servo → Mega pin. Save applies to firmware when connected.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/calibration">Open Calibration Page</Link>
-            </Button>
+            <PinMapPanel />
           </CardContent>
         </Card>
+      )}
 
+      {section === 'neck' && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings2 className="h-4 w-4 text-primary" />
-              Neck Limits
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Settings2 className="h-4 w-4 text-primary" /> Neck software limits
             </CardTitle>
-            <CardDescription>Global software limits stored in servo state</CardDescription>
+            <CardDescription>UI clamps for rotation / tilt / roll (session store)</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {AXES.map((axis) => (
-              <div key={axis.key} className="space-y-2 rounded-lg border border-border/60 p-3">
-                <div className="flex items-center justify-between">
+              <div key={axis.key} className="space-y-2">
+                <div className="flex justify-between text-sm">
                   <Label>{axis.label}</Label>
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    {limits[axis.key].min}Â° â€“ {limits[axis.key].max}Â°
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {limits[axis.key].min}° – {limits[axis.key].max}°
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Slider
-                    accent="signal"
-                    min={0}
-                    max={180}
-                    value={[limits[axis.key].min]}
-                    onValueChange={([v]) => updateLimit(axis.key, 'min', v)}
-                  />
-                  <Slider
-                    accent="copper"
-                    min={0}
-                    max={180}
-                    value={[limits[axis.key].max]}
-                    onValueChange={([v]) => updateLimit(axis.key, 'max', v)}
-                  />
+                  <div>
+                    <p className="mb-1 text-[10px] text-muted-foreground">Min</p>
+                    <Slider
+                      value={[limits[axis.key].min]}
+                      min={0}
+                      max={180}
+                      step={1}
+                      onValueChange={([v]) => updateLimit(axis.key, 'min', v)}
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[10px] text-muted-foreground">Max</p>
+                    <Slider
+                      value={[limits[axis.key].max]}
+                      min={0}
+                      max={180}
+                      step={1}
+                      onValueChange={([v]) => updateLimit(axis.key, 'max', v)}
+                    />
+                  </div>
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-accent" />
-              System Information
-            </CardTitle>
-            <CardDescription>From api.getConfig()</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {config ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <InfoItem label="Application" value={config.app_name ?? 'â€”'} />
-                <InfoItem label="Firmware" value={config.firmware ?? 'â€”'} />
-                <InfoItem label="Baud Rate" value={String(config.baud_rate ?? 'â€”')} />
-                <div className="panel-inset p-4">
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                    Gemini API
-                  </p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <Badge variant={config.gemini_configured ? 'online' : 'offline'}>
-                      {config.gemini_configured ? 'Configured' : 'Not Set'}
-                    </Badge>
-                  </div>
-                  {config.gemini_api_key && (
-                    <p className="mt-2 font-mono text-xs text-muted-foreground">
-                      Key: {config.gemini_api_key.slice(0, 8)}â€¦
-                    </p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Unable to load config â€” ensure Flask backend is running on port 5000.
-              </p>
-            )}
-
-            <Separator className="my-4" />
-
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Cpu className="h-4 w-4" />
-              <span>InMoov Control Center Â· React + Vite frontend Â· Zustand servo store</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="panel-inset p-4">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 font-display text-sm font-semibold">{value}</p>
+      )}
     </div>
   );
 }

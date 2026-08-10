@@ -13,7 +13,7 @@ interface StudioShellProps {
   showGallery?: boolean;
 }
 
-/** Sticky preview + dense control panel — minimal chrome, less scroll. */
+/** Sticky preview + dense control panel — single InMoov studio workspace. */
 export function StudioShell({
   title,
   description,
@@ -26,7 +26,7 @@ export function StudioShell({
 }: StudioShellProps) {
   return (
     <div className={cn('studio-shell', className)}>
-      <aside className="studio-preview" aria-label="3D robot preview">
+      <aside className="studio-preview" aria-label="Robot preview">
         <div className="studio-preview-frame">
           {preview ?? <RobotViewer className="h-full w-full" showGallery={showGallery} />}
         </div>
@@ -38,7 +38,7 @@ export function StudioShell({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h1 className="font-display text-lg font-semibold tracking-tight md:text-xl">{title}</h1>
               {description && (
-                <span className="hidden text-xs text-muted-foreground sm:inline">{description}</span>
+                <span className="hidden text-xs text-muted-foreground lg:inline">{description}</span>
               )}
             </div>
           </div>

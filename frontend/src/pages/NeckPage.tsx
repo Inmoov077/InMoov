@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 
-/** Neck controls live in the unified Control studio. */
+/** Neck controls live in Studio → Pose → Neck. */
 export function NeckPage() {
-  return <Navigate to="/control?tab=neck" replace />;
+  return <Navigate to="/control?pose=neck" replace />;
 }

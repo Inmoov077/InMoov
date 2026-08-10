@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import * as api from '@/lib/api';
 import {
-  ARM_JOINT_META,
-  DEFAULT_ARM,
   DEFAULT_HAND,
   DEFAULT_LEG,
   HAND_JOINT_META,
@@ -12,6 +10,7 @@ import {
   type HandJoints,
   type LegJoints,
 } from '@/lib/bodyConfig';
+import { getSafeArmRest, sanitizeArm } from '@/lib/armSafety';
 import { notifyRobotPreview } from '@/lib/robotPreviewBridge';
 import { clamp } from '@/lib/utils';
 import { useServoStore } from '@/store/servoStore';
@@ -41,7 +40,8 @@ interface BodyState {
 }
 
 let bodyThrottle: ReturnType<typeof setTimeout> | null = null;
-const BODY_THROTTLE_MS = 80;
+/** Snappier real-time arm/hand/leg control while keeping serial traffic stable. */
+const BODY_THROTTLE_MS = 45;
 
 function scheduleBodySend(fn: () => void) {
   if (bodyThrottle) clearTimeout(bodyThrottle);
@@ -56,8 +56,8 @@ function logBody(type: 'send' | 'error', msg: string) {
 }
 
 export const useBodyStore = create<BodyState>((set, get) => ({
-  leftArm: { ...DEFAULT_ARM },
-  rightArm: { ...DEFAULT_ARM },
+  leftArm: getSafeArmRest('left'),
+  rightArm: getSafeArmRest('right'),
   leftHand: { ...DEFAULT_HAND },
   rightHand: { ...DEFAULT_HAND },
   leftLeg: { ...DEFAULT_LEG },
@@ -65,9 +65,11 @@ export const useBodyStore = create<BodyState>((set, get) => ({
 
   setArmJoint: (side, joint, value, send = true) => {
     const key = side === 'left' ? 'leftArm' : 'rightArm';
-    const meta = ARM_JOINT_META.find((m) => m.key === joint);
-    const v = clamp(Number(value), meta?.min ?? 0, meta?.max ?? 180);
-    set((s) => ({ [key]: { ...s[key], [joint]: v } }));
+    set((s) => {
+      // Full-arm sanitize: hard walls + anti-overlap (may ease sibling joints)
+      const next = sanitizeArm(side, { ...s[key], [joint]: value }, s[key]);
+      return { [key]: next };
+    });
     notifyRobotPreview();
     if (send && useServoStore.getState().connected) {
       scheduleBodySend(() => get().sendArm(side));
@@ -98,7 +100,7 @@ export const useBodyStore = create<BodyState>((set, get) => ({
 
   setArm: (side, values, send = true) => {
     const key = side === 'left' ? 'leftArm' : 'rightArm';
-    set((s) => ({ [key]: { ...s[key], ...values } }));
+    set((s) => ({ [key]: sanitizeArm(side, { ...s[key], ...values }, s[key]) }));
     notifyRobotPreview();
     if (send && useServoStore.getState().connected) get().sendArm(side);
   },
@@ -118,7 +120,7 @@ export const useBodyStore = create<BodyState>((set, get) => ({
   },
 
   centerArms: () => {
-    set({ leftArm: { ...DEFAULT_ARM }, rightArm: { ...DEFAULT_ARM } });
+    set({ leftArm: getSafeArmRest('left'), rightArm: getSafeArmRest('right') });
     notifyRobotPreview();
     if (useServoStore.getState().connected) {
       get().sendArm('left');
@@ -151,7 +153,10 @@ export const useBodyStore = create<BodyState>((set, get) => ({
   },
 
   sendArm: async (side) => {
-    const arm = side === 'left' ? get().leftArm : get().rightArm;
+    // Final safety pass before serial — never send out-of-range or overlapping pose
+    const arm = sanitizeArm(side, side === 'left' ? get().leftArm : get().rightArm);
+    const storeKey = side === 'left' ? 'leftArm' : 'rightArm';
+    set({ [storeKey]: arm });
     const res = await api.sendArm(side, arm);
     if (res.ok && useServoStore.getState().connected) {
       const prefix = side === 'left' ? 'LA' : 'RA';
@@ -179,9 +184,12 @@ export const useBodyStore = create<BodyState>((set, get) => ({
 
   sendFullBody: async () => {
     const s = get();
+    const leftArm = sanitizeArm('left', s.leftArm);
+    const rightArm = sanitizeArm('right', s.rightArm);
+    set({ leftArm, rightArm });
     const res = await api.sendFullBody({
-      leftArm: s.leftArm,
-      rightArm: s.rightArm,
+      leftArm,
+      rightArm,
       leftHand: s.leftHand,
       rightHand: s.rightHand,
       leftLeg: s.leftLeg,

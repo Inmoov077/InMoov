@@ -1,31 +1,41 @@
 // ============================================================
 // InMoov — FULL BODY Servo Controller (Arduino Mega 2560)
+// Firmware 1.2.0 — synced with shared/servo_config.json
 // ============================================================
-// Single firmware for head+body. Pin map, limits, rest poses, and
-// built-in patterns come from servo_config.h (generated from MRL 1.1.1610).
+// Pin map, min/max/rest, ease, invert flags → servo_config.h
+// Regenerate header:
+//   python scripts/generate_servo_config_h.py
 //
 // Uncomment for head-only (6 servos) on Arduino Uno:
 // #define HEAD_ONLY
 //
+// Host (Python app) already applies arm HW inversion before LA/RA.
+// Leave APPLY_HW_INVERT undefined to avoid double-invert.
+// Uncomment only if sending logical angles from a raw serial tool:
+// #define APPLY_HW_INVERT
+//
 // Serial protocol (9600 baud):
-//   ?                         Handshake → ARDUINO_OK / FULL_BODY_READY
-//   H,<neck>,<eye>,<jaw>      Head servos
-//   N,<rot>,<tilt>,<roll>     Neck servos
-//   C,<6 values>              Combined head+neck
-//   LA/RA/LH/RH/LL/RL,<5>     Body groups
-//   G,<pattern>               Run built-in pattern (nod, shake, yes, no, bow, relax)
-//   X                         Abort running pattern
-//   W,<idx>,<pin>             Reassign servo pin at runtime (0–35, pin 2–53)
-//   U,<idx>,<min>,<max>,<rest> Update servo limits at runtime
-//   K,<side>,<pct>            Grip fingers — side R/L/B, pct 0–100
-//   E,<mask>                  Enable body groups (bitmask, default 255=all)
-//   D                         Dump pin/limit/rest config
-//   R                         Read all current positions
-//   S                         Emergency stop — center all
+//   ?                            Handshake → ARDUINO_OK / FULL_BODY_READY / VER,1.2.0
+//   H,<neck>,<eye>,<jaw>         Head servos (idx 0-2)
+//   N,<rot>,<tilt>,<roll>        Neck servos (idx 3-5)
+//   C,<6 values>                 Combined head+neck
+//   LA/RA/LH/RH/LL/RL,<5>        Body groups (5 DOF each)
+//   M,<idx>,<angle>              Single servo by index (0-35) — 1:1 test
+//   G,<pattern>                  nod|shake|yes|no|bow|relax
+//   X                            Abort running pattern
+//   W,<idx>,<pin>                Reassign pin (idx 0-35, pin 2-53)
+//   U,<idx>,<min>,<max>,<rest>   Update limits at runtime
+//   K,<side>,<pct>               Grip fingers — side R/L/B, pct 0-100
+//   E,<mask>                     Enable body groups bitmask (255=all)
+//   D                            Dump pin/limit/rest/invert config
+//   R                            Read positions (HEAD/NECK/BODY)
+//   S                            Emergency stop — rest all
+//   V                            Print firmware version
 // ============================================================
 
 #include <Servo.h>
 #include <avr/pgmspace.h>
+#include <math.h>
 #include "servo_config.h"
 
 #ifndef HEAD_ONLY
@@ -39,13 +49,14 @@ uint8_t pins[SERVO_COUNT];
 uint8_t limMin[SERVO_COUNT];
 uint8_t limMax[SERVO_COUNT];
 uint8_t limRest[SERVO_COUNT];
+uint8_t limInvert[SERVO_COUNT];
 byte enableMask = 0xFF;
 int targets[SERVO_COUNT];
 float current[SERVO_COUNT];
 
-const float DEAD_ZONE = 0.3;
+const float DEAD_ZONE = 0.25f;
 unsigned long lastUpdate = 0;
-const unsigned long UPDATE_MS = 15;
+const unsigned long UPDATE_MS = 12;   // smoother motion loop
 unsigned long lastFeedback = 0;
 const unsigned long FEEDBACK_MS = 500;
 
@@ -64,27 +75,49 @@ uint8_t readPin(int i) { return pins[i]; }
 uint8_t readMin(int i) { return limMin[i]; }
 uint8_t readMax(int i) { return limMax[i]; }
 uint8_t readRest(int i) { return limRest[i]; }
+uint8_t readInvert(int i) { return limInvert[i]; }
 uint8_t readEaseByte(int i) { return pgm_read_byte(&SERVO_EASE[i]); }
 float readEase(int i) { return readEaseByte(i) / 255.0f; }
 
+// Map logical UI angle → hardware write angle (optional)
+int toHwAngle(int idx, int logical) {
+#ifdef APPLY_HW_INVERT
+  if (readInvert(idx)) {
+    return (int)readMin(idx) + (int)readMax(idx) - logical;
+  }
+#endif
+  return logical;
+}
+
+// Map hardware → logical (for reporting when invert enabled)
+int toLogicalAngle(int idx, int hw) {
+#ifdef APPLY_HW_INVERT
+  if (readInvert(idx)) {
+    return (int)readMin(idx) + (int)readMax(idx) - hw;
+  }
+#endif
+  return hw;
+}
+
 bool isGroupEnabled(int idx) {
-  if (idx < 3)  return enableMask & 0x01;
-  if (idx < 6)  return enableMask & 0x02;
-  if (idx < 11) return enableMask & 0x04;
-  if (idx < 16) return enableMask & 0x08;
-  if (idx < 21) return enableMask & 0x10;
-  if (idx < 26) return enableMask & 0x20;
-  if (idx < 31) return enableMask & 0x40;
-  return enableMask & 0x80;
+  if (idx < 3)  return enableMask & 0x01;  // head
+  if (idx < 6)  return enableMask & 0x02;  // neck
+  if (idx < 11) return enableMask & 0x04;  // left arm
+  if (idx < 16) return enableMask & 0x08;  // right arm
+  if (idx < 21) return enableMask & 0x10;  // left hand
+  if (idx < 26) return enableMask & 0x20;  // right hand
+  if (idx < 31) return enableMask & 0x40;  // left leg
+  return enableMask & 0x80;               // right leg
 }
 
 int clampServo(int idx, int v) {
-  return constrain(v, readMin(idx), readMax(idx));
+  return constrain(v, (int)readMin(idx), (int)readMax(idx));
 }
 
 void applyGrip(char side, int pct) {
   pct = constrain(pct, 0, 100);
   int start = -1, end = -1;
+  // Finger indices only (not wrists): L 16-20, R 21-25
   if (side == 'R' || side == 'r') { start = 21; end = 25; }
   else if (side == 'L' || side == 'l') { start = 16; end = 20; }
   else if (side == 'B' || side == 'b') { start = 16; end = 25; }
@@ -97,7 +130,8 @@ void applyGrip(char side, int pct) {
 
 void attachServo(int i) {
   if (i >= ACTIVE_SERVOS) return;
-  servos[i].attach(pins[i], 600, 2400);
+  // Wider pulse range helps MG996R / DS5160 travel
+  servos[i].attach(pins[i], 500, 2500);
 }
 
 void detachServo(int i) {
@@ -115,12 +149,18 @@ void setTargets(int start, int count, int vals[]) {
   }
 }
 
+void writeServoHw(int idx, int logicalAngle) {
+  int hw = clampServo(idx, toHwAngle(idx, logicalAngle));
+  servos[idx].write(hw);
+}
+
 void centerAllNow() {
   patternActive = false;
   for (int i = 0; i < ACTIVE_SERVOS; i++) {
-    targets[i] = readRest(i);
-    current[i] = readRest(i);
-    servos[i].write(readRest(i));
+    int r = readRest(i);
+    targets[i] = r;
+    current[i] = r;
+    writeServoHw(i, r);
   }
 }
 
@@ -207,6 +247,8 @@ void updatePattern() {
 
 void dumpConfig() {
   Serial.println(F("CFG_BEGIN"));
+  Serial.print(F("VER,"));
+  Serial.println(F(FIRMWARE_VERSION));
   for (int i = 0; i < ACTIVE_SERVOS; i++) {
     Serial.print(F("S,"));
     Serial.print(i);
@@ -217,7 +259,9 @@ void dumpConfig() {
     Serial.print(F(","));
     Serial.print(readMax(i));
     Serial.print(F(","));
-    Serial.println(readRest(i));
+    Serial.print(readRest(i));
+    Serial.print(F(","));
+    Serial.println(readInvert(i));
   }
   Serial.println(F("CFG_END"));
 }
@@ -241,6 +285,13 @@ void reportPositions() {
   }
 }
 
+void printVersion() {
+  Serial.print(F("VER,"));
+  Serial.println(F(FIRMWARE_VERSION));
+  Serial.print(F("SERVOS,"));
+  Serial.println(ACTIVE_SERVOS);
+}
+
 void setup() {
   Serial.begin(9600);
   Serial.setTimeout(50);
@@ -250,13 +301,17 @@ void setup() {
     limMin[i] = pgm_read_byte(&SERVO_MIN[i]);
     limMax[i] = pgm_read_byte(&SERVO_MAX[i]);
     limRest[i] = pgm_read_byte(&SERVO_REST[i]);
+    limInvert[i] = pgm_read_byte(&SERVO_INVERT[i]);
+    // Safety: rest always inside min/max
+    if (limRest[i] < limMin[i]) limRest[i] = limMin[i];
+    if (limRest[i] > limMax[i]) limRest[i] = limMax[i];
   }
 
   for (int i = 0; i < ACTIVE_SERVOS; i++) {
     attachServo(i);
     targets[i] = readRest(i);
     current[i] = readRest(i);
-    servos[i].write(readRest(i));
+    writeServoHw(i, readRest(i));
   }
 
   delay(500);
@@ -265,6 +320,7 @@ void setup() {
 #ifndef HEAD_ONLY
   Serial.println(F("FULL_BODY_READY"));
 #endif
+  printVersion();
 }
 
 void loop() {
@@ -279,6 +335,9 @@ void loop() {
 #else
       Serial.println(F("NECK_READY"));
 #endif
+      printVersion();
+    } else if (cmd == 'V' || cmd == 'v') {
+      printVersion();
     } else if (cmd == 'H') {
       patternActive = false;
       int n = readRest(0), e = readRest(1), j = readRest(2);
@@ -288,7 +347,7 @@ void loop() {
       }
     } else if (cmd == 'N') {
       patternActive = false;
-      int r = targets[3], t = targets[4], ro = targets[5];
+      int r = (int)targets[3], t = (int)targets[4], ro = (int)targets[5];
       if (sscanf(args.c_str(), ",%d,%d,%d", &r, &t, &ro) == 3) {
         int v[3] = { r, t, ro };
         setTargets(3, 3, v);
@@ -301,27 +360,44 @@ void loop() {
         setTargets(0, 6, vals);
       }
     } else if (cmd == 'L' || cmd == 'R') {
+      // LA / RA / LH / RH / LL / RL
       patternActive = false;
       if (args.length() >= 2 && args.charAt(1) == ',') {
         char sub = args.charAt(0);
         const char* csv = args.c_str() + 1;
 #ifndef HEAD_ONLY
-        if (cmd == 'L' && sub == 'A') parseFive(csv, 6);
-        else if (cmd == 'R' && sub == 'A') parseFive(csv, 11);
-        else if (cmd == 'L' && sub == 'H') parseFive(csv, 16);
-        else if (cmd == 'R' && sub == 'H') parseFive(csv, 21);
-        else if (cmd == 'L' && sub == 'L') parseFive(csv, 26);
-        else if (cmd == 'R' && sub == 'L') parseFive(csv, 31);
+        if (cmd == 'L' && sub == 'A') parseFive(csv, 6);   // left arm  6-10
+        else if (cmd == 'R' && sub == 'A') parseFive(csv, 11); // right arm 11-15
+        else if (cmd == 'L' && sub == 'H') parseFive(csv, 16); // left hand 16-20
+        else if (cmd == 'R' && sub == 'H') parseFive(csv, 21); // right hand 21-25
+        else if (cmd == 'L' && sub == 'L') parseFive(csv, 26); // left leg 26-30
+        else if (cmd == 'R' && sub == 'L') parseFive(csv, 31); // right leg 31-35
 #endif
+      }
+    } else if (cmd == 'M') {
+      // M,<idx>,<angle> — single-servo 1:1 move
+      patternActive = false;
+      int idx = -1, ang = 90;
+      if (sscanf(args.c_str(), ",%d,%d", &idx, &ang) == 2) {
+        if (idx >= 0 && idx < ACTIVE_SERVOS) {
+          setTarget(idx, ang);
+          Serial.print(F("MOVE,"));
+          Serial.print(idx);
+          Serial.print(F(","));
+          Serial.println(clampServo(idx, ang));
+        }
       }
     } else if (cmd == 'G') {
       args.trim();
       if (args.length() > 0) {
-        int idx = findPattern(args.c_str());
+        // strip leading comma if present
+        const char* name = args.c_str();
+        if (name[0] == ',') name++;
+        int idx = findPattern(name);
         if (idx >= 0) {
           startPattern((uint8_t)idx);
           Serial.print(F("PATTERN_START,"));
-          Serial.println(args);
+          Serial.println(name);
         } else {
           Serial.println(F("PATTERN_UNKNOWN"));
         }
@@ -336,6 +412,7 @@ void loop() {
           detachServo(idx);
           pins[idx] = (uint8_t)pin;
           attachServo(idx);
+          writeServoHw(idx, (int)round(current[idx]));
           Serial.print(F("PIN_SET,"));
           Serial.print(idx);
           Serial.print(F(","));
@@ -350,6 +427,7 @@ void loop() {
           limMax[idx] = (uint8_t)mx;
           if (rs >= mn && rs <= mx) limRest[idx] = (uint8_t)rs;
           targets[idx] = clampServo(idx, targets[idx]);
+          current[idx] = clampServo(idx, (int)round(current[idx]));
           Serial.print(F("LIMIT_SET,"));
           Serial.print(idx);
           Serial.print(F(","));
@@ -362,10 +440,20 @@ void loop() {
       }
     } else if (cmd == 'K') {
       args.trim();
+      // accept "K,R,80" or ",R,80"
       int c1 = args.indexOf(',');
-      if (c1 > 0) {
-        char side = args.charAt(0);
-        int pct = args.substring(c1 + 1).toInt();
+      char side = 0;
+      int pct = 0;
+      if (c1 == 0 && args.length() > 2) {
+        // ",R,80"
+        side = args.charAt(1);
+        int c2 = args.indexOf(',', 2);
+        if (c2 > 0) pct = args.substring(c2 + 1).toInt();
+      } else if (c1 > 0) {
+        side = args.charAt(0);
+        pct = args.substring(c1 + 1).toInt();
+      }
+      if (side) {
         applyGrip(side, pct);
         Serial.print(F("GRIP,"));
         Serial.print(side);
@@ -373,7 +461,11 @@ void loop() {
         Serial.println(pct);
       }
     } else if (cmd == 'E') {
-      int mask = args.toInt();
+      int mask = 255;
+      if (args.length() > 0) {
+        if (args.charAt(0) == ',') mask = args.substring(1).toInt();
+        else mask = args.toInt();
+      }
       enableMask = (byte)constrain(mask, 0, 255);
       Serial.print(F("ENABLE,"));
       Serial.println(enableMask);
@@ -394,10 +486,12 @@ void loop() {
     lastUpdate = now;
     for (int i = 0; i < ACTIVE_SERVOS; i++) {
       if (!isGroupEnabled(i)) continue;
-      float err = targets[i] - current[i];
-      if (abs(err) > DEAD_ZONE) current[i] += err * readEase(i);
-      current[i] = constrain(current[i], readMin(i), readMax(i));
-      servos[i].write(round(current[i]));
+      float err = (float)targets[i] - current[i];
+      if (fabs(err) > DEAD_ZONE) {
+        current[i] += err * readEase(i);
+      }
+      current[i] = constrain(current[i], (float)readMin(i), (float)readMax(i));
+      writeServoHw(i, (int)round(current[i]));
     }
   }
 

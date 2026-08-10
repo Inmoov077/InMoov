@@ -2,20 +2,42 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export async function getPorts() {
   const res = await fetch('/api/serial/ports');
-  return res.json();
+  return res.json() as Promise<{
+    ports: string[];
+    details?: {
+      device: string;
+      description: string;
+      manufacturer?: string;
+      likely_arduino?: boolean;
+      vid?: string;
+      pid?: string;
+    }[];
+    current?: string | null;
+    connected?: boolean;
+    last_error?: string | null;
+  }>;
 }
 
-export async function connectPort(port: string) {
+export async function connectPort(port: string, force = true) {
   const res = await fetch('/api/serial/connect', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ port }),
+    body: JSON.stringify({ port, force }),
   });
   return res.json();
 }
 
 export async function disconnectPort() {
   const res = await fetch('/api/serial/disconnect', { method: 'POST' });
+  return res.json();
+}
+
+export async function forceReleasePort(port?: string) {
+  const res = await fetch('/api/serial/force-release', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ port }),
+  });
   return res.json();
 }
 
@@ -239,6 +261,16 @@ export async function setServoPin(key: string, pin: number) {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({ key, pin }),
+  });
+  return res.json();
+}
+
+/** 1:1 move a single servo by config key */
+export async function moveServoByKey(key: string, angle: number) {
+  const res = await fetch('/api/servo/move', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ key, angle }),
   });
   return res.json();
 }

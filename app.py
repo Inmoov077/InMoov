@@ -54,7 +54,10 @@ def _write_json(path, data):
 
 
 def _load_servo_config():
-    """Load canonical servo map with user pin/calibration overrides applied."""
+    """Load canonical servo map with user pin/calibration overrides applied.
+
+    Calibration may only narrow limits (never expand beyond shared/servo_config.json).
+    """
     base = _read_json(SERVO_CONFIG_PATH)
     if not base:
         logger.warning("servo_config.json not found")
@@ -65,13 +68,29 @@ def _load_servo_config():
     for s in base.get('servos', []):
         entry = dict(s)
         key = entry.get('key')
+        # Factory walls from file — absolute maximum travel allowed
+        factory_min = int(entry.get('min', 0))
+        factory_max = int(entry.get('max', 180))
+        factory_rest = int(entry.get('rest', 90))
+        entry['factoryMin'] = factory_min
+        entry['factoryMax'] = factory_max
         if key in pin_ov:
             entry['pin'] = int(pin_ov[key])
             entry['pinOverride'] = True
         if key in cal_ov:
-            for field in ('min', 'max', 'rest'):
-                if field in cal_ov[key]:
-                    entry[field] = int(cal_ov[key][field])
+            ov = cal_ov[key] or {}
+            # Overrides can only tighten inside factory walls
+            mn = int(ov.get('min', factory_min))
+            mx = int(ov.get('max', factory_max))
+            rs = int(ov.get('rest', factory_rest))
+            mn = max(factory_min, min(factory_max, mn))
+            mx = max(factory_min, min(factory_max, mx))
+            if mn > mx:
+                mn, mx = factory_min, factory_max
+            rs = max(mn, min(mx, rs))
+            entry['min'] = mn
+            entry['max'] = mx
+            entry['rest'] = rs
             entry['calibrationSource'] = 'user'
         servos.append(entry)
     base['servos'] = servos
@@ -97,14 +116,190 @@ def _servo_by_key(key):
     return None
 
 def _clamp_angle(val, lo=0, hi=180):
-    return max(lo, min(hi, int(val)))
+    try:
+        n = int(val)
+    except (TypeError, ValueError):
+        n = lo
+    return max(lo, min(hi, n))
 
 
 def _clamp_servo_key(key, val, default=90):
     s = _servo_by_key(key)
     if s:
-        return max(s['min'], min(s['max'], int(val)))
+        try:
+            n = int(val)
+        except (TypeError, ValueError):
+            n = int(s.get('rest', default))
+        return max(int(s['min']), min(int(s['max']), n))
     return _clamp_angle(val)
+
+
+# Per-side arm joint keys in shared/servo_config.json
+_ARM_JOINT_KEYS = {
+    'left': {
+        'shoulder': 'l_shoulder',
+        'lift': 'l_lift',
+        'rotate': 'l_rotate',
+        'elbow': 'l_elbow',
+        'wrist': 'l_wrist',
+    },
+    'right': {
+        'shoulder': 'r_shoulder',
+        'lift': 'r_lift',
+        'rotate': 'r_rotate',
+        'elbow': 'r_elbow',
+        'wrist': 'r_wrist',
+    },
+}
+
+
+def _arm_hard_limits(side):
+    """Absolute min/max walls from servo config (never exceeded)."""
+    keys = _ARM_JOINT_KEYS.get(side, _ARM_JOINT_KEYS['left'])
+    out = {}
+    defaults = {
+        'shoulder': (30, 180, 30),
+        'lift': (10, 60 if side == 'left' else 65, 10),
+        'rotate': (40, 180, 90),
+        'elbow': (0, 80 if side == 'left' else 90, 5),
+        'wrist': (10, 160, 90),
+    }
+    for joint, key in keys.items():
+        s = _servo_by_key(key)
+        dmin, dmax, drest = defaults[joint]
+        if s:
+            out[joint] = {
+                'min': int(s.get('min', dmin)),
+                'max': int(s.get('max', dmax)),
+                'rest': int(s.get('rest', drest)),
+            }
+        else:
+            out[joint] = {'min': dmin, 'max': dmax, 'rest': drest}
+    return out
+
+
+def _safe_arm(side, data):
+    """
+    Hard-clamp arm angles to config limits, then apply anti-overlap coupling so
+    omoplate/bicep/rotate/shoulder cannot stack into a mechanical bind.
+    Returns dict shoulder/lift/rotate/elbow/wrist (ints).
+    """
+    hard = _arm_hard_limits(side)
+    data = data or {}
+
+    def hclamp(joint, val):
+        r = hard[joint]
+        try:
+            n = int(val)
+        except (TypeError, ValueError):
+            n = r['rest']
+        return max(r['min'], min(r['max'], n))
+
+    arm = {
+        'shoulder': hclamp('shoulder', data.get('shoulder', hard['shoulder']['rest'])),
+        'lift': hclamp('lift', data.get('lift', hard['lift']['rest'])),
+        'rotate': hclamp('rotate', data.get('rotate', hard['rotate']['rest'])),
+        'elbow': hclamp('elbow', data.get('elbow', hard['elbow']['rest'])),
+        'wrist': hclamp('wrist', data.get('wrist', hard['wrist']['rest'])),
+    }
+
+    for _ in range(4):
+        shoulder = arm['shoulder']
+        lift = arm['lift']
+        rotate = arm['rotate']
+        elbow = arm['elbow']
+
+        lift_max = hard['lift']['max']
+        elbow_max = hard['elbow']['max']
+        rotate_min = hard['rotate']['min']
+        rotate_max = hard['rotate']['max']
+        shoulder_max = hard['shoulder']['max']
+
+        # High elbow → cut omoplate (forearm into torso/shoulder cover)
+        elbow_over = max(0, elbow - 40)
+        lift_max = max(hard['lift']['min'] + 4, lift_max - int(round(elbow_over * 0.4)))
+
+        # High omoplate → cut elbow flex (bicep housing bind)
+        lift_over = max(0, lift - 32)
+        elbow_max = max(hard['elbow']['min'] + 4, elbow_max - int(round(lift_over * 0.7)))
+
+        # High shoulder → head/ear clearance
+        if shoulder > 125:
+            lift_max = max(hard['lift']['min'] + 4, lift_max - int(round((shoulder - 125) * 0.25)))
+
+        # High omoplate → slightly lower shoulder max
+        if lift > 45:
+            shoulder_max = max(hard['shoulder']['min'] + 20, shoulder_max - int(round((lift - 45) * 1.2)))
+
+        # Bent elbow → keep rotate nearer neutral (torso/hip clearance)
+        if elbow > 35:
+            shrink = int(round((elbow - 35) * 0.55))
+            rotate_min = min(rotate_max - 12, rotate_min + shrink)
+            rotate_max = max(rotate_min + 12, rotate_max - shrink)
+
+        # Arm at side → avoid extreme inward rotate into hip
+        if shoulder < 55:
+            shrink = int(round((55 - shoulder) * 0.45))
+            rotate_min = min(95, rotate_min + shrink)
+
+        # Raised + forward → keep rotate out of head zone
+        if lift > 42 and shoulder > 100:
+            rotate_min = max(rotate_min, 55)
+            rotate_max = min(rotate_max, 155)
+
+        # Extreme rotate → slightly limit elbow
+        rotate_edge = max(abs(rotate - 90) - 40, 0)
+        if rotate_edge > 0:
+            elbow_max = max(hard['elbow']['min'] + 4, elbow_max - int(round(rotate_edge * 0.25)))
+
+        nxt = {
+            'shoulder': max(hard['shoulder']['min'], min(shoulder_max, arm['shoulder'])),
+            'lift': max(hard['lift']['min'], min(lift_max, arm['lift'])),
+            'rotate': max(rotate_min, min(rotate_max, arm['rotate'])),
+            'elbow': max(hard['elbow']['min'], min(elbow_max, arm['elbow'])),
+            'wrist': arm['wrist'],
+        }
+        if nxt == arm:
+            break
+        arm = nxt
+
+    return arm
+
+
+# Hardware inversion (walkthrough): output = min + max - input.
+# All arm joints inverted except right omoplate (right lift).
+_ARM_INVERT = {
+    'left': {'shoulder': True, 'lift': True, 'rotate': True, 'elbow': True, 'wrist': True},
+    'right': {'shoulder': True, 'lift': False, 'rotate': True, 'elbow': True, 'wrist': True},
+}
+
+
+def _invert_joint_angle(angle: int, mn: int, mx: int) -> int:
+    """Mirror angle inside [mn, mx] without leaving the range."""
+    return int(mn) + int(mx) - int(angle)
+
+
+def _arm_to_hw(side: str, arm: dict) -> dict:
+    """Convert logical UI angles → hardware serial angles (with inversions)."""
+    hard = _arm_hard_limits(side)
+    inv = _ARM_INVERT.get(side, _ARM_INVERT['left'])
+    out = {}
+    for joint, value in arm.items():
+        r = hard.get(joint) or {'min': 0, 'max': 180}
+        mn, mx = int(r['min']), int(r['max'])
+        v = max(mn, min(mx, int(value)))
+        out[joint] = _invert_joint_angle(v, mn, mx) if inv.get(joint) else v
+    return out
+
+
+def _pack_arm_cmd(side: str, logical_arm: dict) -> tuple:
+    """Return (serial_cmd, logical_arm, hw_arm) for LA/RA packets."""
+    arm = _safe_arm(side, logical_arm)
+    hw = _arm_to_hw(side, arm)
+    prefix = 'LA' if side == 'left' else 'RA'
+    cmd = f"{prefix},{hw['shoulder']},{hw['lift']},{hw['rotate']},{hw['elbow']},{hw['wrist']}\n"
+    return cmd, arm, hw
+
 
 # Gemini API key — set via .env or GEMINI_API_KEY environment variable
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
@@ -114,36 +309,114 @@ app = Flask(__name__)
 # Thread-safety lock for serial port access
 serial_lock = threading.Lock()
 
+VALID_HANDSHAKE_TOKENS = (
+    "ARDUINO_OK",
+    "NECK_OK",
+    "NECK_READY",
+    "INMOOV_OK",
+    "FULL_BODY_READY",
+)
+
+
+def _friendly_serial_error(port_name: str, exc: Exception) -> str:
+    """Human-readable COM errors (Windows Access Denied is the common case)."""
+    msg = str(exc)
+    low = msg.lower()
+    if "access is denied" in low or "permissionerror" in low or "permission" in low:
+        return (
+            f"{port_name} is busy (Access denied). "
+            "Close Arduino IDE Serial Monitor, another Control Deck tab, PuTTY, or any app using this COM port. "
+            "Then click Disconnect → Force free → Connect again."
+        )
+    if "file not found" in low or "cannot find" in low or "no such file" in low:
+        return f"{port_name} not found — unplug/replug USB and Refresh ports."
+    if "semiconductor" in low or "device" in low and "refused" in low:
+        return f"{port_name} refused connection — try another USB cable/port."
+    return f"{port_name}: {msg}"
+
+
 # Global Serial Connection State
 class SerialManager:
     def __init__(self):
         self.conn = None
         self.port = None
+        self.last_error = None
 
     def is_connected(self):
-        return self.conn is not None and self.conn.is_open
+        try:
+            return self.conn is not None and getattr(self.conn, "is_open", False)
+        except Exception:
+            return False
 
-    def connect(self, port_name):
+    def _open_port(self, port_name: str, timeout: float = 1.0):
+        """Open COM with Windows-friendly flags (no RTS/DTR handshake spam)."""
+        return serial.Serial(
+            port=port_name,
+            baudrate=9600,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=timeout,
+            write_timeout=timeout,
+            xonxoff=False,
+            rtscts=False,
+            dsrdtr=False,
+        )
+
+    def connect(self, port_name: str, retries: int = 4, force: bool = True):
+        """
+        Connect with force-close + retries.
+        Windows often returns PermissionError(13) if the previous handle
+        was not released yet (or Arduino IDE holds the port).
+        """
+        port_name = (port_name or "").strip()
+        if not port_name:
+            raise ValueError("No port specified")
+
         with serial_lock:
-            if self.is_connected():
-                if self.port == port_name:
-                    logger.info(f"Already connected to {port_name}")
-                    return True
+            # Always release our own handle first
+            if force or self.is_connected():
                 self.disconnect_unsafe()
+                # Windows needs a beat before the same COM can reopen
+                time.sleep(0.45)
 
-            try:
-                logger.info(f"Connecting to port {port_name} at 9600 baud...")
-                self.conn = serial.Serial(port_name, 9600, timeout=1, write_timeout=1)
-                self.port = port_name
-                # Give Arduino time to reset after opening serial port
-                time.sleep(1.5)
-                logger.info(f"Successfully connected to {port_name}")
-                return True
-            except Exception as e:
-                logger.error(f"Failed to connect to {port_name}: {e}")
-                self.conn = None
-                self.port = None
-                raise e
+            last_err = None
+            for attempt in range(1, retries + 1):
+                try:
+                    logger.info("Connecting to %s @ 9600 (attempt %s/%s)...", port_name, attempt, retries)
+                    self.conn = self._open_port(port_name, timeout=1.5)
+                    self.port = port_name
+                    self.last_error = None
+                    # Arduino resets on open — wait for bootloader
+                    time.sleep(1.6)
+                    try:
+                        self.conn.reset_input_buffer()
+                        self.conn.reset_output_buffer()
+                    except Exception:
+                        pass
+                    # Optional soft handshake (non-fatal)
+                    try:
+                        self.conn.write(b"?")
+                        self.conn.flush()
+                        line = self.conn.readline().decode("utf-8", errors="ignore").strip()
+                        if line:
+                            logger.info("Post-connect reply on %s: %s", port_name, line)
+                    except Exception:
+                        pass
+                    logger.info("Connected to %s", port_name)
+                    return True
+                except Exception as e:
+                    last_err = e
+                    logger.warning("Connect attempt %s failed on %s: %s", attempt, port_name, e)
+                    self.disconnect_unsafe()
+                    # Backoff longer on access-denied
+                    delay = 0.7 * attempt if "denied" in str(e).lower() or "permission" in str(e).lower() else 0.35 * attempt
+                    time.sleep(delay)
+
+            self.last_error = _friendly_serial_error(port_name, last_err or Exception("unknown"))
+            raise PermissionError(self.last_error) if last_err and (
+                "denied" in str(last_err).lower() or isinstance(last_err, PermissionError)
+            ) else OSError(self.last_error)
 
     def disconnect(self):
         with serial_lock:
@@ -152,12 +425,25 @@ class SerialManager:
     def disconnect_unsafe(self):
         if self.conn:
             try:
-                logger.info(f"Closing serial connection to {self.port}")
-                self.conn.close()
-            except Exception as e:
-                logger.error(f"Error closing port: {e}")
+                logger.info("Closing serial connection to %s", self.port)
+                try:
+                    if getattr(self.conn, "is_open", False):
+                        self.conn.close()
+                except Exception as e:
+                    logger.error("Error closing port: %s", e)
+            finally:
+                # Drop reference so GC releases the Windows handle
+                self.conn = None
         self.conn = None
         self.port = None
+
+    def force_release(self, port_name=None):
+        """Disconnect and pause so Windows frees the COM port."""
+        with serial_lock:
+            target = port_name or self.port
+            self.disconnect_unsafe()
+            time.sleep(0.8)
+            return {"ok": True, "released": target, "hint": "Port handle released. Try Connect again."}
 
     def send_cmd(self, cmd_str):
         with serial_lock:
@@ -165,47 +451,50 @@ class SerialManager:
                 logger.warning("Attempted to send command while disconnected")
                 return False
             try:
-                self.conn.write(cmd_str.encode('utf-8'))
+                self.conn.write(cmd_str.encode("utf-8"))
                 self.conn.flush()
                 return True
             except Exception as e:
-                logger.error(f"Failed to write to serial port {self.port}: {e}")
-                # Auto-disconnect if write fails (e.g. device unplugged)
+                logger.error("Failed to write to serial port %s: %s", self.port, e)
                 self.disconnect_unsafe()
                 return False
 
-    def query_handshake(self, port_name):
-        """Attempts to open port and send a handshake request '?'.
-        Accepts any valid InMoov firmware response:
-          - 'ARDUINO_OK'  (combined_servo_control.ino / servo_control.ino)
-          - 'NECK_OK'     (neck_servo_control.ino)
-          - 'NECK_READY'  (neck_servo_control.ino on startup)
-          - Any token ending in '_OK' or '_READY'
-        """
-        # All valid handshake tokens from any InMoov firmware
-        VALID_TOKENS = ["ARDUINO_OK", "NECK_OK", "NECK_READY", "INMOOV_OK", "FULL_BODY_READY"]
+    def query_handshake(self, port_name: str) -> bool:
+        """Open briefly, ask '?', close cleanly (always)."""
+        test_conn = None
         try:
-            logger.info(f"Testing port {port_name} for handshake...")
-            test_conn = serial.Serial(port_name, 9600, timeout=2, write_timeout=1)
-            time.sleep(1.8)  # Wait for Arduino to reset fully
-            test_conn.reset_input_buffer()
-            test_conn.reset_output_buffer()
-
-            test_conn.write(b'?')
+            logger.info("Testing port %s for handshake...", port_name)
+            # Ensure we are not holding the port
+            if self.port == port_name:
+                self.disconnect_unsafe()
+                time.sleep(0.4)
+            test_conn = self._open_port(port_name, timeout=2.0)
+            time.sleep(1.5)
+            try:
+                test_conn.reset_input_buffer()
+                test_conn.reset_output_buffer()
+            except Exception:
+                pass
+            test_conn.write(b"?")
             test_conn.flush()
-
-            # Try reading up to 3 lines (Arduino may send startup noise first)
-            for _ in range(3):
-                response = test_conn.readline().decode('utf-8', errors='ignore').strip()
-                logger.info(f"Handshake response from {port_name}: '{response}'")
-                if any(tok in response for tok in VALID_TOKENS):
-                    test_conn.close()
+            for _ in range(4):
+                response = test_conn.readline().decode("utf-8", errors="ignore").strip()
+                logger.info("Handshake response from %s: '%s'", port_name, response)
+                if any(tok in response for tok in VALID_HANDSHAKE_TOKENS):
                     return True
-
-            test_conn.close()
+            return False
         except Exception as e:
-            logger.debug(f"Handshake failed on {port_name}: {e}")
-        return False
+            logger.debug("Handshake failed on %s: %s", port_name, e)
+            return False
+        finally:
+            if test_conn is not None:
+                try:
+                    test_conn.close()
+                except Exception:
+                    pass
+                # Windows: wait before caller re-opens
+                time.sleep(0.5)
+
 
 serial_mgr = SerialManager()
 
@@ -244,15 +533,17 @@ def _enable_all_motors() -> dict:
         result["rest_sent"] = True
         result["cmds"].append(cmd.strip())
 
-    # Upper body rest (arms / hands)
-    la = (
-        rest("l_shoulder", 30), rest("l_lift", 10), rest("l_rotate", 90),
-        rest("l_elbow", 5), rest("l_wrist", 90),
-    )
-    ra = (
-        rest("r_shoulder", 30), rest("r_lift", 10), rest("r_rotate", 90),
-        rest("r_elbow", 5), rest("r_wrist", 90),
-    )
+    # Upper body rest (arms inverted for HW, hands direct)
+    la_logical = {
+        'shoulder': rest("l_shoulder", 30), 'lift': rest("l_lift", 10),
+        'rotate': rest("l_rotate", 90), 'elbow': rest("l_elbow", 5), 'wrist': rest("l_wrist", 90),
+    }
+    ra_logical = {
+        'shoulder': rest("r_shoulder", 30), 'lift': rest("r_lift", 10),
+        'rotate': rest("r_rotate", 90), 'elbow': rest("r_elbow", 5), 'wrist': rest("r_wrist", 90),
+    }
+    la_cmd, _, _ = _pack_arm_cmd('left', la_logical)
+    ra_cmd, _, _ = _pack_arm_cmd('right', ra_logical)
     lh = (
         rest("l_thumb", 10), rest("l_index", 10), rest("l_middle", 10),
         rest("l_ring", 10), rest("l_pinky", 10),
@@ -262,8 +553,8 @@ def _enable_all_motors() -> dict:
         rest("r_ring", 10), rest("r_pinky", 10),
     )
     for part in (
-        f"LA,{la[0]},{la[1]},{la[2]},{la[3]},{la[4]}",
-        f"RA,{ra[0]},{ra[1]},{ra[2]},{ra[3]},{ra[4]}",
+        la_cmd.strip(),
+        ra_cmd.strip(),
         f"LH,{lh[0]},{lh[1]},{lh[2]},{lh[3]},{lh[4]}",
         f"RH,{rh[0]},{rh[1]},{rh[2]},{rh[3]},{rh[4]}",
     ):
@@ -441,10 +732,34 @@ def offline_index():
 
 @app.route('/api/serial/ports', methods=['GET'])
 def get_ports():
-    ports = [port.device for port in serial.tools.list_ports.comports()]
+    detailed = []
+    devices = []
+    for p in serial.tools.list_ports.comports():
+        devices.append(p.device)
+        vid = f"{p.vid:04X}" if p.vid is not None else None
+        pid = f"{p.pid:04X}" if p.pid is not None else None
+        # Arduino Mega 2560 often 2341:0042
+        is_arduino = False
+        blob = f"{p.description or ''} {p.manufacturer or ''} {p.hwid or ''}".lower()
+        if any(k in blob for k in ("arduino", "genuino", "ch340", "ftdi", "usb serial", "usb-serial")):
+            is_arduino = True
+        if p.vid == 0x2341 or p.vid == 0x2A03:  # Arduino / official clones
+            is_arduino = True
+        detailed.append({
+            "device": p.device,
+            "description": p.description or p.device,
+            "manufacturer": p.manufacturer or "",
+            "hwid": p.hwid or "",
+            "vid": vid,
+            "pid": pid,
+            "likely_arduino": is_arduino,
+        })
     return jsonify({
-        "ports": ports,
-        "current": serial_mgr.port if serial_mgr.is_connected() else None
+        "ports": devices,
+        "details": detailed,
+        "current": serial_mgr.port if serial_mgr.is_connected() else None,
+        "connected": serial_mgr.is_connected(),
+        "last_error": serial_mgr.last_error,
     })
 
 @app.route('/api/status', methods=['GET'])
@@ -452,75 +767,90 @@ def get_status():
     return jsonify({
         "serial": {
             "connected": serial_mgr.is_connected(),
-            "port": serial_mgr.port
+            "port": serial_mgr.port,
+            "last_error": serial_mgr.last_error,
         }
     })
 
 @app.route('/api/serial/connect', methods=['POST'])
 def connect_port():
     data = request.get_json() or {}
-    port = data.get('port')
+    port = (data.get('port') or '').strip()
+    force = bool(data.get('force', True))
     if not port:
         return jsonify({"ok": False, "error": "No port specified"}), 400
 
     try:
-        serial_mgr.connect(port)
-        return jsonify({"ok": True})
+        serial_mgr.connect(port, force=force)
+        return jsonify({"ok": True, "port": port, "connected": True})
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+        err = serial_mgr.last_error or _friendly_serial_error(port, e)
+        logger.error("Connect API failed: %s", err)
+        return jsonify({"ok": False, "error": err, "port": port}), 500
 
 @app.route('/api/serial/disconnect', methods=['POST'])
 def disconnect_port():
     serial_mgr.disconnect()
-    return jsonify({"ok": True})
+    # Give Windows time to free the handle
+    time.sleep(0.35)
+    return jsonify({"ok": True, "connected": False})
+
+
+@app.route('/api/serial/force-release', methods=['POST'])
+def force_release_port():
+    """Force-close our handle so COM can be reopened (Access denied recovery)."""
+    data = request.get_json() or {}
+    port = data.get('port')
+    result = serial_mgr.force_release(port)
+    return jsonify(result)
 
 @app.route('/api/serial/autodetect', methods=['POST'])
 def autodetect():
     ports = list(serial.tools.list_ports.comports())
     if not ports:
-        return jsonify({"ok": False, "error": "No serial ports found on system"}), 404
+        return jsonify({"ok": False, "error": "No serial ports found — plug in USB and refresh."}), 404
 
-    # 1. Prioritize ports that look like Arduino by description
-    arduino_keywords = ["arduino", "genuino", "ch340", "usb-serial", "usb serial", "usb_serial", "ftdi"]
+    # Always free our handle before probing
+    serial_mgr.disconnect()
+    time.sleep(0.4)
+
+    arduino_keywords = ["arduino", "genuino", "ch340", "usb-serial", "usb serial", "usb_serial", "ftdi", "mega"]
     target_ports = []
     other_ports = []
 
     for p in ports:
-        desc = p.description.lower() if p.description else ""
-        mfg = p.manufacturer.lower() if p.manufacturer else ""
-        if any(kw in desc or kw in mfg for kw in arduino_keywords):
+        desc = (p.description or "").lower()
+        mfg = (p.manufacturer or "").lower()
+        hwid = (p.hwid or "").lower()
+        # Prefer real Arduino VID
+        if p.vid in (0x2341, 0x2A03) or any(kw in desc or kw in mfg or kw in hwid for kw in arduino_keywords):
             target_ports.append(p.device)
         else:
             other_ports.append(p.device)
 
-    # 2. Try handshake on prioritized target ports
-    for port in target_ports:
-        if serial_mgr.query_handshake(port):
-            try:
-                serial_mgr.connect(port)
-                return jsonify({"ok": True, "port": port})
-            except Exception as e:
-                logger.error(f"Auto-detect matched handshake but connect failed on {port}: {e}")
-
-    # 3. Fallback: If no handshake response, try connecting to target ports anyway
-    for port in target_ports:
+    # Prefer direct connect with retries (handshake double-open causes Access Denied on Windows)
+    errors = []
+    for port in target_ports + other_ports:
         try:
-            logger.info(f"Fallback: Connecting to likely Arduino port {port} without handshake confirmation...")
-            serial_mgr.connect(port)
-            return jsonify({"ok": True, "port": port})
+            logger.info("Auto-detect: connecting to %s...", port)
+            serial_mgr.connect(port, force=True, retries=3)
+            return jsonify({"ok": True, "port": port, "connected": True})
         except Exception as e:
-            logger.error(f"Fallback connection failed on {port}: {e}")
+            err = serial_mgr.last_error or _friendly_serial_error(port, e)
+            errors.append(f"{port}: {err}")
+            logger.error("Auto-detect failed on %s: %s", port, e)
+            serial_mgr.disconnect()
+            time.sleep(0.5)
 
-    # 4. Try handshake on other ports
-    for port in other_ports:
-        if serial_mgr.query_handshake(port):
-            try:
-                serial_mgr.connect(port)
-                return jsonify({"ok": True, "port": port})
-            except Exception as e:
-                logger.error(f"Handshake succeeded but connection failed on {port}: {e}")
-
-    return jsonify({"ok": False, "error": "No Arduino detected. Please select the port manually."}), 404
+    tip = (
+        "Could not open any COM port. "
+        "Close Arduino Serial Monitor / other apps, unplug+replug USB, then Force free + Connect."
+    )
+    return jsonify({
+        "ok": False,
+        "error": tip,
+        "details": errors,
+    }), 404
 
 @app.route('/api/servo/head', methods=['POST'])
 def set_servo_head():
@@ -562,19 +892,19 @@ def set_neck_3axis():
 
 @app.route('/api/servo/arm', methods=['POST'])
 def set_servo_arm():
-    """Controls one arm: shoulder, lift, rotate, elbow, wrist."""
+    """Controls one arm: hard limits + anti-overlap + hardware inversion (walkthrough)."""
     data = request.get_json() or {}
-    side = data.get('side', 'left')
-    shoulder = _clamp_angle(data.get('shoulder', 90))
-    lift = _clamp_angle(data.get('lift', 45))
-    rotate = _clamp_angle(data.get('rotate', 90))
-    elbow = _clamp_angle(data.get('elbow', 90))
-    wrist = _clamp_angle(data.get('wrist', 90))
-
-    prefix = 'LA' if side == 'left' else 'RA'
-    cmd = f"{prefix},{shoulder},{lift},{rotate},{elbow},{wrist}\n"
+    side = 'right' if data.get('side') == 'right' else 'left'
+    cmd, arm, hw = _pack_arm_cmd(side, data)
     sent = serial_mgr.is_connected() and serial_mgr.send_cmd(cmd)
-    return jsonify({"ok": True, "serial_sent": sent, "side": side})
+    return jsonify({
+        "ok": True,
+        "serial_sent": sent,
+        "side": side,
+        "angles": arm,
+        "hw_angles": hw,
+        "limits": _arm_hard_limits(side),
+    })
 
 
 @app.route('/api/servo/hand', methods=['POST'])
@@ -613,49 +943,40 @@ def set_servo_leg():
 
 @app.route('/api/servo/body', methods=['POST'])
 def set_servo_body():
-    """Batch update arms, hands, and legs."""
+    """Batch update arms, hands, and legs (arms use hard limits + anti-overlap)."""
     data = request.get_json() or {}
-
-    def arm_vals(key, defaults):
-        block = data.get(key, {})
-        return (
-            _clamp_angle(block.get('shoulder', defaults[0])),
-            _clamp_angle(block.get('lift', defaults[1])),
-            _clamp_angle(block.get('rotate', defaults[2])),
-            _clamp_angle(block.get('elbow', defaults[3])),
-            _clamp_angle(block.get('wrist', defaults[4])),
-        )
 
     def hand_vals(key):
         block = data.get(key, {})
         return (
-            _clamp_angle(block.get('thumb', 10)),
-            _clamp_angle(block.get('index', 10)),
-            _clamp_angle(block.get('middle', 10)),
-            _clamp_angle(block.get('ring', 10)),
-            _clamp_angle(block.get('pinky', 10)),
+            _clamp_servo_key('l_thumb' if 'left' in key else 'r_thumb', block.get('thumb', 10), 10),
+            _clamp_servo_key('l_index' if 'left' in key else 'r_index', block.get('index', 10), 10),
+            _clamp_servo_key('l_middle' if 'left' in key else 'r_middle', block.get('middle', 10), 10),
+            _clamp_servo_key('l_ring' if 'left' in key else 'r_ring', block.get('ring', 10), 10),
+            _clamp_servo_key('l_pinky' if 'left' in key else 'r_pinky', block.get('pinky', 10), 10),
         )
 
     def leg_vals(key):
         block = data.get(key, {})
+        p = 'l' if 'left' in key else 'r'
         return (
-            _clamp_angle(block.get('hip', 90)),
-            _clamp_angle(block.get('thigh', 90)),
-            _clamp_angle(block.get('knee', 10), hi=160),
-            _clamp_angle(block.get('ankle', 90)),
-            _clamp_angle(block.get('foot', 90)),
+            _clamp_servo_key(f'{p}_hip', block.get('hip', 90), 90),
+            _clamp_servo_key(f'{p}_thigh', block.get('thigh', 90), 90),
+            _clamp_servo_key(f'{p}_knee', block.get('knee', 10), 10),
+            _clamp_servo_key(f'{p}_ankle', block.get('ankle', 90), 90),
+            _clamp_servo_key(f'{p}_foot', block.get('foot', 90), 90),
         )
 
-    la = arm_vals('leftArm', (90, 45, 90, 90, 90))
-    ra = arm_vals('rightArm', (90, 45, 90, 90, 90))
+    la_cmd, la_d, _ = _pack_arm_cmd('left', data.get('leftArm') or {})
+    ra_cmd, ra_d, _ = _pack_arm_cmd('right', data.get('rightArm') or {})
     lh = hand_vals('leftHand')
     rh = hand_vals('rightHand')
     ll = leg_vals('leftLeg')
     rl = leg_vals('rightLeg')
 
     parts = [
-        f"LA,{la[0]},{la[1]},{la[2]},{la[3]},{la[4]}",
-        f"RA,{ra[0]},{ra[1]},{ra[2]},{ra[3]},{ra[4]}",
+        la_cmd.strip(),
+        ra_cmd.strip(),
         f"LH,{lh[0]},{lh[1]},{lh[2]},{lh[3]},{lh[4]}",
         f"RH,{rh[0]},{rh[1]},{rh[2]},{rh[3]},{rh[4]}",
         f"LL,{ll[0]},{ll[1]},{ll[2]},{ll[3]},{ll[4]}",
@@ -666,7 +987,12 @@ def set_servo_body():
         for part in parts:
             sent = serial_mgr.send_cmd(part + '\n') or sent
 
-    return jsonify({"ok": True, "serial_sent": sent})
+    return jsonify({
+        "ok": True,
+        "serial_sent": sent,
+        "leftArm": la_d,
+        "rightArm": ra_d,
+    })
 
 
 @app.route('/api/servo/combined6', methods=['POST'])
@@ -792,16 +1118,30 @@ def servo_calibration():
     if not isinstance(cal, dict):
         return jsonify({"ok": False, "error": "calibration must be an object"}), 400
 
+    # Use factory walls from disk (not already-overridden config)
+    factory = _read_json(SERVO_CONFIG_PATH, {}) or {}
+    factory_by_key = {s.get('key'): s for s in factory.get('servos', []) if s.get('key')}
+
     cleaned = {}
     for key, vals in cal.items():
         if not isinstance(vals, dict):
             continue
+        fac = factory_by_key.get(key) or {}
+        fmin = int(fac.get('min', 0))
+        fmax = int(fac.get('max', 180))
+        frest = int(fac.get('rest', 90))
         entry = {}
-        for field in ('min', 'max', 'rest'):
-            if field in vals:
-                entry[field] = max(0, min(180, int(vals[field])))
-        if entry:
-            cleaned[key] = entry
+        mn = int(vals.get('min', fmin)) if 'min' in vals or 'max' in vals or 'rest' in vals else fmin
+        mx = int(vals.get('max', fmax)) if 'min' in vals or 'max' in vals or 'rest' in vals else fmax
+        rs = int(vals.get('rest', frest)) if 'rest' in vals or 'min' in vals or 'max' in vals else frest
+        # Never expand past factory hard walls from shared/servo_config.json
+        mn = max(fmin, min(fmax, max(0, min(180, mn))))
+        mx = max(fmin, min(fmax, max(0, min(180, mx))))
+        if mn > mx:
+            mn, mx = fmin, fmax
+        rs = max(mn, min(mx, max(0, min(180, rs))))
+        entry = {'min': mn, 'max': mx, 'rest': rs}
+        cleaned[key] = entry
 
     _write_json(CALIB_OVERRIDES_PATH, cleaned)
     _reload_servo_config()
@@ -826,12 +1166,17 @@ def servo_calibration():
 def set_servo_limits():
     data = request.get_json() or {}
     key = (data.get('key') or '').strip()
+    factory = _read_json(SERVO_CONFIG_PATH, {}) or {}
+    fac = next((s for s in factory.get('servos', []) if s.get('key') == key), None)
     servo = _servo_by_key(key)
-    if not servo:
+    if not fac or not servo:
         return jsonify({"ok": False, "error": f"Unknown servo: {key}"}), 400
 
-    mn = max(0, min(180, int(data.get('min', servo['min']))))
-    mx = max(0, min(180, int(data.get('max', servo['max']))))
+    fmin = int(fac.get('min', 0))
+    fmax = int(fac.get('max', 180))
+    # Absolute walls — cannot go beyond factory limits you configured
+    mn = max(fmin, min(fmax, max(0, min(180, int(data.get('min', servo['min']))))))
+    mx = max(fmin, min(fmax, max(0, min(180, int(data.get('max', servo['max']))))))
     rs = max(0, min(180, int(data.get('rest', servo['rest']))))
     if mn > mx:
         return jsonify({"ok": False, "error": "min must be <= max"}), 400
@@ -845,7 +1190,77 @@ def set_servo_limits():
     sent = False
     if serial_mgr.is_connected():
         sent = serial_mgr.send_cmd(f"U,{servo['id']},{mn},{mx},{rs}\n")
-    return jsonify({"ok": True, "key": key, "min": mn, "max": mx, "rest": rs, "serial_sent": sent})
+    return jsonify({
+        "ok": True,
+        "key": key,
+        "min": mn,
+        "max": mx,
+        "rest": rs,
+        "factoryMin": fmin,
+        "factoryMax": fmax,
+        "serial_sent": sent,
+    })
+
+
+@app.route('/api/servo/move', methods=['POST'])
+def servo_move_by_key():
+    """1:1 move a single servo by config key (head/arm/hand/leg)."""
+    data = request.get_json() or {}
+    key = (data.get('key') or '').strip()
+    if not key:
+        return jsonify({"ok": False, "error": "key required"}), 400
+    angle = _clamp_servo_key(key, data.get('angle', 90), 90)
+
+    # Prefer native core (updates virtual state + serial pack)
+    try:
+        core = _get_inmoove_core()
+        # Find any virtual servo with this key
+        svc = None
+        for s in core.servos.values():
+            if s.key == key:
+                svc = s.service
+                break
+        if svc:
+            result = core.call(svc, 'moveTo', [str(angle)])
+            return jsonify({
+                "ok": bool(result.get('ok', True)),
+                "key": key,
+                "angle": angle,
+                "service": svc,
+                "serial_sent": True,
+            })
+        # Fallback: direct group pack via core helper
+        if core._send_key_angle(key, angle):
+            return jsonify({"ok": True, "key": key, "angle": angle, "serial_sent": True})
+    except Exception as e:
+        logger.warning("servo_move core path: %s", e)
+
+    # Last resort: build group packet from live config rests
+    sent = False
+    if serial_mgr.is_connected():
+        groups = {
+            'head': (['head_neck', 'head_eye', 'head_jaw'], 'H'),
+            'neck': (['neck_rot', 'neck_tilt', 'neck_roll'], 'N'),
+            'l_arm': (['l_shoulder', 'l_lift', 'l_rotate', 'l_elbow', 'l_wrist'], 'LA'),
+            'r_arm': (['r_shoulder', 'r_lift', 'r_rotate', 'r_elbow', 'r_wrist'], 'RA'),
+            'l_hand': (['l_thumb', 'l_index', 'l_middle', 'l_ring', 'l_pinky'], 'LH'),
+            'r_hand': (['r_thumb', 'r_index', 'r_middle', 'r_ring', 'r_pinky'], 'RH'),
+            'l_leg': (['l_hip', 'l_thigh', 'l_knee', 'l_ankle', 'l_foot'], 'LL'),
+            'r_leg': (['r_hip', 'r_thigh', 'r_knee', 'r_ankle', 'r_foot'], 'RL'),
+        }
+        for keys, prefix in groups.values():
+            if key in keys:
+                vals = []
+                for k in keys:
+                    if k == key:
+                        vals.append(angle)
+                    else:
+                        s = _servo_by_key(k)
+                        vals.append(int(s['rest']) if s else 90)
+                cmd = f"{prefix},{','.join(str(v) for v in vals)}\n"
+                sent = serial_mgr.send_cmd(cmd)
+                break
+    return jsonify({"ok": True, "key": key, "angle": angle, "serial_sent": sent})
 
 
 @app.route('/api/servo/grip', methods=['POST'])
@@ -1057,6 +1472,42 @@ def core_script():
         return jsonify({"ok": False, "error": "script required"}), 400
     result = _get_inmoove_core().exec_script(script)
     return jsonify(result), (200 if result.get('ok') else 400)
+
+
+@app.route('/api/core/peers', methods=['GET'])
+@app.route('/api/mrl/peers', methods=['GET'])
+def core_peers():
+    return jsonify(_get_inmoove_core().list_peers())
+
+
+@app.route('/api/core/life', methods=['GET'])
+@app.route('/api/mrl/life', methods=['GET'])
+def core_life_status():
+    return jsonify(_get_inmoove_core().life_status())
+
+
+@app.route('/api/core/life/<action>', methods=['GET', 'POST'])
+@app.route('/api/mrl/life/<action>', methods=['GET', 'POST'])
+def core_life_action(action):
+    result = _get_inmoove_core().life_action(action)
+    return jsonify(result), (200 if result.get('ok') else 400)
+
+
+@app.route('/api/core/stop', methods=['POST', 'GET'])
+@app.route('/api/mrl/stop', methods=['POST', 'GET'])
+def core_stop():
+    core = _get_inmoove_core()
+    g = core.stop_gesture()
+    # also halt random life
+    core._stop_life_thread()
+    core.life_mode = "awake"
+    return jsonify({"ok": True, "gesture": g, "lifeMode": core.life_mode})
+
+
+@app.route('/api/core/rest', methods=['POST', 'GET'])
+@app.route('/api/mrl/rest', methods=['POST', 'GET'])
+def core_rest():
+    return jsonify(_get_inmoove_core().rest_all())
 
 
 # ── RealSense D455 API ────────────────────────────────────────

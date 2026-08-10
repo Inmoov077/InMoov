@@ -1,0 +1,209 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Loader2, RefreshCw, Save, Undo2 } from 'lucide-react';
+import { toast } from 'sonner';
+import * as api from '@/lib/api';
+import { SERVOS, type ServoDef } from '@/lib/servoConfig';
+import { useServoStore } from '@/store/servoStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+const GROUP_ORDER = [
+  'head',
+  'neck',
+  'leftArm',
+  'rightArm',
+  'leftHand',
+  'rightHand',
+  'leftLeg',
+  'rightLeg',
+] as const;
+
+const GROUP_LABELS: Record<string, string> = {
+  head: 'Head',
+  neck: 'Neck',
+  leftArm: 'Left Arm',
+  rightArm: 'Right Arm',
+  leftHand: 'Left Hand',
+  rightHand: 'Right Hand',
+  leftLeg: 'Left Leg',
+  rightLeg: 'Right Leg',
+};
+
+export function PinMapPanel({ className }: { className?: string }) {
+  const connected = useServoStore((s) => s.connected);
+  const [pins, setPins] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [filter, setFilter] = useState('');
+
+  const grouped = useMemo(() => {
+    const map: Record<string, ServoDef[]> = {};
+    for (const s of SERVOS) {
+      if (!map[s.group]) map[s.group] = [];
+      map[s.group].push(s);
+    }
+    return map;
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [cfg, pinRes] = await Promise.all([api.getServoConfig(), api.getServoPins()]);
+      const pinMap: Record<string, number> = {};
+      for (const s of cfg.servos ?? SERVOS) pinMap[s.key] = s.pin;
+      Object.assign(pinMap, pinRes.pins ?? {});
+      setPins(pinMap);
+      setDirty(false);
+    } catch {
+      toast.error('Could not load pin map');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const onPinChange = async (key: string, pin: number) => {
+    const safe = Math.max(2, Math.min(53, Math.round(pin) || 2));
+    setPins((p) => ({ ...p, [key]: safe }));
+    setDirty(true);
+    if (connected) {
+      try {
+        await api.setServoPin(key, safe);
+      } catch {
+        /* still dirty local */
+      }
+    }
+  };
+
+  const saveAll = async () => {
+    setSaving(true);
+    try {
+      const res = await api.saveServoPins(pins, connected);
+      if (res.ok) {
+        toast.success(connected ? 'Pins saved & sent to firmware' : 'Pins saved');
+        setDirty(false);
+      } else toast.error(res.error || 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetDefaults = () => {
+    const defaults: Record<string, number> = {};
+    for (const s of SERVOS) defaults[s.key] = s.pin;
+    setPins(defaults);
+    setDirty(true);
+    toast.info('Reset to Mega defaults — click Save');
+  };
+
+  const applyVdb = async () => {
+    const res = await api.applyVdbPinProfile();
+    if (res.ok) {
+      toast.success('VDB pin profile applied');
+      await load();
+    } else toast.error('VDB profile failed');
+  };
+
+  const q = filter.trim().toLowerCase();
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading pins…
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn('space-y-3', className)}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Filter servo…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="h-8 max-w-[200px] text-xs"
+        />
+        <Button size="sm" className="h-8" onClick={() => void saveAll()} disabled={saving || !dirty}>
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save pins
+        </Button>
+        <Button size="sm" variant="outline" className="h-8" onClick={resetDefaults}>
+          <Undo2 className="h-3.5 w-3.5" /> Defaults
+        </Button>
+        <Button size="sm" variant="outline" className="h-8" onClick={() => void applyVdb()}>
+          VDB profile
+        </Button>
+        <Button size="sm" variant="ghost" className="h-8" onClick={() => void load()}>
+          <RefreshCw className="h-3.5 w-3.5" />
+        </Button>
+        {dirty && (
+          <Badge variant="signal" className="text-[10px]">
+            unsaved
+          </Badge>
+        )}
+        <Badge variant={connected ? 'online' : 'offline'} className="text-[10px]">
+          {connected ? 'live → firmware' : 'offline save only'}
+        </Badge>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">
+        Assign Mega pin (2–53) per motor. When USB is connected, changes send <code>W,idx,pin</code> to the board.
+      </p>
+
+      {GROUP_ORDER.map((group) => {
+        let servos = grouped[group] ?? [];
+        if (q) {
+          servos = servos.filter(
+            (s) =>
+              s.label.toLowerCase().includes(q) ||
+              s.key.toLowerCase().includes(q) ||
+              String(pins[s.key] ?? s.pin).includes(q),
+          );
+        }
+        if (!servos.length) return null;
+        return (
+          <div key={group} className="rounded-xl border border-border/50 bg-card/50 p-2">
+            <p className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              {GROUP_LABELS[group] ?? group}
+            </p>
+            <div className="space-y-1">
+              {servos.map((s) => (
+                <div
+                  key={s.key}
+                  className="grid grid-cols-[1fr_auto_auto_4.5rem] items-center gap-2 rounded-lg border border-border/40 bg-background/60 px-2 py-1.5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{s.label}</p>
+                    <p className="truncate font-mono text-[10px] text-muted-foreground">{s.key}</p>
+                  </div>
+                  <Badge variant="default" className="text-[9px]">
+                    {s.motor ?? 'Servo'}
+                  </Badge>
+                  {s.vdbPin != null && (
+                    <span className="text-[10px] text-muted-foreground">VDB {s.vdbPin}</span>
+                  )}
+                  {s.vdbPin == null && <span />}
+                  <Input
+                    type="number"
+                    min={2}
+                    max={53}
+                    className="h-8 font-mono text-center text-sm"
+                    value={pins[s.key] ?? s.pin}
+                    onChange={(e) => void onPinChange(s.key, Number(e.target.value))}
+                    title="Arduino pin"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

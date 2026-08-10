@@ -421,15 +421,15 @@ def extract_aiml_commands(gestures: dict) -> list[dict]:
 # VDB hardware-tested calibration (VDB (1)/VDB/server.py SERVO_LIMITS).
 # Mapped: omoplate→lift, bicep→elbow. Pins kept as Mega direct-map defaults.
 VDB_CALIBRATION: dict[str, dict] = {
-    "l_shoulder": {"min": 0, "max": 150, "rest": 30, "motor": "DS5160", "vdb_pin": 22},
-    "l_lift": {"min": 10, "max": 70, "rest": 10, "motor": "DS5160", "vdb_key": "l_omoplate", "vdb_pin": 24},
-    "l_elbow": {"min": 0, "max": 85, "rest": 5, "motor": "DS5160", "vdb_key": "l_bicep", "vdb_pin": 26},
-    "l_rotate": {"min": 40, "max": 150, "rest": 90, "motor": "DS5160", "vdb_pin": 28},
+    "l_shoulder": {"min": 30, "max": 180, "rest": 30, "motor": "DS5160", "vdb_pin": 22},
+    "l_lift": {"min": 10, "max": 60, "rest": 10, "motor": "DS5160", "vdb_key": "l_omoplate", "vdb_pin": 24},
+    "l_elbow": {"min": 0, "max": 80, "rest": 5, "motor": "DS5160", "vdb_key": "l_bicep", "vdb_pin": 26},
+    "l_rotate": {"min": 40, "max": 180, "rest": 90, "motor": "DS5160", "vdb_pin": 28},
     "l_wrist": {"min": 10, "max": 160, "rest": 90, "motor": "MG996R", "vdb_pin": 11},
-    "r_shoulder": {"min": 0, "max": 150, "rest": 30, "motor": "DS5160", "vdb_pin": 23},
-    "r_lift": {"min": 10, "max": 70, "rest": 10, "motor": "DS5160", "vdb_key": "r_omoplate", "vdb_pin": 25},
-    "r_elbow": {"min": 0, "max": 85, "rest": 5, "motor": "DS5160", "vdb_key": "r_bicep", "vdb_pin": 27},
-    "r_rotate": {"min": 40, "max": 150, "rest": 90, "motor": "DS5160", "vdb_pin": 29},
+    "r_shoulder": {"min": 30, "max": 180, "rest": 30, "motor": "DS5160", "vdb_pin": 23},
+    "r_lift": {"min": 10, "max": 65, "rest": 10, "motor": "DS5160", "vdb_key": "r_omoplate", "vdb_pin": 25},
+    "r_elbow": {"min": 0, "max": 90, "rest": 5, "motor": "DS5160", "vdb_key": "r_bicep", "vdb_pin": 27},
+    "r_rotate": {"min": 40, "max": 180, "rest": 90, "motor": "DS5160", "vdb_pin": 29},
     "r_wrist": {"min": 10, "max": 160, "rest": 90, "motor": "MG996R", "vdb_pin": 5},
     "l_thumb": {"min": 10, "max": 130, "rest": 10, "motor": "MG996R"},
     "l_index": {"min": 10, "max": 130, "rest": 10, "motor": "MG996R"},

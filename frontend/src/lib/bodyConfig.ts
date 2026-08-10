@@ -68,8 +68,8 @@ export const ARM_JOINT_META: {
   label: string;
   hint: string;
   pin: { left: number; right: number };
-  min?: number;
-  max?: number;
+  min: { left: number; right: number };
+  max: { left: number; right: number };
   urdf: { left: string; right: string };
 }[] = [
   {
@@ -77,15 +77,17 @@ export const ARM_JOINT_META: {
     label: 'Shoulder pan',
     hint: 'Swing arm forward / back',
     pin: { left: pinFor('l_shoulder'), right: pinFor('r_shoulder') },
-    ...limitsFor('l_shoulder'),
+    min: { left: limitsFor('l_shoulder').min, right: limitsFor('r_shoulder').min },
+    max: { left: limitsFor('l_shoulder').max, right: limitsFor('r_shoulder').max },
     urdf: { left: 'l_shoulder_out_joint', right: 'r_shoulder_out_joint' },
   },
   {
     key: 'lift',
-    label: 'Shoulder lift',
+    label: 'Shoulder lift (omoplate)',
     hint: 'Raise / lower arm',
     pin: { left: pinFor('l_lift'), right: pinFor('r_lift') },
-    ...limitsFor('l_lift'),
+    min: { left: limitsFor('l_lift').min, right: limitsFor('r_lift').min },
+    max: { left: limitsFor('l_lift').max, right: limitsFor('r_lift').max },
     urdf: { left: 'l_shoulder_lift_joint', right: 'r_shoulder_lift_joint' },
   },
   {
@@ -93,15 +95,17 @@ export const ARM_JOINT_META: {
     label: 'Upper arm roll',
     hint: 'Rotate bicep',
     pin: { left: pinFor('l_rotate'), right: pinFor('r_rotate') },
-    ...limitsFor('l_rotate'),
+    min: { left: limitsFor('l_rotate').min, right: limitsFor('r_rotate').min },
+    max: { left: limitsFor('l_rotate').max, right: limitsFor('r_rotate').max },
     urdf: { left: 'l_upper_arm_roll_joint', right: 'r_upper_arm_roll_joint' },
   },
   {
     key: 'elbow',
-    label: 'Elbow',
+    label: 'Elbow (bicep)',
     hint: 'Bend forearm',
     pin: { left: pinFor('l_elbow'), right: pinFor('r_elbow') },
-    ...limitsFor('l_elbow'),
+    min: { left: limitsFor('l_elbow').min, right: limitsFor('r_elbow').min },
+    max: { left: limitsFor('l_elbow').max, right: limitsFor('r_elbow').max },
     urdf: { left: 'l_elbow_flex_joint', right: 'r_elbow_flex_joint' },
   },
   {
@@ -109,7 +113,8 @@ export const ARM_JOINT_META: {
     label: 'Wrist roll',
     hint: 'Rotate hand',
     pin: { left: pinFor('l_wrist'), right: pinFor('r_wrist') },
-    ...limitsFor('l_wrist'),
+    min: { left: limitsFor('l_wrist').min, right: limitsFor('r_wrist').min },
+    max: { left: limitsFor('l_wrist').max, right: limitsFor('r_wrist').max },
     urdf: { left: 'l_wrist_roll_joint', right: 'r_wrist_roll_joint' },
   },
 ];
@@ -148,9 +153,10 @@ export const LEG_JOINT_META: {
 
 export const ARM_PRESETS = {
   rest: DEFAULT_ARM,
-  wave: { shoulder: 60, lift: 120, rotate: 90, elbow: 45, wrist: 90 },
-  point: { shoulder: 90, lift: 100, rotate: 90, elbow: 160, wrist: 90 },
-  reach: { shoulder: 45, lift: 80, rotate: 90, elbow: 30, wrist: 90 },
+  // Presets stay inside hardware-safe arm ranges (per-side clamp still applies in store)
+  wave: { shoulder: 80, lift: 45, rotate: 90, elbow: 55, wrist: 90 },
+  point: { shoulder: 100, lift: 40, rotate: 90, elbow: 70, wrist: 90 },
+  reach: { shoulder: 60, lift: 50, rotate: 90, elbow: 30, wrist: 90 },
 } as const;
 
 export const HAND_PRESETS = {
@@ -180,8 +186,8 @@ export const FULL_BODY_POSES = {
     rightLeg: DEFAULT_LEG,
   },
   tPose: {
-    leftArm: { shoulder: 90, lift: 100, rotate: 90, elbow: 90, wrist: 90 },
-    rightArm: { shoulder: 90, lift: 100, rotate: 90, elbow: 90, wrist: 90 },
+    leftArm: { shoulder: 90, lift: 55, rotate: 90, elbow: 60, wrist: 90 },
+    rightArm: { shoulder: 90, lift: 55, rotate: 90, elbow: 60, wrist: 90 },
     leftHand: DEFAULT_HAND,
     rightHand: DEFAULT_HAND,
     leftLeg: DEFAULT_LEG,
@@ -189,15 +195,15 @@ export const FULL_BODY_POSES = {
   },
   wave: {
     leftArm: DEFAULT_ARM,
-    rightArm: { shoulder: 60, lift: 120, rotate: 90, elbow: 45, wrist: 90 },
+    rightArm: { shoulder: 80, lift: 45, rotate: 90, elbow: 55, wrist: 90 },
     leftHand: DEFAULT_HAND,
     rightHand: DEFAULT_HAND,
     leftLeg: DEFAULT_LEG,
     rightLeg: DEFAULT_LEG,
   },
   squat: {
-    leftArm: { shoulder: 90, lift: 55, rotate: 90, elbow: 110, wrist: 90 },
-    rightArm: { shoulder: 90, lift: 55, rotate: 90, elbow: 110, wrist: 90 },
+    leftArm: { shoulder: 90, lift: 40, rotate: 90, elbow: 70, wrist: 90 },
+    rightArm: { shoulder: 90, lift: 40, rotate: 90, elbow: 70, wrist: 90 },
     leftHand: DEFAULT_HAND,
     rightHand: DEFAULT_HAND,
     leftLeg: LEG_PRESETS.squat,

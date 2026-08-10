@@ -141,15 +141,43 @@ ROBOT_SERVOS = [
     {"service": "i01.leftHand.majeure", "label": "L middle", "group": "leftHand", "key": "l_middle"},
     {"service": "i01.leftHand.ringFinger", "label": "L ring", "group": "leftHand", "key": "l_ring"},
     {"service": "i01.leftHand.pinky", "label": "L pinky", "group": "leftHand", "key": "l_pinky"},
+    {"service": "i01.leftHand.wrist", "label": "L wrist", "group": "leftHand", "key": "l_wrist"},
     {"service": "i01.rightHand.thumb", "label": "R thumb", "group": "rightHand", "key": "r_thumb"},
     {"service": "i01.rightHand.index", "label": "R index", "group": "rightHand", "key": "r_index"},
     {"service": "i01.rightHand.majeure", "label": "R middle", "group": "rightHand", "key": "r_middle"},
     {"service": "i01.rightHand.ringFinger", "label": "R ring", "group": "rightHand", "key": "r_ring"},
     {"service": "i01.rightHand.pinky", "label": "R pinky", "group": "rightHand", "key": "r_pinky"},
+    {"service": "i01.rightHand.wrist", "label": "R wrist", "group": "rightHand", "key": "r_wrist"},
+    {"service": "i01.leftLeg.hip", "label": "L hip", "group": "leftLeg", "key": "l_hip"},
+    {"service": "i01.leftLeg.thigh", "label": "L thigh", "group": "leftLeg", "key": "l_thigh"},
+    {"service": "i01.leftLeg.knee", "label": "L knee", "group": "leftLeg", "key": "l_knee"},
+    {"service": "i01.leftLeg.ankle", "label": "L ankle", "group": "leftLeg", "key": "l_ankle"},
+    {"service": "i01.leftLeg.foot", "label": "L foot", "group": "leftLeg", "key": "l_foot"},
+    {"service": "i01.rightLeg.hip", "label": "R hip", "group": "rightLeg", "key": "r_hip"},
+    {"service": "i01.rightLeg.thigh", "label": "R thigh", "group": "rightLeg", "key": "r_thigh"},
+    {"service": "i01.rightLeg.knee", "label": "R knee", "group": "rightLeg", "key": "r_knee"},
+    {"service": "i01.rightLeg.ankle", "label": "R ankle", "group": "rightLeg", "key": "r_ankle"},
+    {"service": "i01.rightLeg.foot", "label": "R foot", "group": "rightLeg", "key": "r_foot"},
     {"service": "i01.torso.topStom", "label": "Torso top", "group": "torso", "key": "torso_top"},
     {"service": "i01.torso.midStom", "label": "Torso mid", "group": "torso", "key": "torso_mid"},
     {"service": "i01.torso.lowStom", "label": "Torso low", "group": "torso", "key": "torso_low"},
 ]
+
+# MRL life subsystem script names (InMoov2/life)
+LIFE_ACTIONS = (
+    "sleepMode",
+    "wake",
+    "healthCheck",
+    "moveHeadRandomize",
+    "moveEyesRandomize",
+    "moveBodyRandomize",
+    "moveRandomize",
+    "shutdown",
+    "power_up",
+    "power_down",
+    "rest",
+    "stopGesture",
+)
 
 
 def _read_json(path: Path, default=None):
@@ -220,6 +248,12 @@ class InMooveCore:
         self.opencv_display_filter = "None"
         self.last_script_result: Any = None
 
+        # Life subsystem (MRL InMoov2/life)
+        self.life_mode = "awake"  # awake | sleep | random | shutdown
+        self._life_stop = threading.Event()
+        self._life_thread: Optional[threading.Thread] = None
+        self._life_log: List[str] = []
+
     # ── lifecycle ──────────────────────────────────────────────
 
     def _rebuild_servos(self):
@@ -248,6 +282,7 @@ class InMooveCore:
 
     def status(self) -> dict:
         services = self.service_names()
+        started_peers = sum(1 for p in self.peers.values() if p.get("started"))
         return {
             "ok": True,
             "online": True,
@@ -258,6 +293,10 @@ class InMooveCore:
             "services": services,
             "i01State": self.state,
             "robotState": self.state,
+            "lifeMode": self.life_mode,
+            "peersStarted": started_peers,
+            "peersTotal": len(self.peers),
+            "gestureCount": self.load_gestures_catalog().get("count", 0),
             "uptime": self.uptime(),
             "serialReady": True,
         }
@@ -329,6 +368,209 @@ class InMooveCore:
                 self.opencv_capturing = False
             return {"ok": True, "peer": peer, "action": action, "started": False}
         return {"ok": False, "error": "action must be startPeer or releasePeer"}
+
+    def list_peers(self) -> dict:
+        peers = []
+        for name, meta in sorted(self.peers.items()):
+            peers.append(
+                {
+                    "name": name,
+                    "label": meta.get("label", name),
+                    "type": meta.get("type", "Peer"),
+                    "autoStart": bool(meta.get("autoStart")),
+                    "started": bool(meta.get("started")),
+                    "service": f"i01.{name}",
+                }
+            )
+        return {"ok": True, "peers": peers, "count": len(peers)}
+
+    # ── life (MRL InMoov2/life) ─────────────────────────────────
+
+    def stop_gesture(self) -> dict:
+        self._gesture_stop.set()
+        self.state = "idle"
+        return {"ok": True, "action": "stopGesture"}
+
+    def rest_all(self) -> dict:
+        """Send rest pose for all mapped servos (MRL rest)."""
+        cmds = 0
+        for entry in ROBOT_SERVOS:
+            key = entry.get("key")
+            if not key:
+                continue
+            servo = None
+            for s in self.servos.values():
+                if s.key == key:
+                    servo = s
+                    break
+            angle = servo.rest if servo else 90
+            if self._send_key_angle(key, angle):
+                cmds += 1
+                if servo:
+                    servo.position = angle
+        # full-body batch for firmware
+        self.send_serial("C,85,90,8,60,50,120\n")
+        self.send_serial("LA,30,10,90,5,90\n")
+        self.send_serial("RA,30,10,90,5,90\n")
+        self.send_serial("LH,10,10,10,10,10\n")
+        self.send_serial("RH,10,10,10,10,10\n")
+        self.send_serial("LL,90,90,10,90,90\n")
+        self.send_serial("RL,90,90,10,90,90\n")
+        self.state = "idle"
+        self.life_mode = "awake"
+        return {"ok": True, "action": "rest", "servos": cmds}
+
+    def _life_log_push(self, msg: str):
+        self._life_log.append(f"{time.strftime('%H:%M:%S')} {msg}")
+        self._life_log = self._life_log[-40:]
+
+    def _stop_life_thread(self):
+        self._life_stop.set()
+        if self._life_thread and self._life_thread.is_alive():
+            self._life_thread.join(timeout=1.0)
+        self._life_thread = None
+
+    def life_action(self, action: str) -> dict:
+        """Run MRL life scripts as native behaviors."""
+        action = (action or "").strip()
+        if action not in LIFE_ACTIONS:
+            return {"ok": False, "error": f"Unknown life action: {action}", "actions": list(LIFE_ACTIONS)}
+
+        if action == "stopGesture":
+            return self.stop_gesture()
+
+        if action == "rest":
+            self._stop_life_thread()
+            return self.rest_all()
+
+        if action == "power_up":
+            self._stop_life_thread()
+            self.life_mode = "awake"
+            for peer in ("head", "leftArm", "rightArm", "leftHand", "rightHand", "torso", "mouth"):
+                if peer in self.peers:
+                    self.peers[peer]["started"] = True
+            self._life_log_push("power_up — peers started")
+            r = self.rest_all()
+            self.speak("I am powered up")
+            return {"ok": True, "action": action, "rest": r}
+
+        if action == "power_down" or action == "shutdown":
+            self._stop_life_thread()
+            self.life_mode = "shutdown"
+            self.stop_gesture()
+            self.rest_all()
+            for peer in self.peers:
+                if peer not in ("audioPlayer",):
+                    self.peers[peer]["started"] = False
+            self._life_log_push("shutdown / power_down")
+            self.speak("Powering down")
+            self.state = "shutdown"
+            return {"ok": True, "action": action}
+
+        if action == "sleepMode":
+            self._stop_life_thread()
+            self.life_mode = "sleep"
+            self.stop_gesture()
+            # head down slightly
+            self.send_serial("C,85,90,8,60,20,120\n")
+            self._life_log_push("sleepMode")
+            self.speak("Going to sleep")
+            self.state = "sleep"
+            return {"ok": True, "action": action}
+
+        if action == "wake":
+            self._stop_life_thread()
+            self.life_mode = "awake"
+            self.rest_all()
+            self._life_log_push("wake")
+            self.speak("I am awake")
+            return {"ok": True, "action": action}
+
+        if action == "healthCheck":
+            self._life_log_push("healthCheck start")
+            report = {
+                "servos": len(self.servos),
+                "peersStarted": sum(1 for p in self.peers.values() if p.get("started")),
+                "peersTotal": len(self.peers),
+                "gestures": self.load_gestures_catalog().get("count", 0),
+                "lifeMode": self.life_mode,
+                "state": self.state,
+            }
+            # brief head nod as self-check
+            self.send_serial("C,85,90,8,60,35,120\n")
+            time.sleep(0.3)
+            self.send_serial("C,85,90,8,60,65,120\n")
+            time.sleep(0.3)
+            self.send_serial("C,85,90,8,60,50,120\n")
+            self.speak(f"Health check complete. {report['gestures']} gestures ready.")
+            self._life_log_push(f"healthCheck ok servos={report['servos']}")
+            return {"ok": True, "action": action, "report": report}
+
+        # randomize family
+        if action in (
+            "moveHeadRandomize",
+            "moveEyesRandomize",
+            "moveBodyRandomize",
+            "moveRandomize",
+        ):
+            return self._start_randomize(action)
+
+        return {"ok": False, "error": f"Unhandled life action: {action}"}
+
+    def _start_randomize(self, mode: str) -> dict:
+        self._stop_life_thread()
+        self._life_stop.clear()
+        self.life_mode = "random"
+        self.state = f"life:{mode}"
+        self.peers.setdefault("random", {})["started"] = True
+        self._life_log_push(f"{mode} started")
+
+        def runner():
+            import random
+
+            cycles = 0
+            while not self._life_stop.is_set() and cycles < 40:
+                cycles += 1
+                try:
+                    if mode in ("moveHeadRandomize", "moveRandomize"):
+                        rot = random.randint(40, 100)
+                        tilt = random.randint(30, 80)
+                        roll = random.randint(90, 140)
+                        self.send_serial(f"C,85,90,8,{rot},{tilt},{roll}\n")
+                    if mode in ("moveEyesRandomize", "moveRandomize"):
+                        eye = random.randint(70, 110)
+                        self.send_serial(f"H,85,{eye},8\n")
+                    if mode in ("moveBodyRandomize", "moveRandomize"):
+                        sh = random.randint(40, 100)
+                        lift = random.randint(15, 45)
+                        el = random.randint(10, 55)
+                        self.send_serial(f"RA,{sh},{lift},90,{el},90\n")
+                        self.send_serial(f"LA,{sh},{lift},90,{el},90\n")
+                except Exception as e:
+                    logger.debug("randomize tick: %s", e)
+                # ~1.2s between poses
+                for _ in range(12):
+                    if self._life_stop.is_set():
+                        break
+                    time.sleep(0.1)
+            self.life_mode = "awake"
+            self.state = "idle"
+            self.peers.setdefault("random", {})["started"] = False
+            self._life_log_push(f"{mode} stopped")
+
+        self._life_thread = threading.Thread(target=runner, daemon=True, name=f"life-{mode}")
+        self._life_thread.start()
+        return {"ok": True, "action": mode, "running": True}
+
+    def life_status(self) -> dict:
+        return {
+            "ok": True,
+            "lifeMode": self.life_mode,
+            "state": self.state,
+            "actions": list(LIFE_ACTIONS),
+            "log": list(self._life_log),
+            "randomRunning": bool(self._life_thread and self._life_thread.is_alive()),
+        }
 
     # ── gestures ───────────────────────────────────────────────
 
@@ -430,13 +672,135 @@ class InMooveCore:
         def arm_cmd(side: str, arm: dict):
             if not arm:
                 return
-            shoulder = int(arm.get("shoulder", 90))
-            lift = int(arm.get("lift", 90))
-            rotate = int(arm.get("rotate", 90))
-            elbow = int(arm.get("elbow", 90))
-            wrist = int(arm.get("wrist", 90))
+            # Clamp each arm joint through VirtualServo hard min/max walls
+            p = "l" if side == "left" else "r"
+            key_map = {
+                "shoulder": f"{p}_shoulder",
+                "lift": f"{p}_lift",
+                "rotate": f"{p}_rotate",
+                "elbow": f"{p}_elbow",
+                "wrist": f"{p}_wrist",
+            }
+            defaults = {"shoulder": 30, "lift": 10, "rotate": 90, "elbow": 5, "wrist": 90}
+
+            def clamp_joint(name: str) -> int:
+                raw = arm.get(name, defaults[name])
+                try:
+                    val = int(raw)
+                except (TypeError, ValueError):
+                    val = defaults[name]
+                key = key_map[name]
+                for s in self.servos.values():
+                    if s.key == key:
+                        return s.clamp(val)
+                # Fallback absolute walls matching shared/servo_config
+                walls = {
+                    "shoulder": (30, 180),
+                    "lift": (10, 60 if side == "left" else 65),
+                    "rotate": (40, 180),
+                    "elbow": (0, 80 if side == "left" else 90),
+                    "wrist": (10, 160),
+                }
+                lo, hi = walls[name]
+                return max(lo, min(hi, val))
+
+            shoulder = clamp_joint("shoulder")
+            lift = clamp_joint("lift")
+            rotate = clamp_joint("rotate")
+            elbow = clamp_joint("elbow")
+            wrist = clamp_joint("wrist")
+
+            # Anti-overlap soft coupling (same rules as app._safe_arm)
+            for _ in range(3):
+                lift_max = 60 if side == "left" else 65
+                elbow_max = 80 if side == "left" else 90
+                rotate_min, rotate_max = 40, 180
+                shoulder_max = 180
+                shoulder_min = 30
+                lift_min = 10
+                elbow_min = 0
+                for s in self.servos.values():
+                    if s.key == key_map["lift"]:
+                        lift_min, lift_max = s.min, s.max
+                    elif s.key == key_map["elbow"]:
+                        elbow_min, elbow_max = s.min, s.max
+                    elif s.key == key_map["rotate"]:
+                        rotate_min, rotate_max = s.min, s.max
+                    elif s.key == key_map["shoulder"]:
+                        shoulder_min, shoulder_max = s.min, s.max
+
+                elbow_over = max(0, elbow - 40)
+                lift_max = max(lift_min + 4, lift_max - int(round(elbow_over * 0.4)))
+                lift_over = max(0, lift - 32)
+                elbow_max = max(elbow_min + 4, elbow_max - int(round(lift_over * 0.7)))
+                if shoulder > 125:
+                    lift_max = max(lift_min + 4, lift_max - int(round((shoulder - 125) * 0.25)))
+                if lift > 45:
+                    shoulder_max = max(shoulder_min + 20, shoulder_max - int(round((lift - 45) * 1.2)))
+                if elbow > 35:
+                    shrink = int(round((elbow - 35) * 0.55))
+                    rotate_min = min(rotate_max - 12, rotate_min + shrink)
+                    rotate_max = max(rotate_min + 12, rotate_max - shrink)
+                if shoulder < 55:
+                    shrink = int(round((55 - shoulder) * 0.45))
+                    rotate_min = min(95, rotate_min + shrink)
+                if lift > 42 and shoulder > 100:
+                    rotate_min = max(rotate_min, 55)
+                    rotate_max = min(rotate_max, 155)
+
+                n_shoulder = max(shoulder_min, min(shoulder_max, shoulder))
+                n_lift = max(lift_min, min(lift_max, lift))
+                n_rotate = max(rotate_min, min(rotate_max, rotate))
+                n_elbow = max(elbow_min, min(elbow_max, elbow))
+                if (n_shoulder, n_lift, n_rotate, n_elbow) == (shoulder, lift, rotate, elbow):
+                    break
+                shoulder, lift, rotate, elbow = n_shoulder, n_lift, n_rotate, n_elbow
+
+            # Hardware inversion: output = min + max - input
+            # All joints inverted except right omoplate (right lift)
+            invert = {
+                "shoulder": True,
+                "lift": side != "right",
+                "rotate": True,
+                "elbow": True,
+                "wrist": True,
+            }
+            logical = {
+                "shoulder": shoulder,
+                "lift": lift,
+                "rotate": rotate,
+                "elbow": elbow,
+                "wrist": wrist,
+            }
+            hw = {}
+            for name, val in logical.items():
+                mn, mx = 0, 180
+                for s in self.servos.values():
+                    if s.key == key_map[name]:
+                        mn, mx = s.min, s.max
+                        break
+                else:
+                    defaults = {
+                        "shoulder": (30, 180),
+                        "lift": (10, 60 if side == "left" else 65),
+                        "rotate": (40, 180),
+                        "elbow": (0, 80 if side == "left" else 90),
+                        "wrist": (10, 160),
+                    }
+                    mn, mx = defaults[name]
+                hw[name] = (mn + mx - val) if invert[name] else val
+
             prefix = "LA" if side == "left" else "RA"
-            self.send_serial(f"{prefix},{shoulder},{lift},{rotate},{elbow},{wrist}\n")
+            self.send_serial(
+                f"{prefix},{hw['shoulder']},{hw['lift']},{hw['rotate']},{hw['elbow']},{hw['wrist']}\n"
+            )
+            # Keep virtual servo positions as logical UI angles
+            for name, pos in logical.items():
+                key = key_map[name]
+                for s in self.servos.values():
+                    if s.key == key:
+                        s.position = pos
+                        break
 
         def hand_cmd(side: str, hand: dict):
             if not hand:

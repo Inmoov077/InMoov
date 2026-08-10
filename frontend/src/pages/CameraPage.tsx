@@ -345,7 +345,7 @@ export function CameraPage() {
                 {rsStatus.median_distance_m != null && (
                   <Badge variant="signal">{rsStatus.median_distance_m.toFixed(2)} m</Badge>
                 )}
-                {rsStatus.usb_type && <Badge variant="outline">USB {rsStatus.usb_type}</Badge>}
+                {rsStatus.usb_type && <Badge variant="default">USB {rsStatus.usb_type}</Badge>}
               </div>
 
               {/* Presence progress */}

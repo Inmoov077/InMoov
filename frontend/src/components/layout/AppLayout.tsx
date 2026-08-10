@@ -2,19 +2,17 @@ import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Bot,
   Brain,
   Camera,
   FlaskConical,
-  Gamepad2,
   Home,
   Menu,
   Mic,
   Rocket,
   Settings,
   Pin,
-  Layers,
   Octagon,
+  Clapperboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -24,22 +22,21 @@ import { TelemetryStrip } from '@/components/layout/TelemetryStrip';
 import { useServoStore } from '@/store/servoStore';
 import { Toaster } from 'sonner';
 
-/** Primary nav — keep short; sub-features open inside pages */
+/** Primary nav — single Studio, no Control/Studio/Features duplicates */
 const NAV = [
   { to: '/', label: 'Home', icon: Home, end: true },
-  { to: '/control', label: 'Control', icon: Gamepad2 },
+  { to: '/control', label: 'Studio', icon: Clapperboard },
   { to: '/presets', label: 'Moves', icon: Rocket },
-  { to: '/robot', label: 'Studio', icon: Bot },
   { to: '/camera', label: 'Vision', icon: Camera },
   { to: '/ai', label: 'Chat', icon: Brain },
   { to: '/offline', label: 'Voice', icon: Mic },
-  { to: '/features', label: 'Features', icon: Layers },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 const MORE = [
-  { to: '/calibration', label: 'Calibration', icon: Pin },
-  { to: '/testing', label: 'Test', icon: FlaskConical },
+  { to: '/control?panel=pins', label: 'Pins', icon: Pin },
+  { to: '/control?panel=test', label: '1:1 Test', icon: FlaskConical },
+  { to: '/calibration', label: 'Cal lab', icon: Pin },
 ];
 
 export function AppLayout() {
@@ -50,7 +47,7 @@ export function AppLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isStudio = location.pathname === '/control' || location.pathname === '/robot';
-  const showStats = location.pathname !== '/' && !isStudio;
+  const showStats = location.pathname !== '/' && !isStudio && location.pathname !== '/features';
 
   useEffect(() => {
     useServoStore.getState().refreshConnection();
@@ -91,11 +88,11 @@ export function AppLayout() {
         <div className={cn('flex h-14 items-center gap-3 px-4 md:px-6', isStudio ? 'max-w-none' : 'shell')}>
           <NavLink to="/" className="flex shrink-0 items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-glow">
-              <Bot className="h-4 w-4" />
+              <Clapperboard className="h-4 w-4" />
             </div>
             <div className="hidden sm:block">
               <p className="font-display text-base font-semibold leading-tight text-foreground">InMoov</p>
-              <p className="text-[10px] leading-none text-muted-foreground">Robot Studio</p>
+              <p className="text-[10px] leading-none text-muted-foreground">Unified Studio</p>
             </div>
           </NavLink>
 

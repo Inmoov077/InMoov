@@ -70,6 +70,42 @@ export const TORSO_SERVOS = [
   { key: 'lowStom', service: 'i01.torso.lowStom', label: 'lowStom' },
 ] as const;
 
+export const HAND_SERVOS = {
+  left: [
+    { key: 'thumb', service: 'i01.leftHand.thumb', label: 'thumb' },
+    { key: 'index', service: 'i01.leftHand.index', label: 'index' },
+    { key: 'majeure', service: 'i01.leftHand.majeure', label: 'middle' },
+    { key: 'ringFinger', service: 'i01.leftHand.ringFinger', label: 'ring' },
+    { key: 'pinky', service: 'i01.leftHand.pinky', label: 'pinky' },
+    { key: 'wrist', service: 'i01.leftHand.wrist', label: 'wrist' },
+  ],
+  right: [
+    { key: 'thumb', service: 'i01.rightHand.thumb', label: 'thumb' },
+    { key: 'index', service: 'i01.rightHand.index', label: 'index' },
+    { key: 'majeure', service: 'i01.rightHand.majeure', label: 'middle' },
+    { key: 'ringFinger', service: 'i01.rightHand.ringFinger', label: 'ring' },
+    { key: 'pinky', service: 'i01.rightHand.pinky', label: 'pinky' },
+    { key: 'wrist', service: 'i01.rightHand.wrist', label: 'wrist' },
+  ],
+} as const;
+
+export const LEG_SERVOS = {
+  left: [
+    { key: 'hip', service: 'i01.leftLeg.hip', label: 'hip' },
+    { key: 'thigh', service: 'i01.leftLeg.thigh', label: 'thigh' },
+    { key: 'knee', service: 'i01.leftLeg.knee', label: 'knee' },
+    { key: 'ankle', service: 'i01.leftLeg.ankle', label: 'ankle' },
+    { key: 'foot', service: 'i01.leftLeg.foot', label: 'foot' },
+  ],
+  right: [
+    { key: 'hip', service: 'i01.rightLeg.hip', label: 'hip' },
+    { key: 'thigh', service: 'i01.rightLeg.thigh', label: 'thigh' },
+    { key: 'knee', service: 'i01.rightLeg.knee', label: 'knee' },
+    { key: 'ankle', service: 'i01.rightLeg.ankle', label: 'ankle' },
+    { key: 'foot', service: 'i01.rightLeg.foot', label: 'foot' },
+  ],
+} as const;
+
 export const I01_PEERS: Record<string, { label: string; icon: string; peerKey: string }> = {
   brain: { label: 'Chat Bot / Brain', icon: MRL_ASSET('Brain.png'), peerKey: 'chatBot' },
   mouth: { label: 'Mouth / Speech', icon: MRL_ASSET('img/InMoov2/mouth_Activ.png'), peerKey: 'mouth' },

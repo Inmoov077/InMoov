@@ -47,9 +47,12 @@ export function ServoControl({
   showPin = false,
 }: ServoControlProps) {
   const filtered = presets.filter((p) => p >= min && p <= max);
+  // Never display or emit angles outside the control's hard walls
+  const safeValue = Math.max(min, Math.min(max, Math.round(Number(value) || min)));
 
   const handleChange = (v: number) => {
-    onChange(v);
+    const clamped = Math.max(min, Math.min(max, Math.round(v)));
+    onChange(clamped);
     syncLiveRobot(readStoreAngles());
   };
 
@@ -69,12 +72,12 @@ export function ServoControl({
           min={min}
           max={max}
           step={1}
-          value={[value]}
+          value={[safeValue]}
           onValueChange={([v]) => handleChange(v)}
           disabled={disabled}
           className="min-w-0 flex-1"
         />
-        <span className="motor-row-value">{Math.round(value)}°</span>
+        <span className="motor-row-value">{safeValue}°</span>
         <div className="motor-row-presets">
           {filtered.slice(0, 5).map((p) => (
             <button
@@ -84,7 +87,7 @@ export function ServoControl({
               onClick={() => handleChange(p)}
               className={cn(
                 'motor-chip',
-                Math.round(value) === p && 'motor-chip-active',
+                safeValue === p && 'motor-chip-active',
               )}
             >
               {presetLabels?.[p] ?? p}
@@ -106,7 +109,7 @@ export function ServoControl({
           {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
         </div>
         <span className="rounded-full bg-primary/12 px-3 py-1 font-mono text-sm font-bold text-primary">
-          {Math.round(value)}°
+          {safeValue}°
         </span>
       </div>
       <Slider
@@ -114,7 +117,7 @@ export function ServoControl({
         min={min}
         max={max}
         step={1}
-        value={[value]}
+        value={[safeValue]}
         onValueChange={([v]) => handleChange(v)}
         disabled={disabled}
       />
@@ -123,7 +126,7 @@ export function ServoControl({
           <Button
             key={p}
             type="button"
-            variant={Math.round(value) === p ? 'default' : 'outline'}
+            variant={safeValue === p ? 'default' : 'outline'}
             size="sm"
             onClick={() => handleChange(p)}
             disabled={disabled}
