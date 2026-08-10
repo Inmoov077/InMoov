@@ -116,7 +116,22 @@ export const useServoStore = create<ServoState>((set, get) => ({
     const res = await api.connectPort(port, true);
     if (res.ok) {
       get().setConnected(true, port);
-      get().log('system', `Connected to ${port}`);
+      const nPins = res.firmware_sync?.pins?.length ?? 0;
+      const nLim = res.firmware_sync?.limits?.length ?? 0;
+      get().log(
+        'system',
+        `Connected to ${port}` +
+          (nPins || nLim ? ` · synced ${nPins} pins / ${nLim} limits` : ''),
+      );
+      // Double-ensure board has latest pin map
+      try {
+        const sync = await api.syncFirmwareConfig();
+        if (sync.ok) {
+          get().log('system', `Firmware sync OK (${sync.pins?.length ?? 0} pins)`);
+        }
+      } catch {
+        /* optional */
+      }
       return true;
     }
     get().setConnected(false, null);

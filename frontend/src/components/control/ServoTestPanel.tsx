@@ -101,6 +101,10 @@ export function ServoTestPanel({ className }: { className?: string }) {
 
   const sendAngle = useCallback(
     (a: number, immediate = false) => {
+      if (!useServoStore.getState().connected) {
+        if (immediate) toast.error('USB not connected — open USB tab and Connect first');
+        return;
+      }
       const clamped = Math.max(min, Math.min(max, Math.round(a)));
       pending.current = clamped;
       const fire = () => {
@@ -108,7 +112,11 @@ export function ServoTestPanel({ className }: { className?: string }) {
         const v = pending.current;
         if (v == null || v === lastSent.current) return;
         lastSent.current = v;
-        void api.moveServoByKey(selectedKey, v);
+        void api.moveServoByKey(selectedKey, v).then((res) => {
+          if (!res.ok && immediate) {
+            toast.error(res.error || 'Move failed — reconnect USB');
+          }
+        });
       };
       if (immediate) {
         if (throttle.current) clearTimeout(throttle.current);
@@ -131,11 +139,20 @@ export function ServoTestPanel({ className }: { className?: string }) {
   const setPin = async (p: number) => {
     const safe = Math.max(2, Math.min(53, Math.round(p) || 2));
     setPins((prev) => ({ ...prev, [selectedKey]: safe }));
+    if (!connected) {
+      toast.error('Connect USB first, then Apply pin');
+      return;
+    }
     setBusy(true);
     try {
-      const res = await api.setServoPin(selectedKey, safe);
-      if (res.ok) toast.success(`Pin ${selectedKey} → ${safe}`);
-      else toast.error(res.error || 'Pin set failed');
+      const res = await api.setServoPin(selectedKey, safe, true);
+      if (res.ok && res.serial_sent) {
+        toast.success(
+          `Pin ${selectedKey} → ${safe}` + (res.test_sent ? ' · rest pulse sent' : ''),
+        );
+      } else {
+        toast.error(res.error || res.hint || 'Pin not sent to board');
+      }
     } finally {
       setBusy(false);
     }

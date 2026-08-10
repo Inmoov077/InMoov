@@ -48,7 +48,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 85,
-      "ease": 0.08,
+      "ease": 0.065,
       "calibrationSource": "mrl"
     },
     {
@@ -60,7 +60,7 @@ export const SERVO_CONFIG: {
       "min": 60,
       "max": 120,
       "rest": 90,
-      "ease": 0.07,
+      "ease": 0.065,
       "calibrationSource": "mrl"
     },
     {
@@ -72,7 +72,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 40,
       "rest": 8,
-      "ease": 0.22,
+      "ease": 0.18,
       "calibrationSource": "mrl"
     },
     {
@@ -84,7 +84,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 60,
-      "ease": 0.06,
+      "ease": 0.065,
       "calibrationSource": "mrl"
     },
     {
@@ -96,7 +96,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 50,
-      "ease": 0.05,
+      "ease": 0.065,
       "calibrationSource": "mrl"
     },
     {
@@ -108,7 +108,7 @@ export const SERVO_CONFIG: {
       "min": 60,
       "max": 130,
       "rest": 120,
-      "ease": 0.07,
+      "ease": 0.065,
       "calibrationSource": "mrl"
     },
     {
@@ -120,7 +120,7 @@ export const SERVO_CONFIG: {
       "min": 30,
       "max": 180,
       "rest": 30,
-      "ease": 0.08,
+      "ease": 0.045,
       "motor": "DS5160",
       "vdbPin": 22,
       "calibrationSource": "vdb+mrl"
@@ -134,7 +134,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 60,
       "rest": 10,
-      "ease": 0.07,
+      "ease": 0.045,
       "motor": "DS5160",
       "vdbPin": 24,
       "vdbKey": "l_omoplate",
@@ -149,7 +149,7 @@ export const SERVO_CONFIG: {
       "min": 40,
       "max": 180,
       "rest": 90,
-      "ease": 0.08,
+      "ease": 0.045,
       "motor": "DS5160",
       "vdbPin": 28,
       "calibrationSource": "vdb+mrl"
@@ -163,7 +163,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 80,
       "rest": 5,
-      "ease": 0.08,
+      "ease": 0.045,
       "motor": "DS5160",
       "vdbPin": 26,
       "vdbKey": "l_bicep",
@@ -192,7 +192,7 @@ export const SERVO_CONFIG: {
       "min": 30,
       "max": 180,
       "rest": 30,
-      "ease": 0.08,
+      "ease": 0.045,
       "motor": "DS5160",
       "vdbPin": 23,
       "calibrationSource": "vdb+mrl"
@@ -206,7 +206,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 65,
       "rest": 10,
-      "ease": 0.07,
+      "ease": 0.045,
       "motor": "DS5160",
       "vdbPin": 25,
       "vdbKey": "r_omoplate",
@@ -221,7 +221,7 @@ export const SERVO_CONFIG: {
       "min": 40,
       "max": 180,
       "rest": 90,
-      "ease": 0.08,
+      "ease": 0.045,
       "motor": "DS5160",
       "vdbPin": 29,
       "calibrationSource": "vdb+mrl"
@@ -235,7 +235,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 90,
       "rest": 5,
-      "ease": 0.08,
+      "ease": 0.045,
       "motor": "DS5160",
       "vdbPin": 27,
       "vdbKey": "r_bicep",
@@ -264,7 +264,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -277,7 +277,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -290,7 +290,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -303,7 +303,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -316,7 +316,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -329,7 +329,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -342,7 +342,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -355,7 +355,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -368,7 +368,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -381,7 +381,7 @@ export const SERVO_CONFIG: {
       "min": 10,
       "max": 130,
       "rest": 10,
-      "ease": 0.15,
+      "ease": 0.14,
       "motor": "MG996R",
       "calibrationSource": "vdb+mrl"
     },
@@ -394,7 +394,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 90,
-      "ease": 0.06,
+      "ease": 0.05,
       "calibrationSource": "mrl"
     },
     {
@@ -406,7 +406,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 90,
-      "ease": 0.06,
+      "ease": 0.05,
       "calibrationSource": "mrl"
     },
     {
@@ -430,7 +430,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 90,
-      "ease": 0.06,
+      "ease": 0.05,
       "calibrationSource": "mrl"
     },
     {
@@ -442,7 +442,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 90,
-      "ease": 0.06,
+      "ease": 0.05,
       "calibrationSource": "mrl"
     },
     {
@@ -454,7 +454,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 90,
-      "ease": 0.06,
+      "ease": 0.05,
       "calibrationSource": "mrl"
     },
     {
@@ -466,7 +466,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 90,
-      "ease": 0.06,
+      "ease": 0.05,
       "calibrationSource": "mrl"
     },
     {
@@ -490,7 +490,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 90,
-      "ease": 0.06,
+      "ease": 0.05,
       "calibrationSource": "mrl"
     },
     {
@@ -502,7 +502,7 @@ export const SERVO_CONFIG: {
       "min": 0,
       "max": 180,
       "rest": 90,
-      "ease": 0.06,
+      "ease": 0.05,
       "calibrationSource": "mrl"
     }
   ],

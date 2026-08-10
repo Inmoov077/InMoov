@@ -72,21 +72,53 @@ export function PinMapPanel({ className }: { className?: string }) {
     const safe = Math.max(2, Math.min(53, Math.round(pin) || 2));
     setPins((p) => ({ ...p, [key]: safe }));
     setDirty(true);
-    if (connected) {
-      try {
-        await api.setServoPin(key, safe);
-      } catch {
-        /* still dirty local */
+  };
+
+  /** Apply one pin immediately to Arduino (and save override). */
+  const applyOne = async (key: string) => {
+    const safe = Math.max(2, Math.min(53, Math.round(pins[key] ?? 2)));
+    if (!connected) {
+      toast.error('Connect USB first — pin will not reach Arduino offline');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await api.setServoPin(key, safe, true);
+      if (res.ok && res.serial_sent) {
+        toast.success(`${key} → pin ${safe}${res.test_sent ? ' (test pulse sent)' : ''}`);
+        if (res.warning) toast.warning(res.warning);
+        setDirty(true);
+      } else {
+        toast.error(res.error || res.hint || 'Pin not applied — reconnect USB');
       }
+    } catch {
+      toast.error('Pin apply failed');
+    } finally {
+      setSaving(false);
     }
   };
 
   const saveAll = async () => {
     setSaving(true);
     try {
-      const res = await api.saveServoPins(pins, connected);
+      if (!connected) {
+        const res = await api.saveServoPins(pins, false);
+        if (res.ok) {
+          toast.warning('Pins saved to disk only — connect USB then Save again to program board');
+          setDirty(false);
+        } else toast.error(res.error || 'Save failed');
+        return;
+      }
+      const res = await api.saveServoPins(pins, true);
       if (res.ok) {
-        toast.success(connected ? 'Pins saved & sent to firmware' : 'Pins saved');
+        const n = res.firmware_applied?.length ?? 0;
+        if (n > 0) {
+          toast.success(`Saved & pushed ${n} pins to Arduino`);
+          // Full sync limits too
+          await api.syncFirmwareConfig().catch(() => null);
+        } else {
+          toast.warning(res.warning || 'Saved but board did not confirm pin writes');
+        }
         setDirty(false);
       } else toast.error(res.error || 'Save failed');
     } finally {
@@ -111,6 +143,24 @@ export function PinMapPanel({ className }: { className?: string }) {
   };
 
   const q = filter.trim().toLowerCase();
+
+  /** Detect duplicate Mega pins (causes intermittent / fighting motors) */
+  const conflicts = useMemo(() => {
+    const byPin: Record<number, string[]> = {};
+    for (const s of SERVOS) {
+      const pin = pins[s.key] ?? s.pin;
+      if (pin < 2) continue;
+      if (!byPin[pin]) byPin[pin] = [];
+      byPin[pin].push(s.key);
+    }
+    const map: Record<string, number> = {};
+    for (const [pinStr, keys] of Object.entries(byPin)) {
+      if (keys.length > 1) {
+        for (const k of keys) map[k] = Number(pinStr);
+      }
+    }
+    return map;
+  }, [pins]);
 
   if (loading) {
     return (
@@ -153,8 +203,14 @@ export function PinMapPanel({ className }: { className?: string }) {
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Assign Mega pin (2–53) per motor. When USB is connected, changes send <code>W,idx,pin</code> to the board.
+        Assign Mega pin (2–53) per motor. <strong>Apply</strong> programs the board; <strong>Save pins</strong> writes all.
+        Red rows = pin conflict (two motors on one pin — fix these first).
       </p>
+      {Object.keys(conflicts).length > 0 && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
+          Pin conflicts detected on: {[...new Set(Object.values(conflicts))].join(', ')}. Each pin must be unique.
+        </div>
+      )}
 
       {GROUP_ORDER.map((group) => {
         let servos = grouped[group] ?? [];
@@ -176,7 +232,12 @@ export function PinMapPanel({ className }: { className?: string }) {
               {servos.map((s) => (
                 <div
                   key={s.key}
-                  className="grid grid-cols-[1fr_auto_auto_4.5rem] items-center gap-2 rounded-lg border border-border/40 bg-background/60 px-2 py-1.5"
+                  className={cn(
+                    'grid grid-cols-[1fr_auto_auto_4rem_auto] items-center gap-2 rounded-lg border bg-background/60 px-2 py-1.5',
+                    conflicts[s.key]
+                      ? 'border-destructive/60 bg-destructive/5'
+                      : 'border-border/40',
+                  )}
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{s.label}</p>
@@ -193,11 +254,21 @@ export function PinMapPanel({ className }: { className?: string }) {
                     type="number"
                     min={2}
                     max={53}
-                    className="h-8 font-mono text-center text-sm"
+                    className="h-8 w-16 font-mono text-center text-sm"
                     value={pins[s.key] ?? s.pin}
                     onChange={(e) => void onPinChange(s.key, Number(e.target.value))}
                     title="Arduino pin"
                   />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-[10px]"
+                    disabled={saving}
+                    onClick={() => void applyOne(s.key)}
+                    title="Apply this pin to Arduino now"
+                  >
+                    Apply
+                  </Button>
                 </div>
               ))}
             </div>
