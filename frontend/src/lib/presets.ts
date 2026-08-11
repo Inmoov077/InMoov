@@ -5,6 +5,7 @@
  */
 import type { ArmJoints, HandJoints, LegJoints } from '@/lib/bodyConfig';
 import { MRL_PRESETS, MRL_PRESET_META, type MrlPresetCategory } from '@/lib/mrlPresets';
+import { getRestArm, getRestHand, REST_HEAD } from '@/lib/restPose';
 
 export interface PresetKeyframe {
   hneck: number;
@@ -34,23 +35,32 @@ export interface PresetMetaEntry {
   featured?: boolean;
 }
 
-/** Safe rest pose used between moves */
-const REST = {
-  hneck: 85,
-  eye: 90,
-  jaw: 8,
-  rot: 60,
-  tilt: 50,
-  roll: 120,
-} as const;
+/** Safe rest pose used between moves — exact config rests */
+const REST = { ...REST_HEAD } as const;
 
-const OPEN_HAND: Partial<HandJoints> = {
-  thumb: 10,
-  index: 10,
-  middle: 10,
-  ring: 10,
-  pinky: 10,
+/** Fully open hand at config rest (not “almost open”) */
+const OPEN_HAND: Partial<HandJoints> = { ...getRestHand() };
+
+/**
+ * Indian Army salute hand — palm open, fingers & thumb together (not a fist).
+ * Servo °: open≈10 … closed≈120
+ */
+const SALUTE_HAND: Partial<HandJoints> = {
+  thumb: 32,
+  index: 12,
+  middle: 12,
+  ring: 14,
+  pinky: 14,
 };
+/** Hand forming while arm is still rising */
+const SALUTE_HAND_MID: Partial<HandJoints> = {
+  thumb: 22,
+  index: 12,
+  middle: 14,
+  ring: 16,
+  pinky: 16,
+};
+
 const FIST: Partial<HandJoints> = {
   thumb: 120,
   index: 120,
@@ -66,9 +76,78 @@ const POINT_HAND: Partial<HandJoints> = {
   pinky: 120,
 };
 
-/** Safe arm helpers — lift ≤55, elbow ≤75 (under hard max) */
-const R_DOWN: Partial<ArmJoints> = { shoulder: 35, lift: 12, rotate: 90, elbow: 10, wrist: 90 };
-const L_DOWN: Partial<ArmJoints> = { shoulder: 35, lift: 12, rotate: 90, elbow: 10, wrist: 90 };
+/**
+ * True arm rest (config rest via getSafeArmRest) — never “almost rest”.
+ * Hard walls: r_shoulder 30–180 · r_lift 10–70 · r_elbow 10–80 …
+ */
+const R_DOWN: Partial<ArmJoints> = { ...getRestArm('right') };
+const L_DOWN: Partial<ArmJoints> = { ...getRestArm('left') };
+
+/** Raised right arm — clearly “hand up” in 3D */
+const R_UP: Partial<ArmJoints> = { shoulder: 105, lift: 58, rotate: 95, elbow: 16, wrist: 90 };
+/** Wave base (arm out, ready to twist) */
+const R_WAVE_BASE: Partial<ArmJoints> = { shoulder: 80, lift: 55, rotate: 90, elbow: 28, wrist: 90 };
+const R_WAVE_L: Partial<ArmJoints> = { shoulder: 80, lift: 55, rotate: 52, elbow: 28, wrist: 132 };
+const R_WAVE_R: Partial<ArmJoints> = { shoulder: 80, lift: 55, rotate: 132, elbow: 28, wrist: 48 };
+/** Handshake offer */
+const R_SHAKE: Partial<ArmJoints> = { shoulder: 60, lift: 40, rotate: 95, elbow: 50, wrist: 90 };
+
+/**
+ * Indian Army salute — right hand to RIGHT TEMPLE (not face-center).
+ *
+ * Tuned for InMoov 3D (rest-relative map + real servo min/max):
+ *   shoulder high  → arm raised forward
+ *   lift moderate  → elbow out from torso (not T-pose)
+ *   rotate inward  → hand path to temple
+ *   elbow strong   → forearm up to head
+ *   wrist rolled   → palm facing outward / slightly down
+ *
+ * Hard walls: r_shoulder 30–180, r_lift 10–70, r_rotate 40–180,
+ *             r_elbow 10–80, r_wrist 10–160
+ */
+/** Phase 1 — raise upper arm (elbow still soft) */
+const R_SALUTE_SHOULDER: Partial<ArmJoints> = {
+  shoulder: 95,
+  lift: 26,
+  rotate: 100,
+  elbow: 16,
+  wrist: 85,
+};
+/** Phase 2 — bring arm forward + start elbow */
+const R_SALUTE_ELBOW: Partial<ArmJoints> = {
+  shoulder: 125,
+  lift: 30,
+  rotate: 112,
+  elbow: 45,
+  wrist: 70,
+};
+/** Phase 3 — hand approaching temple */
+const R_SALUTE: Partial<ArmJoints> = {
+  shoulder: 142,
+  lift: 30,
+  rotate: 122,
+  elbow: 70,
+  wrist: 50,
+};
+/** Phase 4 — hold: hand at temple, elbow out, palm open outward */
+const R_SALUTE_HOLD: Partial<ArmJoints> = {
+  shoulder: 148,
+  lift: 28,
+  rotate: 126,
+  elbow: 76,
+  wrist: 46,
+};
+
+/** Present / open arms */
+const R_PRESENT: Partial<ArmJoints> = { shoulder: 90, lift: 40, rotate: 95, elbow: 16, wrist: 90 };
+const L_PRESENT: Partial<ArmJoints> = { shoulder: 90, lift: 40, rotate: 85, elbow: 14, wrist: 90 };
+
+/** Upright attention head (salute / formal moves) */
+const ATTENTION_HEAD = {
+  ...REST_HEAD,
+  jaw: Math.min(REST_HEAD.jaw, 8),
+  tilt: REST_HEAD.tilt,
+} as const;
 
 /**
  * Moves page list — only these ~14 clean actions (not 150+ MRL dumps).
@@ -158,7 +237,7 @@ export const SHOWCASE_PRESET_META: PresetMetaEntry[] = [
   {
     id: 'salute',
     name: 'Salute',
-    desc: 'Right hand salute',
+    desc: 'Indian Army salute · right hand to temple',
     icon: 'Medal',
     category: 'action',
     featured: true,
@@ -296,27 +375,27 @@ export const PRESETS: Record<string, PresetKeyframe[]> = {
       rightHand: OPEN_HAND,
       hold: 1000,
     },
-    // 5. Friendly dual wave (safe lift ≤52°)
+    // 5. Friendly dual wave — rotate + wrist (clear in 3D)
     {
       ...REST,
       jaw: 12,
-      leftArm: { shoulder: 60, lift: 50, rotate: 90, elbow: 20, wrist: 100 },
-      rightArm: { shoulder: 90, lift: 50, rotate: 90, elbow: 20, wrist: 80 },
+      leftArm: { shoulder: 70, lift: 50, rotate: 55, elbow: 22, wrist: 125 },
+      rightArm: { shoulder: 70, lift: 50, rotate: 125, elbow: 22, wrist: 55 },
       leftHand: OPEN_HAND,
       rightHand: OPEN_HAND,
-      hold: 550,
+      hold: 450,
     },
     {
       ...REST,
-      leftArm: { shoulder: 90, lift: 50, rotate: 90, elbow: 20, wrist: 80 },
-      rightArm: { shoulder: 60, lift: 50, rotate: 90, elbow: 20, wrist: 100 },
-      hold: 550,
+      leftArm: { shoulder: 70, lift: 50, rotate: 125, elbow: 22, wrist: 55 },
+      rightArm: { shoulder: 70, lift: 50, rotate: 55, elbow: 22, wrist: 125 },
+      hold: 450,
     },
     {
       ...REST,
-      leftArm: { shoulder: 60, lift: 50, rotate: 90, elbow: 20, wrist: 100 },
-      rightArm: { shoulder: 90, lift: 50, rotate: 90, elbow: 20, wrist: 80 },
-      hold: 550,
+      leftArm: { shoulder: 70, lift: 50, rotate: 55, elbow: 22, wrist: 125 },
+      rightArm: { shoulder: 70, lift: 50, rotate: 125, elbow: 22, wrist: 55 },
+      hold: 450,
     },
     // 6. Present / welcome
     {
@@ -340,31 +419,106 @@ export const PRESETS: Record<string, PresetKeyframe[]> = {
     },
   ],
 
-  // ── Featured actions (safe limits) ──────────────────────────
+  // ── Featured actions (safe limits, strong 3D silhouette) ─────
+  /**
+   * Indian Army salute — full coordinated motion (MRL-style path).
+   *
+   * 1 Attention → 2 raise shoulder → 3 elbow in → 4 hand to temple
+   * → 5 hold → 6 smart cut (hand open → elbow → arm down) → 7 rest
+   *
+   * Left arm always down. Head upright facing forward.
+   * Right hand open palm at right temple (not face center).
+   */
   salute: [
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 500 },
+    // 1. Attention
     {
       ...REST,
-      tilt: 48,
-      rightArm: { shoulder: 100, lift: 48, rotate: 95, elbow: 55, wrist: 90 },
-      rightHand: FIST,
+      ...ATTENTION_HEAD,
+      leftArm: L_DOWN,
+      rightArm: R_DOWN,
+      leftHand: OPEN_HAND,
+      rightHand: OPEN_HAND,
+      hold: 450,
+    },
+    // 2. Raise right upper arm (path starts)
+    {
+      ...REST,
+      ...ATTENTION_HEAD,
+      leftArm: L_DOWN,
+      rightArm: R_SALUTE_SHOULDER,
+      leftHand: OPEN_HAND,
+      rightHand: OPEN_HAND,
+      hold: 200,
+    },
+    // 3. Elbow bends, arm swings toward head
+    {
+      ...REST,
+      ...ATTENTION_HEAD,
+      hneck: 86,
+      leftArm: L_DOWN,
+      rightArm: R_SALUTE_ELBOW,
+      leftHand: OPEN_HAND,
+      rightHand: SALUTE_HAND_MID,
+      hold: 220,
+    },
+    // 4. Hand reaches temple — palm forms
+    {
+      ...REST,
+      ...ATTENTION_HEAD,
+      hneck: 87,
+      tilt: 47,
+      leftArm: L_DOWN,
+      rightArm: R_SALUTE,
+      leftHand: OPEN_HAND,
+      rightHand: SALUTE_HAND,
+      hold: 250,
+    },
+    // 5. HOLD — crisp Indian salute silhouette
+    {
+      ...REST,
+      ...ATTENTION_HEAD,
+      hneck: 87,
+      eye: 90,
+      jaw: 6,
+      tilt: 47,
+      rot: 60,
+      roll: 120,
+      leftArm: L_DOWN,
+      rightArm: R_SALUTE_HOLD,
+      leftHand: OPEN_HAND,
+      rightHand: SALUTE_HAND,
+      hold: 1400,
+    },
+    // 6. Smart cut — open hand, start lowering
+    {
+      ...REST,
+      ...ATTENTION_HEAD,
+      leftArm: L_DOWN,
+      rightArm: R_SALUTE_ELBOW,
+      leftHand: OPEN_HAND,
+      rightHand: OPEN_HAND,
+      hold: 200,
+    },
+    // 7. Arm half-down
+    {
+      ...REST,
+      ...ATTENTION_HEAD,
+      leftArm: L_DOWN,
+      rightArm: R_SALUTE_SHOULDER,
+      leftHand: OPEN_HAND,
+      rightHand: OPEN_HAND,
+      hold: 220,
+    },
+    // 8. Rest
+    {
+      ...REST,
+      ...ATTENTION_HEAD,
+      leftArm: L_DOWN,
+      rightArm: R_DOWN,
+      leftHand: OPEN_HAND,
+      rightHand: OPEN_HAND,
       hold: 700,
     },
-    {
-      ...REST,
-      hneck: 88,
-      tilt: 45,
-      rightArm: { shoulder: 130, lift: 52, rotate: 100, elbow: 62, wrist: 100 },
-      rightHand: FIST,
-      hold: 1800,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 100, lift: 48, rotate: 95, elbow: 55, wrist: 90 },
-      rightHand: OPEN_HAND,
-      hold: 600,
-    },
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 800 },
   ],
 
   victory: [
@@ -423,72 +577,84 @@ export const PRESETS: Record<string, PresetKeyframe[]> = {
   ],
 
   present: [
-    { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, hold: 400 },
+    { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, leftHand: OPEN_HAND, rightHand: OPEN_HAND, hold: 300 },
+    // both shoulders open first
     {
       ...REST,
       jaw: 10,
-      leftArm: { shoulder: 70, lift: 28, rotate: 90, elbow: 12, wrist: 90 },
-      rightArm: { shoulder: 70, lift: 28, rotate: 90, elbow: 12, wrist: 90 },
+      leftArm: { shoulder: 65, lift: 28, rotate: 88, elbow: 12, wrist: 90 },
+      rightArm: { shoulder: 65, lift: 28, rotate: 92, elbow: 12, wrist: 90 },
       leftHand: OPEN_HAND,
       rightHand: OPEN_HAND,
-      hold: 1000,
+      hold: 350,
     },
     {
       ...REST,
       jaw: 12,
-      tilt: 52,
-      leftArm: { shoulder: 85, lift: 35, rotate: 85, elbow: 15, wrist: 90 },
-      rightArm: { shoulder: 85, lift: 35, rotate: 95, elbow: 15, wrist: 90 },
+      leftArm: { shoulder: 80, lift: 34, rotate: 86, elbow: 14, wrist: 90 },
+      rightArm: { shoulder: 80, lift: 34, rotate: 94, elbow: 14, wrist: 90 },
       leftHand: OPEN_HAND,
       rightHand: OPEN_HAND,
-      hold: 2000,
+      hold: 400,
     },
-    { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, hold: 800 },
+    {
+      ...REST,
+      jaw: 14,
+      tilt: 54,
+      leftArm: L_PRESENT,
+      rightArm: R_PRESENT,
+      leftHand: OPEN_HAND,
+      rightHand: OPEN_HAND,
+      hold: 1700,
+    },
+    { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, leftHand: OPEN_HAND, rightHand: OPEN_HAND, hold: 650 },
   ],
 
   clap: [
-    { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, hold: 400 },
+    { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, leftHand: OPEN_HAND, rightHand: OPEN_HAND, hold: 300 },
+    // raise both arms
     {
       ...REST,
-      leftArm: { shoulder: 70, lift: 32, rotate: 90, elbow: 32, wrist: 90 },
-      rightArm: { shoulder: 70, lift: 32, rotate: 90, elbow: 32, wrist: 90 },
+      leftArm: { shoulder: 68, lift: 32, rotate: 90, elbow: 24, wrist: 90 },
+      rightArm: { shoulder: 68, lift: 32, rotate: 90, elbow: 24, wrist: 90 },
       leftHand: OPEN_HAND,
       rightHand: OPEN_HAND,
-      hold: 600,
+      hold: 320,
+    },
+    // elbows in for clap
+    {
+      ...REST,
+      leftArm: { shoulder: 88, lift: 40, rotate: 90, elbow: 42, wrist: 90 },
+      rightArm: { shoulder: 88, lift: 40, rotate: 90, elbow: 42, wrist: 90 },
+      leftHand: OPEN_HAND,
+      rightHand: OPEN_HAND,
+      hold: 260,
     },
     {
       ...REST,
-      leftArm: { shoulder: 80, lift: 36, rotate: 90, elbow: 42, wrist: 90 },
-      rightArm: { shoulder: 80, lift: 36, rotate: 90, elbow: 42, wrist: 90 },
-      leftHand: OPEN_HAND,
-      rightHand: OPEN_HAND,
-      hold: 350,
-    },
-    {
-      ...REST,
-      leftArm: { shoulder: 85, lift: 38, rotate: 90, elbow: 48, wrist: 90 },
-      rightArm: { shoulder: 85, lift: 38, rotate: 90, elbow: 48, wrist: 90 },
+      leftArm: { shoulder: 100, lift: 44, rotate: 90, elbow: 55, wrist: 90 },
+      rightArm: { shoulder: 100, lift: 44, rotate: 90, elbow: 55, wrist: 90 },
       leftHand: FIST,
       rightHand: FIST,
-      hold: 300,
+      hold: 240,
     },
     {
       ...REST,
-      leftArm: { shoulder: 80, lift: 36, rotate: 90, elbow: 42, wrist: 90 },
-      rightArm: { shoulder: 80, lift: 36, rotate: 90, elbow: 42, wrist: 90 },
+      leftArm: { shoulder: 90, lift: 40, rotate: 90, elbow: 44, wrist: 90 },
+      rightArm: { shoulder: 90, lift: 40, rotate: 90, elbow: 44, wrist: 90 },
       leftHand: OPEN_HAND,
       rightHand: OPEN_HAND,
-      hold: 350,
+      hold: 260,
     },
     {
       ...REST,
-      leftArm: { shoulder: 85, lift: 38, rotate: 90, elbow: 48, wrist: 90 },
-      rightArm: { shoulder: 85, lift: 38, rotate: 90, elbow: 48, wrist: 90 },
+      leftArm: { shoulder: 100, lift: 44, rotate: 90, elbow: 55, wrist: 90 },
+      rightArm: { shoulder: 100, lift: 44, rotate: 90, elbow: 55, wrist: 90 },
       leftHand: FIST,
       rightHand: FIST,
-      hold: 300,
+      hold: 240,
     },
-    { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, leftHand: OPEN_HAND, rightHand: OPEN_HAND, hold: 700 },
+    { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, leftHand: OPEN_HAND, rightHand: OPEN_HAND, hold: 650 },
   ],
 
   heart: [
@@ -516,19 +682,20 @@ export const PRESETS: Record<string, PresetKeyframe[]> = {
     { ...REST, leftArm: L_DOWN, rightArm: R_DOWN, leftHand: OPEN_HAND, rightHand: OPEN_HAND, hold: 800 },
   ],
 
-  // ── Classic head / body (safe) ──────────────────────────────
+  // ── Classic head / body (safe, big 3D head motion) ──────────
   nod: [
-    { ...REST, tilt: 70, hold: 700 },
-    { ...REST, tilt: 30, hold: 700 },
-    { ...REST, tilt: 65, hold: 500 },
-    { ...REST, tilt: 35, hold: 500 },
-    { ...REST, hold: 600 },
+    { ...REST, tilt: 78, hold: 550 },
+    { ...REST, tilt: 22, hold: 550 },
+    { ...REST, tilt: 72, hold: 450 },
+    { ...REST, tilt: 28, hold: 450 },
+    { ...REST, tilt: 50, hold: 500 },
   ],
   shake: [
-    { ...REST, rot: 35, roll: 145, eye: 75, hold: 600 },
-    { ...REST, rot: 90, roll: 90, eye: 105, hold: 600 },
-    { ...REST, rot: 35, roll: 145, eye: 75, hold: 500 },
-    { ...REST, hold: 700 },
+    { ...REST, rot: 28, roll: 152, eye: 70, hold: 480 },
+    { ...REST, rot: 100, roll: 80, eye: 110, hold: 480 },
+    { ...REST, rot: 28, roll: 152, eye: 70, hold: 420 },
+    { ...REST, rot: 100, roll: 80, eye: 110, hold: 420 },
+    { ...REST, hold: 600 },
   ],
   'tilt-side': [
     { ...REST, rot: 40, roll: 145, hold: 900 },
@@ -570,269 +737,314 @@ export const PRESETS: Record<string, PresetKeyframe[]> = {
     { ...REST, hneck: 87, eye: 88, tilt: 53, hold: 1800 },
     { ...REST, hold: 1200 },
   ],
-  /** Wave — lift max 52° (under 60/65 wall) */
+  /**
+   * Wave hello — shoulder first, then rotate+wrist oscillation (clear 3D).
+   */
   'wave-arm': [
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 500 },
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 300 },
+    // shoulders raise first
     {
       ...REST,
       jaw: 12,
-      rightArm: { shoulder: 70, lift: 48, rotate: 90, elbow: 25, wrist: 90 },
+      rightArm: { shoulder: 70, lift: 48, rotate: 90, elbow: 16, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 700,
+      hold: 280,
     },
     {
       ...REST,
-      rightArm: { shoulder: 55, lift: 52, rotate: 90, elbow: 22, wrist: 100 },
-      hold: 500,
+      jaw: 14,
+      rightArm: R_WAVE_BASE,
+      rightHand: OPEN_HAND,
+      hold: 400,
     },
-    {
-      ...REST,
-      rightArm: { shoulder: 90, lift: 52, rotate: 90, elbow: 22, wrist: 80 },
-      hold: 500,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 55, lift: 52, rotate: 90, elbow: 22, wrist: 100 },
-      hold: 500,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 90, lift: 52, rotate: 90, elbow: 22, wrist: 80 },
-      hold: 500,
-    },
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 800 },
+    { ...REST, rightArm: R_WAVE_L, rightHand: OPEN_HAND, hold: 340 },
+    { ...REST, rightArm: R_WAVE_R, rightHand: OPEN_HAND, hold: 340 },
+    { ...REST, rightArm: R_WAVE_L, rightHand: OPEN_HAND, hold: 340 },
+    { ...REST, rightArm: R_WAVE_R, rightHand: OPEN_HAND, hold: 340 },
+    { ...REST, rightArm: R_WAVE_BASE, rightHand: OPEN_HAND, hold: 280 },
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 650 },
   ],
   handshake: [
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 400 },
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 300 },
     {
       ...REST,
-      rightArm: { shoulder: 55, lift: 35, rotate: 90, elbow: 35, wrist: 90 },
+      rightArm: { shoulder: 52, lift: 32, rotate: 92, elbow: 22, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 700,
+      hold: 350,
     },
     {
       ...REST,
-      rightArm: { shoulder: 50, lift: 40, rotate: 90, elbow: 45, wrist: 90 },
-      rightHand: POINT_HAND,
-      hold: 1600,
+      rightArm: { shoulder: 58, lift: 38, rotate: 94, elbow: 40, wrist: 90 },
+      rightHand: OPEN_HAND,
+      hold: 400,
     },
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 800 },
+    {
+      ...REST,
+      rightArm: R_SHAKE,
+      rightHand: OPEN_HAND,
+      hold: 1300,
+    },
+    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 650 },
   ],
 
-  // ── Showcase hand / arm moves (safe walls) ─────────────────
+  // ── Showcase hand / arm moves (phased · inside hard walls) ─
   'hand-up': [
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 400 },
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 300 },
+    // shoulder lift first
     {
       ...REST,
       jaw: 10,
-      rightArm: { shoulder: 70, lift: 40, rotate: 90, elbow: 18, wrist: 90 },
+      rightArm: { shoulder: 70, lift: 40, rotate: 92, elbow: 14, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 600,
+      hold: 280,
     },
     {
       ...REST,
-      rightArm: { shoulder: 95, lift: 52, rotate: 90, elbow: 14, wrist: 90 },
+      rightArm: { shoulder: 90, lift: 52, rotate: 94, elbow: 15, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 1600,
+      hold: 320,
     },
     {
       ...REST,
-      rightArm: { shoulder: 95, lift: 52, rotate: 90, elbow: 14, wrist: 90 },
+      rightArm: R_UP,
       rightHand: OPEN_HAND,
-      hold: 500,
+      hold: 1400,
     },
+    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 650 },
   ],
   'hand-down': [
     {
       ...REST,
-      rightArm: { shoulder: 90, lift: 48, rotate: 90, elbow: 16, wrist: 90 },
+      rightArm: R_UP,
       rightHand: OPEN_HAND,
-      hold: 500,
+      hold: 350,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 85, lift: 42, rotate: 92, elbow: 16, wrist: 90 },
+      rightHand: OPEN_HAND,
+      hold: 320,
     },
     {
       ...REST,
       rightArm: { shoulder: 55, lift: 28, rotate: 90, elbow: 14, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 700,
+      hold: 350,
     },
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, leftArm: L_DOWN, hold: 900 },
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 700 },
   ],
   'wave-high': [
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 400 },
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 300 },
     {
       ...REST,
       jaw: 12,
-      rightArm: { shoulder: 85, lift: 55, rotate: 90, elbow: 18, wrist: 90 },
+      rightArm: { shoulder: 85, lift: 52, rotate: 90, elbow: 14, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 600,
+      hold: 280,
     },
-    {
-      ...REST,
-      rightArm: { shoulder: 70, lift: 55, rotate: 90, elbow: 18, wrist: 105 },
-      hold: 450,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 100, lift: 55, rotate: 90, elbow: 18, wrist: 75 },
-      hold: 450,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 70, lift: 55, rotate: 90, elbow: 18, wrist: 105 },
-      hold: 450,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 100, lift: 55, rotate: 90, elbow: 18, wrist: 75 },
-      hold: 450,
-    },
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 800 },
-  ],
-  'shake-hand': [
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 400 },
-    {
-      ...REST,
-      tilt: 48,
-      rightArm: { shoulder: 60, lift: 32, rotate: 90, elbow: 30, wrist: 90 },
-      rightHand: OPEN_HAND,
-      hold: 700,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 55, lift: 38, rotate: 90, elbow: 42, wrist: 90 },
-      rightHand: OPEN_HAND,
-      hold: 500,
-    },
-    // pump handshake
-    {
-      ...REST,
-      rightArm: { shoulder: 55, lift: 36, rotate: 90, elbow: 48, wrist: 90 },
-      hold: 350,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 55, lift: 40, rotate: 90, elbow: 36, wrist: 90 },
-      hold: 350,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 55, lift: 36, rotate: 90, elbow: 48, wrist: 90 },
-      hold: 350,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 55, lift: 40, rotate: 90, elbow: 36, wrist: 90 },
-      hold: 400,
-    },
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 800 },
-  ],
-  'baby-hand': [
-    // Arm slightly forward, cute finger open/close
     {
       ...REST,
       jaw: 14,
-      tilt: 55,
-      rightArm: { shoulder: 55, lift: 30, rotate: 90, elbow: 28, wrist: 90 },
+      rightArm: { shoulder: 98, lift: 60, rotate: 90, elbow: 16, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 600,
+      hold: 400,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 98, lift: 60, rotate: 48, elbow: 16, wrist: 138 },
+      hold: 320,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 98, lift: 60, rotate: 138, elbow: 16, wrist: 42 },
+      hold: 320,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 98, lift: 60, rotate: 48, elbow: 16, wrist: 138 },
+      hold: 320,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 98, lift: 60, rotate: 138, elbow: 16, wrist: 42 },
+      hold: 320,
+    },
+    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 650 },
+  ],
+  'shake-hand': [
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 300 },
+    // shoulder path
+    {
+      ...REST,
+      tilt: 48,
+      rightArm: { shoulder: 52, lift: 30, rotate: 92, elbow: 20, wrist: 90 },
+      rightHand: OPEN_HAND,
+      hold: 280,
+    },
+    // elbow into offer
+    {
+      ...REST,
+      tilt: 48,
+      rightArm: { shoulder: 58, lift: 36, rotate: 94, elbow: 40, wrist: 90 },
+      rightHand: OPEN_HAND,
+      hold: 320,
+    },
+    {
+      ...REST,
+      rightArm: R_SHAKE,
+      rightHand: OPEN_HAND,
+      hold: 350,
+    },
+    // pump handshake — elbow only
+    {
+      ...REST,
+      rightArm: { shoulder: 60, lift: 40, rotate: 95, elbow: 58, wrist: 90 },
+      hold: 280,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 60, lift: 42, rotate: 95, elbow: 34, wrist: 90 },
+      hold: 280,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 60, lift: 40, rotate: 95, elbow: 58, wrist: 90 },
+      hold: 280,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 60, lift: 42, rotate: 95, elbow: 34, wrist: 90 },
+      hold: 300,
+    },
+    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 650 },
+  ],
+  'baby-hand': [
+    {
+      ...REST,
+      jaw: 16,
+      tilt: 56,
+      rightArm: { shoulder: 62, lift: 36, rotate: 92, elbow: 32, wrist: 90 },
+      rightHand: OPEN_HAND,
+      hold: 500,
+    },
+    {
+      ...REST,
+      jaw: 20,
+      rightArm: { shoulder: 62, lift: 36, rotate: 92, elbow: 32, wrist: 100 },
+      rightHand: {
+        thumb: 45,
+        index: 40,
+        middle: 48,
+        ring: 55,
+        pinky: 60,
+      },
+      hold: 380,
+    },
+    {
+      ...REST,
+      jaw: 12,
+      rightArm: { shoulder: 62, lift: 36, rotate: 92, elbow: 32, wrist: 80 },
+      rightHand: OPEN_HAND,
+      hold: 350,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 62, lift: 36, rotate: 92, elbow: 32, wrist: 105 },
+      rightHand: {
+        thumb: 70,
+        index: 75,
+        middle: 80,
+        ring: 85,
+        pinky: 90,
+      },
+      hold: 380,
     },
     {
       ...REST,
       jaw: 18,
-      rightArm: { shoulder: 55, lift: 32, rotate: 90, elbow: 30, wrist: 90 },
+      rightArm: { shoulder: 62, lift: 36, rotate: 92, elbow: 32, wrist: 85 },
+      rightHand: OPEN_HAND,
+      hold: 400,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 62, lift: 36, rotate: 92, elbow: 32, wrist: 95 },
       rightHand: {
         thumb: 40,
         index: 35,
-        middle: 40,
-        ring: 45,
-        pinky: 50,
-      },
-      hold: 450,
-    },
-    {
-      ...REST,
-      jaw: 12,
-      rightArm: { shoulder: 55, lift: 32, rotate: 90, elbow: 30, wrist: 95 },
-      rightHand: OPEN_HAND,
-      hold: 400,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 55, lift: 32, rotate: 90, elbow: 30, wrist: 85 },
-      rightHand: {
-        thumb: 50,
-        index: 50,
-        middle: 55,
-        ring: 60,
-        pinky: 65,
+        middle: 42,
+        ring: 48,
+        pinky: 55,
       },
       hold: 400,
     },
-    {
-      ...REST,
-      jaw: 16,
-      rightArm: { shoulder: 55, lift: 32, rotate: 90, elbow: 30, wrist: 95 },
-      rightHand: OPEN_HAND,
-      hold: 500,
-    },
-    {
-      ...REST,
-      rightArm: { shoulder: 55, lift: 32, rotate: 90, elbow: 30, wrist: 90 },
-      rightHand: {
-        thumb: 35,
-        index: 30,
-        middle: 35,
-        ring: 40,
-        pinky: 45,
-      },
-      hold: 500,
-    },
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 700 },
+    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 650 },
   ],
   'open-hand': [
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: FIST, hold: 280 },
     {
       ...REST,
-      rightArm: { shoulder: 55, lift: 28, rotate: 90, elbow: 22, wrist: 90 },
+      rightArm: { shoulder: 58, lift: 32, rotate: 92, elbow: 22, wrist: 90 },
       rightHand: FIST,
-      hold: 500,
+      hold: 300,
     },
     {
       ...REST,
-      rightArm: { shoulder: 55, lift: 30, rotate: 90, elbow: 24, wrist: 90 },
+      rightArm: { shoulder: 68, lift: 38, rotate: 92, elbow: 28, wrist: 90 },
+      rightHand: FIST,
+      hold: 350,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 68, lift: 38, rotate: 92, elbow: 28, wrist: 90 },
       rightHand: OPEN_HAND,
       hold: 1200,
     },
     { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 600 },
   ],
   fist: [
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 280 },
     {
       ...REST,
-      rightArm: { shoulder: 55, lift: 28, rotate: 90, elbow: 22, wrist: 90 },
+      rightArm: { shoulder: 58, lift: 32, rotate: 92, elbow: 22, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 500,
+      hold: 300,
     },
     {
       ...REST,
-      rightArm: { shoulder: 55, lift: 30, rotate: 90, elbow: 24, wrist: 90 },
+      rightArm: { shoulder: 68, lift: 38, rotate: 92, elbow: 28, wrist: 90 },
+      rightHand: OPEN_HAND,
+      hold: 350,
+    },
+    {
+      ...REST,
+      rightArm: { shoulder: 68, lift: 38, rotate: 92, elbow: 28, wrist: 90 },
       rightHand: FIST,
       hold: 1200,
     },
     { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 600 },
   ],
   point: [
+    { ...REST, rightArm: R_DOWN, leftArm: L_DOWN, rightHand: OPEN_HAND, hold: 280 },
     {
       ...REST,
-      rightArm: { shoulder: 55, lift: 28, rotate: 90, elbow: 22, wrist: 90 },
+      rightArm: { shoulder: 62, lift: 34, rotate: 92, elbow: 20, wrist: 90 },
       rightHand: OPEN_HAND,
-      hold: 400,
+      hold: 280,
     },
     {
       ...REST,
-      rightArm: { shoulder: 70, lift: 38, rotate: 90, elbow: 28, wrist: 90 },
-      rightHand: POINT_HAND,
-      hold: 1600,
+      rightArm: { shoulder: 82, lift: 42, rotate: 95, elbow: 28, wrist: 90 },
+      rightHand: OPEN_HAND,
+      hold: 300,
     },
-    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 700 },
+    {
+      ...REST,
+      rightArm: { shoulder: 88, lift: 46, rotate: 96, elbow: 32, wrist: 90 },
+      rightHand: POINT_HAND,
+      hold: 1500,
+    },
+    { ...REST, rightArm: R_DOWN, rightHand: OPEN_HAND, hold: 600 },
   ],
   'gallery-real': [
     {

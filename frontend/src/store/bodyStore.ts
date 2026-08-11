@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import * as api from '@/lib/api';
 import {
-  DEFAULT_HAND,
-  DEFAULT_LEG,
   HAND_JOINT_META,
   LEG_JOINT_META,
   type ArmJoints,
@@ -11,6 +9,7 @@ import {
   type LegJoints,
 } from '@/lib/bodyConfig';
 import { getSafeArmRest, sanitizeArm } from '@/lib/armSafety';
+import { getRestHand, getRestLeg } from '@/lib/restPose';
 import { notifyRobotPreview } from '@/lib/robotPreviewBridge';
 import { clamp } from '@/lib/utils';
 import { clampServoAngle } from '@/store/limitStore';
@@ -59,10 +58,10 @@ function logBody(type: 'send' | 'error', msg: string) {
 export const useBodyStore = create<BodyState>((set, get) => ({
   leftArm: getSafeArmRest('left'),
   rightArm: getSafeArmRest('right'),
-  leftHand: { ...DEFAULT_HAND },
-  rightHand: { ...DEFAULT_HAND },
-  leftLeg: { ...DEFAULT_LEG },
-  rightLeg: { ...DEFAULT_LEG },
+  leftHand: getRestHand(),
+  rightHand: getRestHand(),
+  leftLeg: getRestLeg('left'),
+  rightLeg: getRestLeg('right'),
 
   setArmJoint: (side, joint, value, send = true) => {
     const key = side === 'left' ? 'leftArm' : 'rightArm';
@@ -134,7 +133,8 @@ export const useBodyStore = create<BodyState>((set, get) => ({
   },
 
   centerHands: () => {
-    set({ leftHand: { ...DEFAULT_HAND }, rightHand: { ...DEFAULT_HAND } });
+    const hand = getRestHand();
+    set({ leftHand: { ...hand }, rightHand: { ...hand } });
     notifyRobotPreview();
     if (useServoStore.getState().connected) {
       get().sendHand('left');
@@ -143,7 +143,7 @@ export const useBodyStore = create<BodyState>((set, get) => ({
   },
 
   centerLegs: () => {
-    set({ leftLeg: { ...DEFAULT_LEG }, rightLeg: { ...DEFAULT_LEG } });
+    set({ leftLeg: getRestLeg('left'), rightLeg: getRestLeg('right') });
     notifyRobotPreview();
     if (useServoStore.getState().connected) {
       get().sendLeg('left');

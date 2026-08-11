@@ -4,6 +4,7 @@
  */
 import { PRESETS } from '@/lib/presets';
 import { animateKeyframes } from '@/lib/animateKeyframes';
+import { isPlaybackLocked } from '@/lib/robotLiveController';
 
 let lastPlayedId = 0;
 let bootstrapped = false;
@@ -16,6 +17,8 @@ export function isWakeAnimationPlaying() {
 
 /** Play the wake-up keyframe sequence (safe limits, full body). */
 export async function playWakeUpClient(signal?: AbortSignal): Promise<void> {
+  // Never interrupt an active Moves page playback
+  if (isPlaybackLocked()) return;
   const kf = PRESETS['wake-up'];
   if (!kf?.length) return;
   if (playing) {

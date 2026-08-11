@@ -9,6 +9,7 @@ import { GALLERY_REFS } from '@/lib/inmoovGalleryRefs';
 import {
   clearLiveRobot,
   nextLiveGeneration,
+  reapplyLiveAngles,
   setLiveRobot,
   setLiveRobotStatusListener,
   syncLiveRobot,
@@ -135,6 +136,8 @@ export const RobotViewer = forwardRef<
       animId = requestAnimationFrame(animate);
       const v = viewerRef.current;
       if (!v || cancelled) return;
+      // Re-apply pose every frame so Moves never "stick" mid-gesture
+      reapplyLiveAngles();
       v.controls.update();
       v.renderer.render(v.scene, v.camera);
     };
@@ -157,6 +160,27 @@ export const RobotViewer = forwardRef<
         className={cn('h-full w-full transition-all duration-300', showRef && showGallery ? 'lg:pr-[38%]' : '')}
       >
         <canvas ref={canvasRef} className="relative z-[1] block h-full w-full touch-none" />
+
+        {/* Moves: compact load status so users wait for linked 3D before playing */}
+        {simple && status !== 'ready' && (
+          <div className="pointer-events-none absolute inset-0 z-[4] flex items-center justify-center bg-background/40 backdrop-blur-[1px]">
+            <div className="flex items-center gap-2 rounded-full bg-card/95 px-3 py-1.5 text-xs font-medium shadow-soft">
+              {status === 'error' ? (
+                <span className="text-destructive">{loadError || '3D failed'}</span>
+              ) : (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                  Loading 3D…
+                </>
+              )}
+            </div>
+          </div>
+        )}
+        {simple && status === 'ready' && (
+          <div className="absolute left-3 top-3 z-[3] rounded-full bg-card/90 px-2.5 py-1 text-[10px] font-medium text-muted-foreground shadow-soft backdrop-blur-sm">
+            3D ready{linked ? ' · linked' : ''}
+          </div>
+        )}
 
         {/* Studio-only chrome (official ROS badge, gallery, views). Hidden on Moves. */}
         {!simple && (

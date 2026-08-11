@@ -1,47 +1,137 @@
-import { Suspense, lazy, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Play, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PRESETS, PRESET_META } from '@/lib/presets';
 import { animateKeyframes } from '@/lib/animateKeyframes';
-import { useBodyStore } from '@/store/bodyStore';
+import { applyNeutralPose } from '@/lib/applyNeutralPose';
 import { useServoStore } from '@/store/servoStore';
+import { isLiveRobotReady } from '@/lib/robotLiveController';
 import { cn } from '@/lib/utils';
 
 const RobotViewer = lazy(() =>
   import('@/components/robot/RobotViewer').then((m) => ({ default: m.RobotViewer })),
 );
 
+/** Moves that focus the camera on hands / upper body */
+const HAND_FOCUS = new Set([
+  'hand-up',
+  'hand-down',
+  'wave-arm',
+  'wave-high',
+  'shake-hand',
+  'baby-hand',
+  'open-hand',
+  'fist',
+  'point',
+  'clap',
+]);
+/** Head + right arm close-up (salute to temple) */
+const HEAD_FOCUS = new Set(['salute', 'nod', 'shake']);
+
 /**
- * Moves — only ~15 clear actions (hand up/down, wave, shake, baby hand…).
- * No 150+ dump list.
+ * Moves — curated actions with live 3D preview.
+ * 3D is force-driven every keyframe step (does not depend on store subscribers).
  */
 export function PresetsPage() {
   const [running, setRunning] = useState<string | null>(null);
+  const [previewNote, setPreviewNote] = useState<string>('');
   const abortRef = useRef<AbortController | null>(null);
-  const centerAll = useServoStore((s) => s.centerAll);
-  const centerBody = useBodyStore((s) => s.centerBody);
+  const viewerRef = useRef<{ setView: (id: string) => void } | null>(null);
   const connected = useServoStore((s) => s.connected);
+
+  // Perfect default hands/arms every time Moves opens
+  useEffect(() => {
+    applyNeutralPose({ send: false });
+  }, []);
+
+  const waitFor3d = async (ms = 10000): Promise<boolean> => {
+    const start = Date.now();
+    while (!isLiveRobotReady() && Date.now() - start < ms) {
+      await new Promise((r) => setTimeout(r, 80));
+    }
+    return isLiveRobotReady();
+  };
 
   const playPreset = async (id: string) => {
     const keyframes = PRESETS[id];
-    if (!keyframes) return;
+    if (!keyframes?.length) {
+      setPreviewNote('Move data missing');
+      return;
+    }
+
+    // Stop any previous move cleanly
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
     setRunning(id);
+    setPreviewNote('Waiting for 3D…');
+
     try {
-      await animateKeyframes(keyframes, { signal: controller.signal, transitionMs: 320 });
+      const ready = await waitFor3d(10000);
+      if (controller.signal.aborted) return;
+
+      if (!ready) {
+        setPreviewNote('3D not ready — reload page if model failed');
+        // Still run so stores update; user may see motion after load
+      } else {
+        setPreviewNote(connected ? 'Playing 3D + motors' : 'Playing 3D preview');
+      }
+
+      try {
+        // Salute / arm moves: full body so you see the whole path (MRL-style)
+        if (id === 'nod' || id === 'shake') viewerRef.current?.setView('head');
+        else if (HAND_FOCUS.has(id) || id === 'salute') viewerRef.current?.setView('full');
+        else if (HEAD_FOCUS.has(id)) viewerRef.current?.setView('head');
+        else viewerRef.current?.setView('full');
+      } catch {
+        /* camera optional */
+      }
+
+      // Salute needs longer blends so elbow/hand path reads clearly
+      const transitionMs =
+        id === 'salute' ? 520 : id === 'wake-up' ? 420 : id === 'nod' || id === 'shake' ? 320 : 450;
+
+      await animateKeyframes(keyframes, {
+        signal: controller.signal,
+        transitionMs,
+        // Always update 3D; motors only if USB connected (checked inside)
+        send: true,
+      });
+
+      if (!controller.signal.aborted) {
+        // Always return to perfect default hands/arms after a move
+        applyNeutralPose({ send: false });
+        setPreviewNote(ready ? 'Done · default pose' : 'Done (3D was offline)');
+      }
+    } catch (err) {
+      console.error('[Moves] play failed', err);
+      setPreviewNote('Playback error — see console');
+      applyNeutralPose({ send: false });
     } finally {
+      if (!controller.signal.aborted) {
+        try {
+          viewerRef.current?.setView('full');
+        } catch {
+          /* ignore */
+        }
+      }
       setRunning(null);
+      window.setTimeout(() => setPreviewNote(''), 2500);
     }
   };
 
   const stop = () => {
     abortRef.current?.abort();
     setRunning(null);
-    centerAll();
-    centerBody();
+    setPreviewNote('Stopped · default pose');
+    applyNeutralPose({ send: false });
+    try {
+      viewerRef.current?.setView('full');
+    } catch {
+      /* ignore */
+    }
+    window.setTimeout(() => setPreviewNote(''), 1500);
   };
 
   const playingName = PRESET_META.find((p) => p.id === running)?.name;
@@ -54,11 +144,18 @@ export function PresetsPage() {
           <Suspense
             fallback={
               <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                Loading 3D…
+                Loading 3D model…
               </div>
             }
           >
-            <RobotViewer className="h-full w-full" showGallery={false} variant="moves" />
+            <RobotViewer
+              ref={(r) => {
+                viewerRef.current = r;
+              }}
+              className="h-full w-full"
+              showGallery={false}
+              variant="moves"
+            />
           </Suspense>
         </div>
         <div className="mt-3 flex items-center justify-between gap-2 text-sm">
@@ -67,11 +164,12 @@ export function PresetsPage() {
               {running ? playingName : '3D robot'}
             </p>
             <p className="text-xs text-muted-foreground">
-              {running
-                ? 'Playing…'
-                : connected
-                  ? 'USB on · tap a move'
-                  : 'Preview only · connect USB for motors'}
+              {previewNote ||
+                (running
+                  ? 'Playing…'
+                  : connected
+                    ? 'USB on · tap a move'
+                    : 'Preview only · connect USB for motors')}
             </p>
           </div>
           {running ? (
@@ -96,7 +194,7 @@ export function PresetsPage() {
         <div className="mb-5 border-b border-border/40 pb-4">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Moves</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {PRESET_META.length} clear actions · more can be added later ·{' '}
+            {PRESET_META.length} actions · 3D updates every frame ·{' '}
             <Link to="/control" className="underline-offset-2 hover:underline">
               Studio
             </Link>
