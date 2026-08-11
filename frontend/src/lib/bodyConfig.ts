@@ -1,4 +1,5 @@
 import { SERVOS, servoByKey } from '@/lib/servoConfig';
+import { pinForKey } from '@/store/pinStore';
 
 export type BodySide = 'left' | 'right';
 
@@ -30,7 +31,14 @@ function restFor(key: string): number {
   return servoByKey(key)?.rest ?? 90;
 }
 
+/** Live pin from pinStore (updated when user saves Pins tab). */
 function pinFor(key: string): number {
+  try {
+    const live = pinForKey(key);
+    if (live >= 2) return live;
+  } catch {
+    /* store not ready */
+  }
   return servoByKey(key)?.pin ?? 0;
 }
 
@@ -74,8 +82,8 @@ export const ARM_JOINT_META: {
 }[] = [
   {
     key: 'shoulder',
-    label: 'Shoulder pan',
-    hint: 'Swing arm forward / back',
+    label: 'Shoulder',
+    hint: 'Swing the arm forward and back',
     pin: { left: pinFor('l_shoulder'), right: pinFor('r_shoulder') },
     min: { left: limitsFor('l_shoulder').min, right: limitsFor('r_shoulder').min },
     max: { left: limitsFor('l_shoulder').max, right: limitsFor('r_shoulder').max },
@@ -83,8 +91,8 @@ export const ARM_JOINT_META: {
   },
   {
     key: 'lift',
-    label: 'Shoulder lift (omoplate)',
-    hint: 'Raise / lower arm',
+    label: 'Omoplate',
+    hint: 'Raise the arm at the shoulder blade',
     pin: { left: pinFor('l_lift'), right: pinFor('r_lift') },
     min: { left: limitsFor('l_lift').min, right: limitsFor('r_lift').min },
     max: { left: limitsFor('l_lift').max, right: limitsFor('r_lift').max },
@@ -92,8 +100,8 @@ export const ARM_JOINT_META: {
   },
   {
     key: 'rotate',
-    label: 'Upper arm roll',
-    hint: 'Rotate bicep',
+    label: 'Rotate',
+    hint: 'Twist the upper arm',
     pin: { left: pinFor('l_rotate'), right: pinFor('r_rotate') },
     min: { left: limitsFor('l_rotate').min, right: limitsFor('r_rotate').min },
     max: { left: limitsFor('l_rotate').max, right: limitsFor('r_rotate').max },
@@ -101,8 +109,8 @@ export const ARM_JOINT_META: {
   },
   {
     key: 'elbow',
-    label: 'Elbow (bicep)',
-    hint: 'Bend forearm',
+    label: 'Elbow',
+    hint: 'Bend the forearm (bicep)',
     pin: { left: pinFor('l_elbow'), right: pinFor('r_elbow') },
     min: { left: limitsFor('l_elbow').min, right: limitsFor('r_elbow').min },
     max: { left: limitsFor('l_elbow').max, right: limitsFor('r_elbow').max },
@@ -110,8 +118,8 @@ export const ARM_JOINT_META: {
   },
   {
     key: 'wrist',
-    label: 'Wrist roll',
-    hint: 'Rotate hand',
+    label: 'Wrist',
+    hint: 'Twist hand',
     pin: { left: pinFor('l_wrist'), right: pinFor('r_wrist') },
     min: { left: limitsFor('l_wrist').min, right: limitsFor('r_wrist').min },
     max: { left: limitsFor('l_wrist').max, right: limitsFor('r_wrist').max },
@@ -144,11 +152,11 @@ export const LEG_JOINT_META: {
   max?: number;
   urdf: { left: string; right: string };
 }[] = [
-  { key: 'hip', label: 'Hip pan', hint: 'Swing leg sideways', pin: { left: pinFor('l_hip'), right: pinFor('r_hip') }, ...limitsFor('l_hip'), urdf: { left: 'l_hip_pan_joint', right: 'r_hip_pan_joint' } },
-  { key: 'thigh', label: 'Hip lift', hint: 'Raise / lower thigh', pin: { left: pinFor('l_thigh'), right: pinFor('r_thigh') }, ...limitsFor('l_thigh'), urdf: { left: 'l_hip_lift_joint', right: 'r_hip_lift_joint' } },
-  { key: 'knee', label: 'Knee', hint: 'Bend lower leg', pin: { left: pinFor('l_knee'), right: pinFor('r_knee') }, ...limitsFor('l_knee'), urdf: { left: 'l_knee_joint', right: 'r_knee_joint' } },
+  { key: 'hip', label: 'Hip', hint: 'Swing leg', pin: { left: pinFor('l_hip'), right: pinFor('r_hip') }, ...limitsFor('l_hip'), urdf: { left: 'l_hip_pan_joint', right: 'r_hip_pan_joint' } },
+  { key: 'thigh', label: 'Thigh', hint: 'Raise leg', pin: { left: pinFor('l_thigh'), right: pinFor('r_thigh') }, ...limitsFor('l_thigh'), urdf: { left: 'l_hip_lift_joint', right: 'r_hip_lift_joint' } },
+  { key: 'knee', label: 'Knee', hint: 'Bend leg', pin: { left: pinFor('l_knee'), right: pinFor('r_knee') }, ...limitsFor('l_knee'), urdf: { left: 'l_knee_joint', right: 'r_knee_joint' } },
   { key: 'ankle', label: 'Ankle', hint: 'Tilt foot', pin: { left: pinFor('l_ankle'), right: pinFor('r_ankle') }, ...limitsFor('l_ankle'), urdf: { left: 'l_ankle_joint', right: 'r_ankle_joint' } },
-  { key: 'foot', label: 'Foot roll', hint: 'Roll foot side-to-side', pin: { left: pinFor('l_foot'), right: pinFor('r_foot') }, ...limitsFor('l_foot'), urdf: { left: 'l_foot_roll_joint', right: 'r_foot_roll_joint' } },
+  { key: 'foot', label: 'Foot', hint: 'Roll foot', pin: { left: pinFor('l_foot'), right: pinFor('r_foot') }, ...limitsFor('l_foot'), urdf: { left: 'l_foot_roll_joint', right: 'r_foot_roll_joint' } },
 ];
 
 export const ARM_PRESETS = {

@@ -8,5 +8,8 @@
   "r_lift": false,
   "r_rotate": true,
   "r_elbow": true,
-  "r_wrist": true
+  "r_wrist": true,
+  "l_pinky": false,
+  "head_eye": false,
+  "r_index": true
 }

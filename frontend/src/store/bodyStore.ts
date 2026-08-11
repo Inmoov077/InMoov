@@ -13,6 +13,7 @@ import {
 import { getSafeArmRest, sanitizeArm } from '@/lib/armSafety';
 import { notifyRobotPreview } from '@/lib/robotPreviewBridge';
 import { clamp } from '@/lib/utils';
+import { clampServoAngle } from '@/store/limitStore';
 import { useServoStore } from '@/store/servoStore';
 
 interface BodyState {
@@ -79,7 +80,9 @@ export const useBodyStore = create<BodyState>((set, get) => ({
   setHandJoint: (side, joint, value, send = true) => {
     const key = side === 'left' ? 'leftHand' : 'rightHand';
     const meta = HAND_JOINT_META.find((m) => m.key === joint);
-    const v = clamp(Number(value), meta?.min ?? 0, meta?.max ?? 180);
+    const sk = `${side === 'left' ? 'l' : 'r'}_${joint}`;
+    const base = clamp(Number(value), meta?.min ?? 0, meta?.max ?? 180);
+    const v = clampServoAngle(sk, base);
     set((s) => ({ [key]: { ...s[key], [joint]: v } }));
     notifyRobotPreview();
     if (send && useServoStore.getState().connected) {
@@ -90,7 +93,9 @@ export const useBodyStore = create<BodyState>((set, get) => ({
   setLegJoint: (side, joint, value, send = true) => {
     const key = side === 'left' ? 'leftLeg' : 'rightLeg';
     const meta = LEG_JOINT_META.find((m) => m.key === joint);
-    const v = clamp(Number(value), meta?.min ?? 0, meta?.max ?? 180);
+    const sk = `${side === 'left' ? 'l' : 'r'}_${joint}`;
+    const base = clamp(Number(value), meta?.min ?? 0, meta?.max ?? 180);
+    const v = clampServoAngle(sk, base);
     set((s) => ({ [key]: { ...s[key], [joint]: v } }));
     notifyRobotPreview();
     if (send && useServoStore.getState().connected) {

@@ -145,10 +145,13 @@ export function CameraPage() {
   const testWake = async () => {
     try {
       await realsenseWakeNow(rsGreet);
-      toast.success('Wake test sent', {
+      // Full body check on 3D + (server does real servos when USB on)
+      const { playWakeUpClient } = await import('@/lib/wakeAnimation');
+      void playWakeUpClient();
+      toast.success('Wake up!', {
         description: connected
-          ? 'Motors enabled + speaking greeting'
-          : 'Speaking greeting (serial not connected — motors skipped)',
+          ? 'Full body check + greeting (head, hands, fingers, wave)'
+          : '3D wake animation + greeting (connect USB for real motors)',
       });
     } catch (err) {
       toast.error('Wake test failed', {

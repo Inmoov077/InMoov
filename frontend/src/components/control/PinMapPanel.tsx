@@ -3,24 +3,13 @@ import { Loader2, RefreshCw, Save, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import * as api from '@/lib/api';
 import { SERVOS, type ServoDef } from '@/lib/servoConfig';
+import { groupDisplayName, servoShortName } from '@/lib/servoNames';
+import { usePinStore } from '@/store/pinStore';
 import { useServoStore } from '@/store/servoStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { NumberEdit } from '@/components/ui/number-edit';
 import { cn } from '@/lib/utils';
-
-const DEFAULT_INVERT: Record<string, boolean> = {
-  l_shoulder: true,
-  l_lift: true,
-  l_rotate: true,
-  l_elbow: true,
-  l_wrist: true,
-  r_shoulder: true,
-  r_lift: false,
-  r_rotate: true,
-  r_elbow: true,
-  r_wrist: true,
-};
 
 const GROUP_ORDER = [
   'head',
@@ -33,25 +22,28 @@ const GROUP_ORDER = [
   'rightLeg',
 ] as const;
 
-const GROUP_LABELS: Record<string, string> = {
-  head: 'Head',
-  neck: 'Neck',
-  leftArm: 'Left Arm',
-  rightArm: 'Right Arm',
-  leftHand: 'Left Hand',
-  rightHand: 'Right Hand',
-  leftLeg: 'Left Leg',
-  rightLeg: 'Right Leg',
-};
-
+/**
+ * Pin map — inputs start empty.
+ * Only saved overrides (or draft after typing) appear; Save persists to disk + board.
+ */
 export function PinMapPanel({ className }: { className?: string }) {
   const connected = useServoStore((s) => s.connected);
-  const [pins, setPins] = useState<Record<string, number>>({});
-  const [invert, setInvert] = useState<Record<string, boolean>>({ ...DEFAULT_INVERT });
-  const [loading, setLoading] = useState(true);
+  const pins = usePinStore((s) => s.pins);
+  const dirty = usePinStore((s) => s.dirty);
+  const loaded = usePinStore((s) => s.loaded);
+  const hydrate = usePinStore((s) => s.hydrate);
+  const setPinLocal = usePinStore((s) => s.setPinLocal);
+  const clearPinLocal = usePinStore((s) => s.clearPinLocal);
+  const saveAll = usePinStore((s) => s.saveAll);
+  const saveOne = usePinStore((s) => s.saveOne);
+  const resetDefaults = usePinStore((s) => s.resetDefaults);
+
   const [saving, setSaving] = useState(false);
-  const [dirty, setDirty] = useState(false);
   const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    void hydrate();
+  }, [hydrate]);
 
   const grouped = useMemo(() => {
     const map: Record<string, ServoDef[]> = {};
@@ -62,137 +54,11 @@ export function PinMapPanel({ className }: { className?: string }) {
     return map;
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [cfg, pinRes, invRes] = await Promise.all([
-        api.getServoConfig(),
-        api.getServoPins(),
-        api.getServoInvert().catch(() => ({ invert: {} })),
-      ]);
-      const pinMap: Record<string, number> = {};
-      const invMap: Record<string, boolean> = { ...DEFAULT_INVERT };
-      for (const s of cfg.servos ?? SERVOS) {
-        pinMap[s.key] = s.pin;
-        if (typeof (s as ServoDef).inverted === 'boolean') invMap[s.key] = !!(s as ServoDef).inverted;
-      }
-      Object.assign(pinMap, pinRes.pins ?? {});
-      if (invRes.invert) Object.assign(invMap, invRes.invert);
-      setPins(pinMap);
-      setInvert(invMap);
-      setDirty(false);
-    } catch {
-      toast.error('Could not load pin map');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const onPinChange = async (key: string, pin: number) => {
-    const safe = Math.max(2, Math.min(53, Math.round(pin) || 2));
-    setPins((p) => ({ ...p, [key]: safe }));
-    setDirty(true);
-  };
-
-  const toggleInvert = async (key: string, on: boolean) => {
-    setInvert((prev) => ({ ...prev, [key]: on }));
-    try {
-      const res = await api.setServoInvert(key, on, connected);
-      if (res.ok) {
-        toast.success(`${key}: Invert ${on ? 'ON' : 'OFF'}`);
-      } else {
-        toast.error(res.error || 'Invert failed');
-        setInvert((prev) => ({ ...prev, [key]: !on }));
-      }
-    } catch {
-      toast.error('Invert failed');
-      setInvert((prev) => ({ ...prev, [key]: !on }));
-    }
-  };
-
-  /** Apply one pin immediately to Arduino (and save override). */
-  const applyOne = async (key: string) => {
-    const safe = Math.max(2, Math.min(53, Math.round(pins[key] ?? 2)));
-    if (!connected) {
-      toast.error('Connect USB first — pin will not reach Arduino offline');
-      return;
-    }
-    setSaving(true);
-    try {
-      const res = await api.setServoPin(key, safe, true);
-      if (res.ok && res.serial_sent) {
-        toast.success(`${key} → pin ${safe}${res.test_sent ? ' (test pulse sent)' : ''}`);
-        if (res.warning) toast.warning(res.warning);
-        setDirty(true);
-      } else {
-        toast.error(res.error || res.hint || 'Pin not applied — reconnect USB');
-      }
-    } catch {
-      toast.error('Pin apply failed');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const saveAll = async () => {
-    setSaving(true);
-    try {
-      if (!connected) {
-        const res = await api.saveServoPins(pins, false);
-        if (res.ok) {
-          toast.warning('Pins saved to disk only — connect USB then Save again to program board');
-          setDirty(false);
-        } else toast.error(res.error || 'Save failed');
-        return;
-      }
-      const res = await api.saveServoPins(pins, true);
-      if (res.ok) {
-        const n = res.firmware_applied?.length ?? 0;
-        const fail = (res.firmware_failed as string[] | undefined)?.length ?? 0;
-        if (n > 0) {
-          toast.success(
-            `Saved & pushed ${n} pins to Arduino` + (fail ? ` (${fail} failed — keep USB connected)` : ''),
-          );
-          // Do NOT full sync here — re-pushing all W+U floods serial and drops COM
-        } else {
-          toast.warning(res.warning || 'Saved but board did not confirm pin writes');
-        }
-        setDirty(false);
-        void useServoStore.getState().refreshConnection();
-      } else toast.error(res.error || 'Save failed');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const resetDefaults = () => {
-    const defaults: Record<string, number> = {};
-    for (const s of SERVOS) defaults[s.key] = s.pin;
-    setPins(defaults);
-    setDirty(true);
-    toast.info('Reset to Mega defaults — click Save');
-  };
-
-  const applyVdb = async () => {
-    const res = await api.applyVdbPinProfile();
-    if (res.ok) {
-      toast.success('VDB pin profile applied');
-      await load();
-    } else toast.error('VDB profile failed');
-  };
-
-  const q = filter.trim().toLowerCase();
-
-  /** Detect duplicate Mega pins (causes intermittent / fighting motors) */
   const conflicts = useMemo(() => {
     const byPin: Record<number, string[]> = {};
     for (const s of SERVOS) {
-      const pin = pins[s.key] ?? s.pin;
-      if (pin < 2) continue;
+      const pin = pins[s.key];
+      if (pin == null || pin < 2) continue;
       if (!byPin[pin]) byPin[pin] = [];
       byPin[pin].push(s.key);
     }
@@ -205,7 +71,81 @@ export function PinMapPanel({ className }: { className?: string }) {
     return map;
   }, [pins]);
 
-  if (loading) {
+  const onSaveAll = useCallback(async () => {
+    if (Object.keys(pins).length === 0) {
+      toast.error('No pins to save — type a pin first');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await saveAll(connected);
+      if (res.ok) {
+        if (connected) {
+          const n = res.firmware_applied?.length ?? 0;
+          toast.success(n > 0 ? `Saved ${n} pins to board` : 'Pins saved');
+        } else {
+          toast.success('Pins saved — connect USB to program board');
+        }
+        void hydrate();
+      } else toast.error(res.error || 'Save failed');
+    } catch {
+      toast.error('Save failed');
+    } finally {
+      setSaving(false);
+    }
+  }, [connected, saveAll, hydrate, pins]);
+
+  const onApplyOne = useCallback(
+    async (key: string) => {
+      const pin = pins[key];
+      if (pin == null || pin < 2) {
+        toast.error('Enter a pin number first (2–53)');
+        return;
+      }
+      setSaving(true);
+      try {
+        if (connected) {
+          const res = await saveOne(key, pin, true);
+          if (res.ok && res.serial_sent) toast.success(`${servoShortName(key)} → D${pin}`);
+          else if (res.ok) toast.success(`${servoShortName(key)} pin saved`);
+          else toast.error(res.error || 'Apply failed');
+          if (res.warning) toast.warning(String(res.warning));
+        } else {
+          const res = await saveOne(key, pin, false);
+          if (res.ok) toast.success(`${servoShortName(key)} saved (USB off)`);
+          else toast.error(res.error || 'Save failed');
+        }
+        void hydrate();
+      } catch {
+        toast.error('Apply failed');
+      } finally {
+        setSaving(false);
+      }
+    },
+    [connected, pins, saveOne, hydrate],
+  );
+
+  const onDefaults = () => {
+    resetDefaults();
+    toast.message('Factory pins loaded as draft — click Save to keep them');
+  };
+
+  const onVdb = async () => {
+    setSaving(true);
+    try {
+      const res = await api.applyVdbPinProfile();
+      if (res.ok) {
+        toast.success('VDB pins loaded');
+        await hydrate();
+      } else toast.error('VDB profile failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const q = filter.trim().toLowerCase();
+
+  if (!loaded) {
     return (
       <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Loading pins…
@@ -217,43 +157,38 @@ export function PinMapPanel({ className }: { className?: string }) {
     <div className={cn('space-y-3', className)}>
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          placeholder="Filter servo…"
+          placeholder="Filter…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="h-8 max-w-[200px] text-xs"
+          className="h-9 max-w-[180px] text-sm"
         />
-        <Button size="sm" className="h-8" onClick={() => void saveAll()} disabled={saving || !dirty}>
+        <Button size="sm" className="h-9" onClick={() => void onSaveAll()} disabled={saving || !dirty}>
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save pins
+          Save
         </Button>
-        <Button size="sm" variant="outline" className="h-8" onClick={resetDefaults}>
+        <Button size="sm" variant="outline" className="h-9" onClick={onDefaults} disabled={saving}>
           <Undo2 className="h-3.5 w-3.5" /> Defaults
         </Button>
-        <Button size="sm" variant="outline" className="h-8" onClick={() => void applyVdb()}>
-          VDB profile
+        <Button size="sm" variant="outline" className="h-9" onClick={() => void onVdb()} disabled={saving}>
+          VDB
         </Button>
-        <Button size="sm" variant="ghost" className="h-8" onClick={() => void load()}>
+        <Button size="sm" variant="ghost" className="h-9" onClick={() => void hydrate()} disabled={saving}>
           <RefreshCw className="h-3.5 w-3.5" />
         </Button>
-        {dirty && (
-          <Badge variant="signal" className="text-[10px]">
-            unsaved
-          </Badge>
-        )}
-        <Badge variant={connected ? 'online' : 'offline'} className="text-[10px]">
-          {connected ? 'live → firmware' : 'offline save only'}
-        </Badge>
+        {dirty && <span className="text-[11px] text-amber-600">Unsaved</span>}
+        <span className="text-[11px] text-muted-foreground">
+          {connected ? 'USB on' : 'USB off · save to disk'}
+        </span>
       </div>
 
       <p className="text-[11px] text-muted-foreground">
-        Assign Mega pin (2–53) per motor. <strong>Invert off/on</strong> mirrors direction (like MRL).{' '}
-        <strong>Apply</strong> programs the pin; <strong>Save pins</strong> writes all.
-        Red rows = pin conflict (two motors on one pin — fix these first).
+        Pin fields start empty. Type a number → Save / Apply. Only saved pins show after reload.
       </p>
+
       {Object.keys(conflicts).length > 0 && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
-          Pin conflicts detected on: {[...new Set(Object.values(conflicts))].join(', ')}. Each pin must be unique.
-        </div>
+        <p className="text-[11px] text-destructive">
+          Conflict on pin {[...new Set(Object.values(conflicts))].join(', ')} — each pin must be unique.
+        </p>
       )}
 
       {GROUP_ORDER.map((group) => {
@@ -261,87 +196,59 @@ export function PinMapPanel({ className }: { className?: string }) {
         if (q) {
           servos = servos.filter(
             (s) =>
-              s.label.toLowerCase().includes(q) ||
+              servoShortName(s.key, s.label).toLowerCase().includes(q) ||
               s.key.toLowerCase().includes(q) ||
-              String(pins[s.key] ?? s.pin).includes(q),
+              (pins[s.key] != null && String(pins[s.key]).includes(q)),
           );
         }
         if (!servos.length) return null;
         return (
-          <div key={group} className="rounded-xl border border-border/50 bg-card/50 p-2">
-            <p className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              {GROUP_LABELS[group] ?? group}
+          <div key={group} className="border-t border-border/40 pt-2">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {groupDisplayName(group)}
             </p>
-            <div className="space-y-1">
+            <div className="divide-y divide-border/30">
               {servos.map((s) => {
-                const inv = invert[s.key] ?? DEFAULT_INVERT[s.key] ?? false;
+                const p = pins[s.key];
+                const clash = conflicts[s.key];
                 return (
-                <div
-                  key={s.key}
-                  className={cn(
-                    'grid grid-cols-[1fr_auto_auto_4rem_auto_auto] items-center gap-2 rounded-lg border bg-background/60 px-2 py-1.5',
-                    conflicts[s.key]
-                      ? 'border-destructive/60 bg-destructive/5'
-                      : 'border-border/40',
-                  )}
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{s.label}</p>
-                    <p className="truncate font-mono text-[10px] text-muted-foreground">{s.key}</p>
-                  </div>
-                  <Badge variant="default" className="text-[9px]">
-                    {s.motor ?? 'Servo'}
-                  </Badge>
-                  {s.vdbPin != null ? (
-                    <span className="text-[10px] text-muted-foreground">VDB {s.vdbPin}</span>
-                  ) : (
-                    <span />
-                  )}
-                  <Input
-                    type="number"
-                    min={2}
-                    max={53}
-                    className="h-8 w-16 font-mono text-center text-sm"
-                    value={pins[s.key] ?? s.pin}
-                    onChange={(e) => void onPinChange(s.key, Number(e.target.value))}
-                    title="Arduino pin"
-                  />
                   <div
-                    className="inline-flex overflow-hidden rounded-md border border-border/50 p-0.5"
-                    title="Invert direction (MRL Invert)"
+                    key={s.key}
+                    className={cn(
+                      'flex flex-wrap items-center gap-2 py-2',
+                      clash && 'bg-destructive/5',
+                    )}
                   >
-                    <button
-                      type="button"
-                      className={cn(
-                        'h-7 px-2 text-[10px] font-semibold',
-                        !inv ? 'rounded bg-primary text-primary-foreground' : 'text-muted-foreground',
-                      )}
-                      onClick={() => void toggleInvert(s.key, false)}
+                    <div className="min-w-[120px] flex-1">
+                      <p className="text-sm font-medium">{servoShortName(s.key, s.label)}</p>
+                      <p className="font-mono text-[10px] text-muted-foreground">{s.key}</p>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[11px] font-medium text-muted-foreground">Pin</span>
+                      <NumberEdit
+                        value={p}
+                        min={2}
+                        max={53}
+                        digits={2}
+                        size="sm"
+                        allowEmpty
+                        placeholder="—"
+                        title="Empty until Save"
+                        className={cn(clash && 'border-destructive')}
+                        onCommit={(n) => setPinLocal(s.key, n)}
+                        onClear={() => clearPinLocal(s.key)}
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 px-3 text-xs"
+                      disabled={saving || p == null}
+                      onClick={() => void onApplyOne(s.key)}
                     >
-                      off
-                    </button>
-                    <button
-                      type="button"
-                      className={cn(
-                        'h-7 px-2 text-[10px] font-semibold',
-                        inv ? 'rounded bg-sky-600 text-white' : 'text-muted-foreground',
-                      )}
-                      onClick={() => void toggleInvert(s.key, true)}
-                    >
-                      on
-                    </button>
+                      Apply
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-[10px]"
-                    disabled={saving}
-                    onClick={() => void applyOne(s.key)}
-                    title="Apply this pin to Arduino now"
-                  >
-                    Apply
-                  </Button>
-                </div>
                 );
               })}
             </div>

@@ -58,8 +58,19 @@ export function MrlLifePanel() {
   const run = async (action: string) => {
     setBusy(action);
     try {
+      if (action === 'wake' || action === 'power_up' || action === 'healthCheck') {
+        // Full-body wake checklist (head, face, fingers, both hands)
+        try {
+          const { playWakeAnimation } = await import('@/lib/api');
+          const { playWakeUpClient } = await import('@/lib/wakeAnimation');
+          await playWakeAnimation();
+          void playWakeUpClient();
+        } catch {
+          /* optional */
+        }
+      }
       const res = await mrl.mrlLifeAction(action);
-      if (res.ok) toast.success(`life.${action}()`);
+      if (res.ok) toast.success(action === 'wake' ? 'Wake + full body check' : `life.${action}()`);
       else toast.error(res.error ?? `Failed ${action}`);
       await refresh();
     } catch {

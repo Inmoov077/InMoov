@@ -29,9 +29,9 @@ export function getArmHardLimits(side: BodySide): ArmJointRanges {
   const p = side === 'left' ? 'l' : 'r';
   return {
     shoulder: cfgRange(`${p}_shoulder`, 30, 180),
-    lift: cfgRange(`${p}_lift`, 10, side === 'left' ? 60 : 65),
+    lift: cfgRange(`${p}_lift`, side === 'left' ? 15 : 10, side === 'left' ? 65 : 70),
     rotate: cfgRange(`${p}_rotate`, 40, 180),
-    elbow: cfgRange(`${p}_elbow`, 0, side === 'left' ? 80 : 90),
+    elbow: cfgRange(`${p}_elbow`, side === 'left' ? 0 : 10, side === 'left' ? 52 : 80),
     wrist: cfgRange(`${p}_wrist`, 10, 160),
   };
 }

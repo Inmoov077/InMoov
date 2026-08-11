@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Crosshair, Info, Pin, RefreshCw, Settings2, Usb } from 'lucide-react';
+import { Info, Pin, RefreshCw, Settings2, Usb } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { ConnectionPanel } from '@/components/servo/ConnectionPanel';
 import { PinMapPanel } from '@/components/control/PinMapPanel';
@@ -10,7 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import * as api from '@/lib/api';
+import { getShowLegs, setShowLegs } from '@/lib/studioPrefs';
 import { useServoStore, type Axis } from '@/store/servoStore';
 
 interface ConfigData {
@@ -34,6 +36,7 @@ export function SettingsPage() {
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [loading, setLoading] = useState(false);
   const [section, setSection] = useState<'connect' | 'pins' | 'neck'>('connect');
+  const [legsOn, setLegsOn] = useState(() => getShowLegs());
 
   const loadConfig = async () => {
     setLoading(true);
@@ -63,7 +66,7 @@ export function SettingsPage() {
     <div className="space-y-4">
       <PageHeader
         title="Settings"
-        description="USB · pin map · neck safety · system info"
+        description="USB connection, pins, body options, and safety limits"
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => void loadConfig()} disabled={loading}>
@@ -71,7 +74,7 @@ export function SettingsPage() {
               Refresh
             </Button>
             <Button size="sm" asChild>
-              <Link to="/control">Open Control</Link>
+              <Link to="/control">Open Studio</Link>
             </Button>
           </div>
         }
@@ -96,14 +99,33 @@ export function SettingsPage() {
           </Button>
         ))}
         <Button size="sm" variant="outline" asChild>
-          <Link to="/control?panel=test">
-            <Crosshair className="h-4 w-4" /> 1:1 Test
-          </Link>
-        </Button>
-        <Button size="sm" variant="outline" asChild>
-          <Link to="/calibration">Full calibration lab</Link>
+          <Link to="/calibration">Calibration</Link>
         </Button>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Studio options</CardTitle>
+          <CardDescription>What appears in Studio Control</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Show legs</p>
+              <p className="text-xs text-muted-foreground">
+                Off by default — enable to control left and right legs in Studio
+              </p>
+            </div>
+            <Switch
+              checked={legsOn}
+              onCheckedChange={(on) => {
+                setLegsOn(on);
+                setShowLegs(on);
+              }}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {section === 'connect' && (
         <div className="grid gap-4 lg:grid-cols-2">

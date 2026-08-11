@@ -219,9 +219,30 @@ export async function realsenseDevices() {
   return res.json();
 }
 
-export async function realsenseStatus(): Promise<RealSenseStatus> {
+export async function realsenseStatus(): Promise<RealSenseStatus & {
+  wake_animation?: {
+    id?: number;
+    running?: boolean;
+    started_at?: number | null;
+    name?: string;
+    last_error?: string | null;
+  };
+}> {
   const res = await fetch('/api/realsense/status');
   return res.json();
+}
+
+/** Trigger full-body wake checklist (server motors + returns animation id for UI). */
+export async function playWakeAnimation() {
+  const res = await fetch('/api/servo/wake-animation', { method: 'POST' });
+  return res.json() as Promise<{
+    ok: boolean;
+    animation?: string;
+    serial?: boolean;
+    wake?: { id?: number; running?: boolean; name?: string };
+    hint?: string;
+    error?: string;
+  }>;
 }
 
 export async function realsenseStart(config?: Record<string, unknown>) {
@@ -265,11 +286,16 @@ export async function getServoPins() {
   return res.json();
 }
 
-export async function saveServoPins(pins: Record<string, number>, applyToFirmware = true) {
+export async function saveServoPins(
+  pins: Record<string, number>,
+  applyToFirmware = true,
+  /** When true, write only the given pins (no factory fill / no merge wipe). */
+  replaceAll = true,
+) {
   const res = await fetch('/api/servo/pins', {
     method: 'POST',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ pins, applyToFirmware }),
+    body: JSON.stringify({ pins, applyToFirmware, replace_all: replaceAll, fill_defaults: false }),
   });
   return res.json();
 }
@@ -416,5 +442,18 @@ export async function sendConversation(payload: {
     headers: JSON_HEADERS,
     body: JSON.stringify(payload),
   });
-  return res.json();
+  let data: Record<string, unknown> = {};
+  try {
+    data = await res.json();
+  } catch {
+    data = { ok: false, error: `Bad response (${res.status})` };
+  }
+  if (!res.ok && data.ok !== true) {
+    return {
+      ok: false,
+      error: (data.error as string) || `Chat failed (${res.status})`,
+      ...data,
+    };
+  }
+  return data;
 }

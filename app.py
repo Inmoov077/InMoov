@@ -86,6 +86,7 @@ def _sanitize_limits(mn, mx, rs, default_rest=90):
 # Default host-side invert (MRL walkthrough). User invert_overrides.json wins.
 _DEFAULT_INVERT_KEYS = {
     'l_shoulder': True, 'l_lift': True, 'l_rotate': True, 'l_elbow': True, 'l_wrist': True,
+    # Right omoplate: invert off (hardware)
     'r_shoulder': True, 'r_lift': False, 'r_rotate': True, 'r_elbow': True, 'r_wrist': True,
 }
 
@@ -440,7 +441,7 @@ def _arm_hard_limits(side):
         'shoulder': (30, 180, 30),
         'lift': (10, 60 if side == 'left' else 65, 10),
         'rotate': (40, 180, 90),
-        'elbow': (0, 80 if side == 'left' else 90, 5),
+        'elbow': (0, 52 if side == 'left' else 90, 0 if side == 'left' else 5),
         'wrist': (10, 160, 90),
     }
     for joint, key in keys.items():
@@ -1157,6 +1158,16 @@ serial_mgr = SerialManager()
 from inmoove_core.realsense_presence import get_presence_guard  # noqa: E402
 
 
+# Wake animation state (UI can sync 3D preview when this id changes)
+_wake_anim_state = {
+    "id": 0,
+    "running": False,
+    "started_at": None,
+    "name": "wake-up",
+    "last_error": None,
+}
+
+
 def _enable_all_motors() -> dict:
     """Enable every body-part group on firmware (mask 255) and go to rest pose."""
     result = {"enable_sent": False, "rest_sent": False, "cmds": []}
@@ -1221,10 +1232,159 @@ def _enable_all_motors() -> dict:
     return result
 
 
+def _send_hand_packet(side: str, fingers):
+    """side L/R, fingers = (thumb,index,middle,ring,pinky) 0–180 logical."""
+    prefix = "LH" if side.upper().startswith("L") else "RH"
+    t, i, m, r, p = [max(0, min(180, int(x))) for x in fingers]
+    return serial_mgr.send_cmd(f"{prefix},{t},{i},{m},{r},{p}\n", drain=True)
+
+
+def _send_arm_logical(side: str, joints: dict):
+    cmd, _, _ = _pack_arm_cmd(side, joints)
+    return serial_mgr.send_cmd(cmd, drain=True)
+
+
+def _send_head_neck(hn, eye, jaw, rot, tilt, roll):
+    return serial_mgr.send_cmd(
+        f"C,{int(hn)},{int(eye)},{int(jaw)},{int(rot)},{int(tilt)},{int(roll)}\n",
+        drain=True,
+    )
+
+
+def _run_wake_animation():
+    """
+    Full-body first-wake checklist (serial):
+    head look + jaw → finger open/fist/point both hands → show hands to person
+    → dual wave → present → rest. All angles stay under hardware walls.
+    """
+    global _wake_anim_state
+    if not serial_mgr.is_connected():
+        _wake_anim_state["last_error"] = "serial not connected"
+        _wake_anim_state["running"] = False
+        return {"ok": False, "error": "serial not connected"}
+
+    _wake_anim_state["running"] = True
+    _wake_anim_state["last_error"] = None
+    logger.info("Wake animation START (full body check)")
+
+    OPEN = (10, 10, 10, 10, 10)
+    FIST = (120, 120, 120, 120, 120)
+    POINT = (120, 10, 120, 120, 120)
+    DOWN = {"shoulder": 35, "lift": 12, "rotate": 90, "elbow": 10, "wrist": 90}
+    SHOW = {"shoulder": 75, "lift": 42, "rotate": 90, "elbow": 35, "wrist": 90}
+    SHOW2 = {"shoulder": 85, "lift": 48, "rotate": 90, "elbow": 30, "wrist": 90}
+    WAVE_L = {"shoulder": 60, "lift": 50, "rotate": 90, "elbow": 20, "wrist": 100}
+    WAVE_R = {"shoulder": 90, "lift": 50, "rotate": 90, "elbow": 20, "wrist": 80}
+    PRESENT = {"shoulder": 80, "lift": 32, "rotate": 90, "elbow": 14, "wrist": 90}
+
+    def step(delay, fn):
+        if not serial_mgr.is_connected():
+            return False
+        try:
+            fn()
+        except Exception as e:
+            logger.warning("wake step: %s", e)
+        time.sleep(delay)
+        return True
+
+    try:
+        serial_mgr.send_cmd("E,255\n", drain=True)
+        time.sleep(0.15)
+
+        # 1) Rest
+        step(0.55, lambda: (
+            _send_head_neck(85, 90, 8, 60, 50, 120),
+            _send_arm_logical("left", DOWN),
+            _send_arm_logical("right", DOWN),
+            _send_hand_packet("L", OPEN),
+            _send_hand_packet("R", OPEN),
+        ))
+
+        # 2) Head look L/R + jaw
+        step(0.65, lambda: _send_head_neck(85, 70, 8, 35, 50, 145))
+        step(0.65, lambda: _send_head_neck(85, 110, 22, 90, 50, 95))
+        step(0.45, lambda: _send_head_neck(85, 90, 8, 60, 50, 120))
+
+        # 3) Raise arms slightly — finger check open → fist → point → open
+        raise_mid = {"shoulder": 55, "lift": 30, "rotate": 90, "elbow": 22, "wrist": 90}
+        step(0.6, lambda: (
+            _send_arm_logical("left", raise_mid),
+            _send_arm_logical("right", raise_mid),
+            _send_hand_packet("L", OPEN),
+            _send_hand_packet("R", OPEN),
+        ))
+        step(0.55, lambda: (_send_hand_packet("L", FIST), _send_hand_packet("R", FIST)))
+        step(0.65, lambda: (_send_hand_packet("L", POINT), _send_hand_packet("R", POINT)))
+        step(0.45, lambda: (_send_hand_packet("L", OPEN), _send_hand_packet("R", OPEN)))
+
+        # 4) Show both hands toward person (face-level, safe lift)
+        step(1.0, lambda: (
+            _send_head_neck(85, 90, 10, 60, 48, 120),
+            _send_arm_logical("left", SHOW),
+            _send_arm_logical("right", SHOW),
+            _send_hand_packet("L", OPEN),
+            _send_hand_packet("R", OPEN),
+        ))
+        step(0.9, lambda: (
+            _send_head_neck(80, 90, 16, 60, 52, 120),
+            _send_arm_logical("left", SHOW2),
+            _send_arm_logical("right", SHOW2),
+        ))
+
+        # 5) Dual wave (lift ≤50°)
+        for _ in range(2):
+            step(0.5, lambda: (
+                _send_arm_logical("left", WAVE_L),
+                _send_arm_logical("right", WAVE_R),
+            ))
+            step(0.5, lambda: (
+                _send_arm_logical("left", WAVE_R),
+                _send_arm_logical("right", WAVE_L),
+            ))
+
+        # 6) Present / welcome
+        step(1.2, lambda: (
+            _send_head_neck(85, 90, 12, 60, 52, 120),
+            _send_arm_logical("left", {**PRESENT, "rotate": 85}),
+            _send_arm_logical("right", {**PRESENT, "rotate": 95}),
+            _send_hand_packet("L", OPEN),
+            _send_hand_packet("R", OPEN),
+        ))
+
+        # 7) Rest
+        step(0.8, lambda: (
+            _send_head_neck(85, 90, 8, 60, 50, 120),
+            _send_arm_logical("left", DOWN),
+            _send_arm_logical("right", DOWN),
+            _send_hand_packet("L", OPEN),
+            _send_hand_packet("R", OPEN),
+        ))
+
+        logger.info("Wake animation DONE")
+        return {"ok": True}
+    except Exception as e:
+        logger.exception("Wake animation failed: %s", e)
+        _wake_anim_state["last_error"] = str(e)
+        return {"ok": False, "error": str(e)}
+    finally:
+        _wake_anim_state["running"] = False
+
+
+def _start_wake_animation_async():
+    """Bump id so UI can sync, then run animation on a daemon thread."""
+    global _wake_anim_state
+    _wake_anim_state["id"] = int(_wake_anim_state.get("id") or 0) + 1
+    _wake_anim_state["started_at"] = time.time()
+    _wake_anim_state["running"] = True
+    _wake_anim_state["name"] = "wake-up"
+    threading.Thread(target=_run_wake_animation, daemon=True, name="wake-anim").start()
+    return dict(_wake_anim_state)
+
+
 def _on_realsense_wake(event: dict):
-    """Person stood in front of D455 for N seconds → motors on + speak."""
+    """Person stood in front of D455 for N seconds → motors on + full-body wake + speak."""
     logger.info(
-        "D455 wake: person present %.1fs @ %s m — enabling motors and greeting",
+        "D455 wake: person present %.1fs @ %s m — enabling motors, wake anim, greeting",
         event.get("presence_seconds", 0),
         event.get("median_distance_m"),
     )
@@ -1233,6 +1393,11 @@ def _on_realsense_wake(event: dict):
         try:
             motor_result = _enable_all_motors()
             logger.info("Motor wake result: %s", motor_result)
+            # Full body checklist: head, face, fingers, both hands, wave
+            if serial_mgr.is_connected():
+                time.sleep(0.35)  # let enable settle
+                _start_wake_animation_async()
+                motor_result["wake_animation"] = "wake-up"
         except Exception as e:
             logger.exception("Motor wake failed: %s", e)
             motor_result = {"error": str(e)}
@@ -1240,9 +1405,10 @@ def _on_realsense_wake(event: dict):
     greet = (event.get("greet_text") or "Hello, how are you?").strip()
     speak_result = {}
     try:
-        # Run TTS off the camera thread so the depth loop keeps running
+        # Speak slightly after animation starts so motion + voice feel alive
         def _speak():
             try:
+                time.sleep(1.2)
                 res = _get_inmoove_core().speak(greet)
                 logger.info("Wake greeting: %s", res)
             except Exception as ex:
@@ -1352,18 +1518,36 @@ def offline_search():
         query = data.get('query', '').strip()
         if not query:
             return jsonify({"ok": False, "error": "Empty query"}), 400
-        
+
+        # Prefer unified local chat (commands + FAQ + knowledge)
+        reply = _local_chat_reply(query)
+        if reply.get("ok") and reply.get("source") != "local_fallback":
+            return jsonify({
+                "ok": True,
+                "match": True,
+                "text": reply.get("text", ""),
+                "source": reply.get("source"),
+                "score": reply.get("score", 1.0),
+            })
+
         import vector_db
+        kb = os.path.join(BASE_DIR, "knowledge_base.txt")
+        if not os.path.exists(vector_db.DB_FILE) and os.path.exists(kb):
+            vector_db.build_db(kb)
         res = vector_db.search_db(query, top_k=1)
         if res.get("ok") and res.get("results"):
             best = res["results"][0]
             return jsonify({
                 "ok": True,
-                "match": True if best["score"] >= 0.08 else False,
+                "match": True if best["score"] >= 0.05 else False,
                 "text": best["chunk"],
                 "score": best["score"]
             })
-        return jsonify({"ok": True, "match": False, "text": ""})
+        return jsonify({
+            "ok": True,
+            "match": False,
+            "text": reply.get("text", "") if reply.get("ok") else "",
+        })
     except Exception as e:
         logger.error(f"Error in offline search: {e}")
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -1736,7 +1920,41 @@ def get_servo_config():
 @app.route('/api/servo/pins', methods=['GET', 'POST'])
 def servo_pins():
     if request.method == 'GET':
-        return jsonify({"ok": True, "pins": _read_json(PIN_OVERRIDES_PATH, {})})
+        # overrides = only user-saved pins (UI shows these; empty until Save).
+        # pins = runtime map (overrides + factory) for firmware / moves.
+        cfg = SERVO_CONFIG or _reload_servo_config() or {}
+        overrides_raw = _read_json(PIN_OVERRIDES_PATH, {}) or {}
+        overrides = {}
+        for k, v in overrides_raw.items():
+            try:
+                p = int(v)
+            except (TypeError, ValueError):
+                continue
+            if 2 <= p <= 53:
+                overrides[str(k)] = p
+        defaults = {}
+        full = {}
+        for s in cfg.get("servos", []):
+            key = s.get("key")
+            if not key:
+                continue
+            try:
+                base = int(s.get("pin", 0))
+            except (TypeError, ValueError):
+                base = 0
+            if 2 <= base <= 53:
+                defaults[key] = base
+            pin = overrides[key] if key in overrides else base
+            if 2 <= pin <= 53:
+                full[key] = pin
+            elif 2 <= base <= 53:
+                full[key] = base
+        return jsonify({
+            "ok": True,
+            "pins": full,
+            "overrides": overrides,
+            "defaults": defaults,
+        })
 
     data = request.get_json() or {}
     pins = data.get('pins') or {}
@@ -1751,6 +1969,26 @@ def servo_pins():
             continue
         if 2 <= p <= 53:
             cleaned[str(k)] = p
+    # Merge with existing so partial saves do not wipe other pins
+    existing = _read_json(PIN_OVERRIDES_PATH, {}) or {}
+    if not data.get("replace_all", True):
+        existing = {str(k): int(v) for k, v in existing.items()
+                    if isinstance(v, (int, float, str)) and str(v).lstrip('-').isdigit()
+                    and 2 <= int(v) <= 53}
+        existing.update(cleaned)
+        cleaned = existing
+    # Optional factory fill (default OFF so pin inputs stay empty until user saves)
+    if data.get("fill_defaults", False):
+        cfg = SERVO_CONFIG or _reload_servo_config() or {}
+        for s in cfg.get("servos", []):
+            key = s.get("key")
+            if key and key not in cleaned:
+                try:
+                    bp = int(s.get("pin", 0))
+                    if 2 <= bp <= 53:
+                        cleaned[key] = bp
+                except (TypeError, ValueError):
+                    pass
     _write_json(PIN_OVERRIDES_PATH, cleaned)
     _reload_servo_config()
 
@@ -2341,7 +2579,32 @@ def realsense_devices():
 @app.route('/api/realsense/status', methods=['GET'])
 def realsense_status():
     guard = get_presence_guard(on_wake=_on_realsense_wake)
-    return jsonify({"ok": True, **guard.status()})
+    st = guard.status()
+    st["wake_animation"] = {
+        "id": _wake_anim_state.get("id", 0),
+        "running": bool(_wake_anim_state.get("running")),
+        "started_at": _wake_anim_state.get("started_at"),
+        "name": _wake_anim_state.get("name") or "wake-up",
+        "last_error": _wake_anim_state.get("last_error"),
+    }
+    return jsonify({"ok": True, **st})
+
+
+@app.route('/api/servo/wake-animation', methods=['POST', 'GET'])
+def servo_wake_animation():
+    """Play full-body wake checklist (head, face, fingers, both hands, wave)."""
+    if not serial_mgr.is_connected():
+        # Still bump id so UI can play 3D preview
+        info = _start_wake_animation_async()
+        return jsonify({
+            "ok": True,
+            "serial": False,
+            "animation": "wake-up",
+            "wake": info,
+            "hint": "USB offline — open Studio to see 3D only; connect for real motors",
+        })
+    info = _start_wake_animation_async()
+    return jsonify({"ok": True, "serial": True, "animation": "wake-up", "wake": info})
 
 
 @app.route('/api/realsense/start', methods=['POST'])
@@ -2436,11 +2699,177 @@ def realsense_snapshot():
     return Response(jpeg, mimetype="image/jpeg")
 
 
+def _local_chat_reply(message: str):
+    """
+    Fully local reply: offline_commands.json → knowledge_base FAQ → vector_db.
+    No internet required. Used when model_provider is 'local' (default for Studio chat).
+    Robust to speech noise (punctuation, fillers, extra words).
+    """
+    import json as _json
+    import re as _re
+    import unicodedata as _ud
+
+    def _norm(s: str) -> str:
+        s = (s or "").strip().lower()
+        s = _ud.normalize("NFKD", s)
+        s = "".join(c for c in s if not _ud.combining(c))
+        # Drop punctuation speech engines often add
+        s = _re.sub(r"[^\w\s]", " ", s)
+        s = _re.sub(r"\s+", " ", s).strip()
+        # Common voice fillers
+        for filler in (
+            "please", "can you", "could you", "tell me", "i want to know",
+            "um", "uh", "like", "just", "a", "the", "me",
+        ):
+            s = _re.sub(rf"\b{_re.escape(filler)}\b", " ", s)
+        s = _re.sub(r"\s+", " ", s).strip()
+        return s
+
+    q = (message or "").strip()
+    q_low = _norm(q)
+    if not q_low:
+        return {"ok": False, "error": "Message is empty"}
+
+    # 1) Phrase match offline commands (token-aware)
+    cmds_path = os.path.join(BASE_DIR, "shared", "offline_commands.json")
+    try:
+        with open(cmds_path, encoding="utf-8") as f:
+            cmds = _json.load(f)
+    except Exception:
+        cmds = []
+
+    best = None
+    best_score = 0
+    q_tokens = set(q_low.split())
+    for cmd in cmds:
+        for phrase in cmd.get("inputs") or []:
+            p = _norm(phrase or "")
+            if not p:
+                continue
+            score = 0
+            if q_low == p:
+                score = 100 + len(p)
+            elif p in q_low:
+                score = 60 + len(p)
+            elif q_low in p and len(q_low) >= 3:
+                score = 40 + len(q_low)
+            else:
+                p_tokens = set(p.split())
+                if p_tokens and p_tokens.issubset(q_tokens):
+                    score = 50 + len(p)
+                elif p_tokens and len(p_tokens & q_tokens) >= max(1, len(p_tokens) - 0):
+                    # all / most phrase words present
+                    overlap = len(p_tokens & q_tokens)
+                    if overlap >= max(1, (len(p_tokens) + 1) // 2) and overlap >= 1:
+                        score = 30 + overlap * 8
+            if score > best_score:
+                best_score = score
+                best = cmd
+    if best and best_score >= 30:
+        text = (best.get("response") or "").strip()
+        if not text:
+            text = "OK."
+        return {
+            "ok": True,
+            "text": text,
+            "mood": "happy" if any(w in q_low for w in ("hello", "hi", "hey", "thank")) else "normal",
+            "source": "offline_commands",
+            "animation": best.get("animation"),
+            "angles": best.get("angles"),
+        }
+
+    # 2) Keyword FAQ shortcuts (HOD, provost, club…)
+    faq = [
+        (
+            ("hod", "head of department", "head of dept", "madhu shukla", "madhu", "ai and big", "ai big data"),
+            "The Head of Department (HOD) of Computer Engineering - AI & Big Data Analytics "
+            "at Marwadi University is Dr. Madhu Shukla.",
+            "thinking",
+        ),
+        (
+            ("provost", "jadeja", "pro vice chancellor", "pro vice"),
+            "Dr. Rajendrasinh (R.B.) Jadeja is the Provost and Pro Vice-Chancellor of Marwadi University.",
+            "thinking",
+        ),
+        (
+            ("akshay", "robotics club", "ranpariya", "mb106", "robotics and ai club"),
+            "Professor Akshay Ranpariya administers the MU Robotics & AI Club in Main Building, room MB106.",
+            "thinking",
+        ),
+        (
+            ("where is marwadi", "marwadi university", "marwadi", "rajkot", "where is the university"),
+            "Marwadi University is on the Rajkot-Morbi highway in Rajkot, Gujarat, India. "
+            "It has NAAC A++ accreditation.",
+            "normal",
+        ),
+        (
+            ("who are you", "your name", "what are you", "introduce yourself"),
+            "I am InMoov, the open-source humanoid robot at Marwadi University Robotics & AI Club.",
+            "happy",
+        ),
+        (
+            ("hello", "hi", "hey", "good morning", "good afternoon", "good evening"),
+            "Hello! Nice to meet you. I am InMoov — ask me about the HOD, Provost, or the Robotics club.",
+            "happy",
+        ),
+        (
+            ("thank you", "thanks", "thank"),
+            "You're welcome! Happy to help.",
+            "happy",
+        ),
+        (
+            ("bye", "goodbye", "see you", "good night"),
+            "Goodbye! Come back anytime.",
+            "happy",
+        ),
+    ]
+    for keys, answer, mood in faq:
+        if any(k in q_low for k in keys):
+            return {"ok": True, "text": answer, "mood": mood, "source": "local_faq"}
+
+    # 3) Vector DB over knowledge_base.txt
+    try:
+        import vector_db
+        kb = os.path.join(BASE_DIR, "knowledge_base.txt")
+        if not os.path.exists(vector_db.DB_FILE) and os.path.exists(kb):
+            vector_db.build_db(kb)
+        res = vector_db.search_db(q, top_k=3)
+        if res.get("ok") and res.get("results"):
+            top = res["results"][0]
+            if top.get("score", 0) >= 0.03:
+                chunk = (top.get("chunk") or "").strip()
+                m = _re.search(r"Answer:\s*(.+?)(?:\s*FAQ|$)", chunk, _re.I | _re.S)
+                text = (m.group(1).strip() if m else chunk)
+                if len(text) > 420:
+                    text = text[:417] + "…"
+                if text:
+                    return {
+                        "ok": True,
+                        "text": text,
+                        "mood": "thinking",
+                        "source": "knowledge_base",
+                        "score": top.get("score"),
+                    }
+    except Exception as e:
+        logger.warning("local chat vector search: %s", e)
+
+    # Always return a helpful reply (never empty) so voice path always has TTS text
+    return {
+        "ok": True,
+        "text": (
+            f'I heard “{q[:80]}”. I answer from local campus data. '
+            "Try: who is the HOD? who is the Provost? where is Marwadi? or hello."
+        ),
+        "mood": "thinking",
+        "source": "local_fallback",
+    }
+
+
 @app.route('/api/conversation', methods=['POST'])
 def handle_conversation():
     data = request.get_json() or {}
     message = data.get('message', '')
-    model_provider = data.get('model_provider', 'gemini-text')
+    model_provider = data.get('model_provider', 'local')
     image = data.get('image') # Base64 data URL
     local_url = data.get('local_url', 'http://localhost:11434')
     language = data.get('language', 'en-US')  # Language code: en-US, hi-IN, gu-IN
@@ -2448,6 +2877,26 @@ def handle_conversation():
     
     if not message:
         return jsonify({"ok": False, "error": "Message is empty"}), 400
+
+    # Local-first (no API key / internet) — default for campus demos
+    if model_provider in ("local", "offline", "knowledge"):
+        reply = _local_chat_reply(message)
+        if reply.get("ok"):
+            # Optional head pose from offline command
+            try:
+                angles = reply.get("angles")
+                if angles and serial_mgr.is_connected():
+                    hn = int(angles.get("hneck", 85))
+                    eye = int(angles.get("eye", 90))
+                    # jaw rest
+                    serial_mgr.send_cmd(f"H,{hn},{eye},8\n", drain=True)
+                    nr = int(angles.get("neckRot", 60))
+                    nt = int(angles.get("neckTilt", 50))
+                    nro = int(angles.get("neckRoll", 120))
+                    serial_mgr.send_cmd(f"N,{nr},{nt},{nro}\n", drain=True)
+            except Exception as e:
+                logger.debug("local chat pose: %s", e)
+        return jsonify(reply)
 
     # Strip data URI prefix if present
     raw_base64_image = None

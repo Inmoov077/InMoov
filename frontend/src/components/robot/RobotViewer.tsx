@@ -29,8 +29,18 @@ export interface RobotViewerHandle {
 
 export const RobotViewer = forwardRef<
   RobotViewerHandle,
-  { className?: string; syncStore?: boolean; showGallery?: boolean }
->(function RobotViewer({ className, syncStore = true, showGallery = false }, ref) {
+  {
+    className?: string;
+    syncStore?: boolean;
+    showGallery?: boolean;
+    /**
+     * Studio keeps full chrome (ROS badge, gallery, view chips).
+     * Moves uses simple preview — no official ROS UI clutter.
+     */
+    variant?: 'studio' | 'moves';
+  }
+>(function RobotViewer({ className, syncStore = true, showGallery = false, variant = 'studio' }, ref) {
+  const simple = variant === 'moves';
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<ViewerScene | null>(null);
@@ -148,25 +158,28 @@ export const RobotViewer = forwardRef<
       >
         <canvas ref={canvasRef} className="relative z-[1] block h-full w-full touch-none" />
 
-        <div className="absolute left-4 top-4 z-[3] flex flex-col gap-2">
-          <div className="flex items-center gap-2 rounded-full bg-card/90 px-3 py-1.5 text-xs font-medium shadow-soft backdrop-blur-sm">
-            <Box className="h-3.5 w-3.5 text-primary" />
-            Official inmoov_ros 3D
-            {status === 'ready' && <span className="h-2 w-2 rounded-full bg-success animate-pulseDot" />}
+        {/* Studio-only chrome (official ROS badge, gallery, views). Hidden on Moves. */}
+        {!simple && (
+          <div className="absolute left-4 top-4 z-[3] flex flex-col gap-2">
+            <div className="flex items-center gap-2 rounded-full bg-card/90 px-3 py-1.5 text-xs font-medium shadow-soft backdrop-blur-sm">
+              <Box className="h-3.5 w-3.5 text-primary" />
+              Official inmoov_ros 3D
+              {status === 'ready' && <span className="h-2 w-2 rounded-full bg-success animate-pulseDot" />}
+            </div>
+            {status === 'ready' && (
+              <p
+                className={cn(
+                  'rounded-full px-3 py-1 text-[10px] shadow-soft backdrop-blur-sm',
+                  linked ? 'bg-card/85 text-muted-foreground' : 'bg-destructive/15 font-medium text-destructive',
+                )}
+              >
+                {meshCount} meshes · {jointCount} joints · head {Math.round(hneck)}° · {linked ? 'linked ✓' : 'NOT linked — reload page'}
+              </p>
+            )}
           </div>
-          {status === 'ready' && (
-            <p
-              className={cn(
-                'rounded-full px-3 py-1 text-[10px] shadow-soft backdrop-blur-sm',
-                linked ? 'bg-card/85 text-muted-foreground' : 'bg-destructive/15 font-medium text-destructive',
-              )}
-            >
-              {meshCount} meshes · {jointCount} joints · head {Math.round(hneck)}° · {linked ? 'linked ✓' : 'NOT linked — reload page'}
-            </p>
-          )}
-        </div>
+        )}
 
-        {status === 'ready' && (
+        {!simple && status === 'ready' && (
           <div className="absolute right-4 top-4 z-[3] flex max-w-[200px] flex-col gap-1.5">
             <button
               type="button"
@@ -225,7 +238,7 @@ export const RobotViewer = forwardRef<
           </div>
         )}
 
-        {status === 'ready' && (
+        {!simple && status === 'ready' && (
           <div className="absolute bottom-4 left-4 right-4 z-[3] flex flex-wrap gap-1.5">
             {CAMERA_VIEWS.map((view) => (
               <button
@@ -248,8 +261,12 @@ export const RobotViewer = forwardRef<
         {status === 'loading' && (
           <div className="absolute inset-0 z-[3] flex flex-col items-center justify-center gap-3 bg-viewer/80 backdrop-blur-sm">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Building realistic InMoov preview…</p>
-            <p className="text-xs text-muted-foreground">Head · hands · arms · legs · real movement</p>
+            <p className="text-sm text-muted-foreground">
+              {simple ? 'Loading preview…' : 'Building realistic InMoov preview…'}
+            </p>
+            {!simple && (
+              <p className="text-xs text-muted-foreground">Head · hands · arms · legs · real movement</p>
+            )}
           </div>
         )}
 
@@ -264,14 +281,16 @@ export const RobotViewer = forwardRef<
             >
               Retry
             </button>
-            <p className="text-xs text-muted-foreground">
-              Run <code className="rounded bg-muted px-1">run.bat</code> then open /control
-            </p>
+            {!simple && (
+              <p className="text-xs text-muted-foreground">
+                Run <code className="rounded bg-muted px-1">run.bat</code> then open /control
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      {showGallery && showRef && status === 'ready' && (
+      {!simple && showGallery && showRef && status === 'ready' && (
         <aside className="absolute bottom-0 right-0 top-0 z-[4] flex w-full flex-col border-l border-border/50 bg-card/95 backdrop-blur-md lg:w-[38%]">
           <div className="border-b border-border/50 p-3">
             <p className="font-display text-sm font-semibold">Reference — real InMoov build</p>

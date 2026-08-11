@@ -16,6 +16,7 @@ import {
 } from '@/lib/bodyConfig';
 import { getArmEffectiveLimits, getArmHardLimits, sanitizeArm } from '@/lib/armSafety';
 import { useBodyStore } from '@/store/bodyStore';
+import { usePinStore } from '@/store/pinStore';
 import { cn } from '@/lib/utils';
 
 export type BodyTab = 'arms' | 'hands' | 'legs';
@@ -26,12 +27,35 @@ const TABS: { id: BodyTab; label: string; icon: typeof Workflow }[] = [
   { id: 'legs', label: 'Legs', icon: Footprints },
 ];
 
+const SIDE_LABEL: Record<BodySide, string> = {
+  left: 'Left',
+  right: 'Right',
+};
+
+const PRESET_NICE: Record<string, string> = {
+  rest: 'Rest',
+  wave: 'Wave',
+  point: 'Point',
+  reach: 'Reach',
+  open: 'Open',
+  fist: 'Fist',
+  peace: 'Peace',
+  stand: 'Stand',
+  step: 'Step',
+  squat: 'Squat',
+  kick: 'Kick',
+  walk: 'Walk',
+  lunge: 'Lunge',
+};
+
 interface BodyJointPanelProps {
   tab: BodyTab;
   onTabChange: (tab: BodyTab) => void;
 }
 
 export function BodyJointPanel({ tab, onTabChange }: BodyJointPanelProps) {
+  // Re-render when pins change (saved from Pins tab)
+  const pinMap = usePinStore((s) => s.pins);
   const leftArm = useBodyStore((s) => s.leftArm);
   const rightArm = useBodyStore((s) => s.rightArm);
   const leftHand = useBodyStore((s) => s.leftHand);
@@ -73,8 +97,6 @@ export function BodyJointPanel({ tab, onTabChange }: BodyJointPanelProps) {
       const hard = getArmHardLimits(side);
       const effective = getArmEffectiveLimits(side, arm);
       return ARM_JOINT_META.map((joint) => {
-        // Sliders use hard walls so the full safe travel is always visible;
-        // live coupling is enforced in sanitizeArm on every change.
         const min = hard[joint.key].min;
         const max = hard[joint.key].max;
         const effMax = effective[joint.key].max;
@@ -87,50 +109,64 @@ export function BodyJointPanel({ tab, onTabChange }: BodyJointPanelProps) {
             label={joint.label}
             hint={
               limited
-                ? `${joint.hint} · live safe ${effMin}–${effMax}° (anti-overlap)`
-                : `${joint.hint} · limit ${min}–${max}°`
+                ? `${joint.hint} · safe ${effMin}–${effMax}°`
+                : `${joint.hint} · ${min}–${max}°`
             }
-            pin={joint.pin[side]}
+            pin={
+              pinMap[`${isLeft ? 'l' : 'r'}_${joint.key === 'lift' ? 'lift' : joint.key}`] ??
+              joint.pin[side]
+            }
             value={arm[joint.key]}
             min={min}
             max={max}
             onChange={(v) => setArmJoint(side, joint.key, v)}
             accent={isLeft ? 'signal' : 'copper'}
+            showPin
             presets={[min, mid, max].filter((p, i, a) => a.indexOf(p) === i)}
           />
         );
       });
     }
     if (tab === 'hands') {
-      return HAND_JOINT_META.map((joint) => (
+      return HAND_JOINT_META.map((joint) => {
+        const pkey = `${isLeft ? 'l' : 'r'}_${joint.key}`;
+        return (
         <ServoControl
           key={`${side}-${joint.key}`}
           label={joint.label}
-          pin={joint.pin[side]}
+          pin={pinMap[pkey] ?? joint.pin[side]}
           value={hand[joint.key]}
           min={joint.min}
           max={joint.max}
           onChange={(v) => setHandJoint(side, joint.key, v)}
           presets={[10, 90, 170]}
-          presetLabels={{ 10: 'O', 90: 'H', 170: 'C' }}
+          presetLabels={{ 10: 'Open', 90: 'Half', 170: 'Close' }}
           accent={isLeft ? 'phosphor' : 'violet'}
+          showPin
         />
-      ));
+        );
+      });
     }
-    return LEG_JOINT_META.map((joint) => (
+    return LEG_JOINT_META.map((joint) => {
+      const pkey = `${isLeft ? 'l' : 'r'}_${joint.key}`;
+      return (
       <ServoControl
         key={`${side}-${joint.key}`}
         label={joint.label}
-        pin={joint.pin[side]}
+        pin={pinMap[pkey] ?? joint.pin[side]}
         value={leg[joint.key]}
         min={joint.min}
         max={joint.max}
         onChange={(v) => setLegJoint(side, joint.key, v)}
         accent={isLeft ? 'signal' : 'copper'}
+        showPin
         presets={[joint.min ?? 0, 90, joint.max ?? 180]}
       />
-    ));
+      );
+    });
   };
+
+  const partWord = tab === 'arms' ? 'arm' : tab === 'hands' ? 'hand' : 'leg';
 
   return (
     <SectionCard
@@ -138,18 +174,22 @@ export function BodyJointPanel({ tab, onTabChange }: BodyJointPanelProps) {
       title="Body"
       description="Arms · hands · legs"
       action={
-        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => centerBody()}>
-          <RotateCcw className="h-3 w-3" /> Reset
+        <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs" onClick={() => centerBody()}>
+          <RotateCcw className="h-3.5 w-3.5" /> Rest body
         </Button>
       }
     >
-      <div className="mb-2 flex flex-wrap gap-1">
+      {/* Part tabs */}
+      <div className="mb-3 flex flex-wrap gap-1">
         {TABS.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => onTabChange(item.id)}
-            className={cn(tab === item.id ? 'nav-pill-active' : 'nav-pill-idle', 'px-2.5 py-1 text-xs')}
+            className={cn(
+              tab === item.id ? 'nav-pill-active' : 'nav-pill-idle',
+              'px-3 py-1.5 text-xs font-semibold',
+            )}
           >
             <item.icon className="h-3.5 w-3.5" />
             {item.label}
@@ -157,45 +197,49 @@ export function BodyJointPanel({ tab, onTabChange }: BodyJointPanelProps) {
         ))}
       </div>
 
-      <div className="mb-2 flex flex-wrap gap-1">
+      {/* Presets for both sides */}
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Both sides
+        </span>
         {presetNames.map((name) => (
           <Button
             key={name}
             variant="outline"
             size="sm"
-            className="h-6 px-2 text-[11px]"
+            className="h-8 px-2.5 text-xs capitalize"
             onClick={() => {
               applyPreset('left', name);
               applyPreset('right', name);
             }}
           >
-            {name}
+            {PRESET_NICE[String(name)] ?? String(name)}
           </Button>
         ))}
-        <span className="self-center text-[10px] text-muted-foreground">both</span>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      {/* Left / Right cards */}
+      <div className="grid gap-3 sm:grid-cols-2">
         {(['left', 'right'] as BodySide[]).map((side) => (
-          <div key={side} className="rounded-lg border border-border/40 bg-muted/30 p-1.5">
-            <div className="mb-1 flex items-center justify-between px-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {side}
+          <div key={side} className="body-side-card">
+            <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
+              <span className="body-side-title">
+                {SIDE_LABEL[side]} {partWord}
               </span>
-              <div className="flex gap-0.5">
-                {presetNames.slice(0, 3).map((name) => (
+              <div className="flex flex-wrap justify-end gap-1">
+                {presetNames.slice(0, 4).map((name) => (
                   <button
                     key={name}
                     type="button"
                     className="motor-chip"
                     onClick={() => applyPreset(side, name)}
                   >
-                    {String(name).slice(0, 4)}
+                    {PRESET_NICE[String(name)] ?? String(name)}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="space-y-1">{renderSide(side)}</div>
+            <div className="space-y-1.5">{renderSide(side)}</div>
           </div>
         ))}
       </div>

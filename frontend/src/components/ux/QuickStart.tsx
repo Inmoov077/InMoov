@@ -3,9 +3,9 @@ import { Cable, Gamepad2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const STEPS = [
-  { n: 1, icon: Cable, title: 'Connect USB', text: 'Studio → USB — pick the Arduino port and connect.', link: '/control?panel=usb', btn: 'USB' },
-  { n: 2, icon: Gamepad2, title: 'InMoov body map', text: 'Click head/arm/hand on the map like MyRobotLab.', link: '/control', btn: 'InMoov2' },
-  { n: 3, icon: Sparkles, title: 'Run a gesture', text: 'Studio → Gestures, or Moves for the full catalog.', link: '/control?panel=gestures', btn: 'Gestures' },
+  { n: 1, icon: Cable, title: 'Connect USB', text: 'Studio → USB — pick COM port and Connect.', link: '/control?panel=usb', btn: 'USB' },
+  { n: 2, icon: Gamepad2, title: 'Move a motor', text: 'Studio → Control — pick Head/Arms/Hands, set pin & angle.', link: '/control', btn: 'Studio' },
+  { n: 3, icon: Sparkles, title: 'Moves or Chat', text: 'Run a move, or open Chat and ask “who is the HOD?”', link: '/moves', btn: 'Moves' },
 ];
 
 export function QuickStart() {
