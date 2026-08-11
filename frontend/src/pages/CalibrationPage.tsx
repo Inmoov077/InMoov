@@ -86,10 +86,10 @@ export function CalibrationPage() {
       const pinMap: Record<string, number> = {};
       const limMap: Record<string, { min: number; max: number; rest: number }> = {};
       for (const s of cfg.servos ?? SERVOS) {
-        pinMap[s.key] = s.pin;
         limMap[s.key] = { min: s.min, max: s.max, rest: s.rest };
       }
-      Object.assign(pinMap, pinRes.pins ?? {});
+      // Only user-saved overrides — pin fields stay empty until Save
+      Object.assign(pinMap, pinRes.overrides ?? {});
       for (const [k, v] of Object.entries(calRes.calibration ?? {})) {
         if (v && typeof v === 'object') {
           limMap[k] = { ...limMap[k], ...(v as { min?: number; max?: number; rest?: number }) };
@@ -289,8 +289,20 @@ export function CalibrationPage() {
                               min={2}
                               max={53}
                               className="ml-auto h-8 w-20 font-mono text-center"
-                              value={pins[s.key] ?? s.pin}
-                              onChange={(e) => onPinChange(s.key, Number(e.target.value))}
+                              value={pins[s.key] ?? ''}
+                              placeholder="—"
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                if (raw === '') {
+                                  setPins((prev) => {
+                                    const next = { ...prev };
+                                    delete next[s.key];
+                                    return next;
+                                  });
+                                  return;
+                                }
+                                onPinChange(s.key, Number(raw));
+                              }}
                             />
                             <span className="text-[10px] text-muted-foreground">pin</span>
                           </div>

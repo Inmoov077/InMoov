@@ -2,10 +2,12 @@
   {
     "inputs": [
       "hello",
-      "hi ",
+      "hi",
       "hey",
       "hello there",
-      "greetings"
+      "greetings",
+      "good morning",
+      "good afternoon"
     ],
     "response": "Hello there! Nice to meet you. I am ready for our live conversation.",
     "angles": {
@@ -717,7 +719,7 @@
       "about dr madhu shukla",
       "dr madhu shukla"
     ],
-    "response": "Dr. Madhu Shukla is a Professor, Associate Dean, and Head of the Department of Computer Engineering \u2013 AI & Big Data Analytics at Marwadi University.",
+    "response": "Dr. Madhu Shukla is a Professor, Associate Dean, and Head of the Department of Computer Engineering – AI & Big Data Analytics at Marwadi University.",
     "angles": {
       "hneck": 85,
       "eye": 90,
@@ -2372,5 +2374,94 @@
       "neckRot": 60
     },
     "animation": "nod"
+  },
+  {
+    "inputs": [
+      "who is hod",
+      "who is the hod",
+      "who is head of department",
+      "hod of ai",
+      "who is hod of ai",
+      "madhu shukla",
+      "who is dr madhu",
+      "head of department ai",
+      "hod name",
+      "who is the head of ai"
+    ],
+    "response": "The Head of Department (HOD) of Computer Engineering - AI and Big Data Analytics at Marwadi University is Dr. Madhu Shukla.",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 55,
+      "neckRoll": 120
+    },
+    "animation": "nod"
+  },
+  {
+    "inputs": [
+      "who is provost",
+      "who is the provost",
+      "who is jadeja",
+      "rajendrasinh jadeja"
+    ],
+    "response": "Dr. Rajendrasinh Jadeja is the Provost and Pro Vice-Chancellor of Marwadi University.",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "nod"
+  },
+  {
+    "inputs": [
+      "who is akshay",
+      "who runs robotics club",
+      "robotics club admin",
+      "who is professor akshay"
+    ],
+    "response": "Professor Akshay Ranpariya administers the MU Robotics and AI Club in Main Building room MB106.",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 55,
+      "neckTilt": 50,
+      "neckRoll": 115
+    },
+    "animation": "tilt"
+  },
+  {
+    "inputs": [
+      "where is marwadi",
+      "where is the university",
+      "marwadi university location"
+    ],
+    "response": "Marwadi University is on the Rajkot-Morbi highway in Rajkot, Gujarat, India.",
+    "angles": {
+      "hneck": 85,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 50,
+      "neckRoll": 120
+    },
+    "animation": "nod"
+  },
+  {
+    "inputs": [
+      "what is marwadi",
+      "about marwadi university",
+      "tell me about the university"
+    ],
+    "response": "Marwadi University in Rajkot has NAAC A++ accreditation and hosts the Robotics and AI Club where this InMoov robot lives.",
+    "angles": {
+      "hneck": 80,
+      "eye": 90,
+      "neckRot": 60,
+      "neckTilt": 55,
+      "neckRoll": 120
+    },
+    "animation": "tilt"
   }
 ]

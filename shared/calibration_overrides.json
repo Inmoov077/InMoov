@@ -1,1 +1,52 @@
-{}
+{
+  "l_shoulder": {
+    "min": 30,
+    "max": 180,
+    "rest": 30
+  },
+  "l_lift": {
+    "min": 15,
+    "max": 65,
+    "rest": 15
+  },
+  "l_rotate": {
+    "min": 40,
+    "max": 180,
+    "rest": 90
+  },
+  "l_elbow": {
+    "min": 0,
+    "max": 52,
+    "rest": 0
+  },
+  "l_wrist": {
+    "min": 10,
+    "max": 160,
+    "rest": 90
+  },
+  "r_shoulder": {
+    "min": 30,
+    "max": 180,
+    "rest": 30
+  },
+  "r_lift": {
+    "min": 10,
+    "max": 70,
+    "rest": 10
+  },
+  "r_rotate": {
+    "min": 40,
+    "max": 180,
+    "rest": 90
+  },
+  "r_elbow": {
+    "min": 10,
+    "max": 80,
+    "rest": 10
+  },
+  "r_wrist": {
+    "min": 10,
+    "max": 160,
+    "rest": 90
+  }
+}

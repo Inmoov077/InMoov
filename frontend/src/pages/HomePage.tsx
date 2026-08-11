@@ -7,6 +7,7 @@ import {
   Mic,
   Rocket,
   Settings,
+  Usb,
 } from 'lucide-react';
 import { QuickStart } from '@/components/ux/QuickStart';
 import { Button } from '@/components/ui/button';
@@ -18,43 +19,50 @@ const TILES = [
     to: '/control',
     icon: Clapperboard,
     title: 'Studio',
-    desc: 'InMoov2 map · Pose · Gestures · Servos · Runtime — one workspace',
+    desc: 'Pin · limits · angle · 3D preview',
     color: 'from-primary/20 to-primary/5',
     big: true,
   },
   {
-    to: '/presets',
+    to: '/ai',
+    icon: Brain,
+    title: 'Chat',
+    desc: 'Local answers · voice in · speak out',
+    color: 'from-axis-violet/15 to-transparent',
+  },
+  {
+    to: '/moves',
     icon: Rocket,
     title: 'Moves',
-    desc: '136+ gestures & built-in animations',
+    desc: 'Gestures & animations',
     color: 'from-success/15 to-transparent',
   },
   {
     to: '/camera',
     icon: Camera,
     title: 'Vision',
-    desc: 'D455 presence wake + face/hand track',
+    desc: 'Camera wake & tracking',
     color: 'from-axis-sky/15 to-transparent',
-  },
-  {
-    to: '/ai',
-    icon: Brain,
-    title: 'Chat',
-    desc: 'Talk with AI + mood motion',
-    color: 'from-axis-violet/15 to-transparent',
   },
   {
     to: '/offline',
     icon: Mic,
-    title: 'Voice',
-    desc: 'Offline commands',
+    title: 'Commands',
+    desc: 'Offline voice phrases',
     color: 'from-axis-amber/15 to-transparent',
+  },
+  {
+    to: '/control?panel=usb',
+    icon: Usb,
+    title: 'USB',
+    desc: 'Connect Arduino Mega',
+    color: 'from-muted to-transparent',
   },
   {
     to: '/settings',
     icon: Settings,
     title: 'Settings',
-    desc: 'USB ports & safety',
+    desc: 'Ports & system',
     color: 'from-muted to-transparent',
   },
 ];
@@ -62,20 +70,28 @@ const TILES = [
 export function HomePage() {
   const connected = useServoStore((s) => s.connected);
   const port = useServoStore((s) => s.port);
+  const reconnecting = useServoStore((s) => s.reconnecting);
 
   return (
-    <div className="space-y-8 animate-fadeUp">
+    <div className="space-y-8">
       <section className="page-hero">
         <div>
-          <Badge variant={connected ? 'online' : 'offline'} className="mb-4">
-            {connected ? `Connected · ${port}` : 'Not connected — plug in USB'}
+          <Badge
+            variant={connected ? 'online' : reconnecting ? 'default' : 'offline'}
+            className="mb-4"
+          >
+            {connected
+              ? `USB · ${port}`
+              : reconnecting
+                ? 'Reconnecting…'
+                : 'Not connected — open USB in Studio'}
           </Badge>
           <h1 className="font-display text-4xl font-semibold leading-tight md:text-5xl">
             Control your <span className="text-gradient">InMoov</span>
           </h1>
           <p className="mt-4 max-w-lg text-lg text-muted-foreground">
-            MyRobotLab-style InMoov studio: body map on the left, one tool panel on the right.
-            Joint limits, anti-overlap, and arm hardware inversions are built in.
+            Simple studio: preview on the left, clear cards on the right. Move the body, set pins,
+            chat from local campus data.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button size="lg" asChild>
@@ -84,7 +100,7 @@ export function HomePage() {
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link to="/control?panel=gestures">Gestures</Link>
+              <Link to="/ai">Chat</Link>
             </Button>
             {!connected && (
               <Button size="lg" variant="outline" asChild>
@@ -105,7 +121,7 @@ export function HomePage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TILES.map((t) => (
             <Link
-              key={t.to}
+              key={t.to + t.title}
               to={t.to}
               className={`surface-hover group relative overflow-hidden p-5 ${t.big ? 'sm:col-span-2 lg:col-span-2' : ''}`}
             >
@@ -119,7 +135,7 @@ export function HomePage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-display text-lg font-semibold">{t.title}</h3>
-                    <ArrowUpRight className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{t.desc}</p>
                 </div>

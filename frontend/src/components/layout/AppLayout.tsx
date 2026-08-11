@@ -26,10 +26,10 @@ import { Toaster } from 'sonner';
 const NAV = [
   { to: '/', label: 'Home', icon: Home, end: true },
   { to: '/control', label: 'Studio', icon: Clapperboard },
-  { to: '/presets', label: 'Moves', icon: Rocket },
+  { to: '/moves', label: 'Moves', icon: Rocket },
   { to: '/camera', label: 'Vision', icon: Camera },
   { to: '/ai', label: 'Chat', icon: Brain },
-  { to: '/offline', label: 'Voice', icon: Mic },
+  { to: '/offline', label: 'Commands', icon: Mic },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -52,12 +52,46 @@ export function AppLayout() {
 
   useEffect(() => {
     const s = useServoStore.getState();
+    // Light status check only — heavy pin/limit hydrate happens on Studio
     void s.refreshConnection();
     s.startConnectionWatchdog();
-    return () => {
-      // keep watchdog across routes — only stop on full unmount
-    };
   }, []);
+
+  // Wake animation poll only on pages that can drive the robot (not Home)
+  useEffect(() => {
+    const path = location.pathname;
+    const active =
+      path === '/control' ||
+      path === '/camera' ||
+      path === '/moves' ||
+      path === '/presets' ||
+      path === '/robot';
+    if (!active) return;
+
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const { realsenseStatus } = await import('@/lib/api');
+        const { maybePlayWakeFromServer } = await import('@/lib/wakeAnimation');
+        const st = await realsenseStatus();
+        if (cancelled) return;
+        const id = st.wake_animation?.id;
+        if (id) await maybePlayWakeFromServer(id);
+      } catch {
+        /* offline / no camera */
+      }
+    };
+    // Delay first poll so the page paints first
+    const start = window.setTimeout(() => {
+      void tick();
+    }, 1500);
+    const t = window.setInterval(() => void tick(), 4000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(start);
+      window.clearInterval(t);
+    };
+  }, [location.pathname]);
 
   const NavPills = ({ mobile, onNav }: { mobile?: boolean; onNav?: () => void }) => (
     <div className={cn(mobile ? 'flex flex-col gap-1 p-4' : 'hidden items-center gap-0.5 xl:flex')}>
@@ -158,15 +192,22 @@ export function AppLayout() {
             <TelemetryStrip />
           </div>
         )}
-        <motion.div
-          key={location.pathname}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.28 }}
-          className={isStudio ? 'h-full' : undefined}
-        >
-          <Outlet />
-        </motion.div>
+        {/* Skip motion on Home for instant paint; light fade elsewhere */}
+        {location.pathname === '/' ? (
+          <div>
+            <Outlet />
+          </div>
+        ) : (
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0.96, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+            className={isStudio ? 'h-full' : undefined}
+          >
+            <Outlet />
+          </motion.div>
+        )}
       </main>
 
       {!isStudio && (

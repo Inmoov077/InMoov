@@ -20,7 +20,7 @@ npm run lint
 | `/robot` | InMoove Studio body map |
 | `/camera` | MediaPipe tracking + RealSense D455 presence |
 | `/body` `/head` `/neck` | Axis control + 3D preview |
-| `/presets` | Gesture library |
+| `/moves` | Moves library (old `/presets` redirects here) |
 | `/chat` | AI conversation |
 | `/settings` | COM port, pins, limits |
 | `/mrl` `/mrl-live` | Core / live MRL-style panels |

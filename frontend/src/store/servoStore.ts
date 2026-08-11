@@ -142,11 +142,11 @@ export const useServoStore = create<ServoState>((set, get) => ({
 
   startConnectionWatchdog: () => {
     if (connectionWatchdog) return;
-    // Keep UI in sync with server auto-reconnect / drop
+    // Keep UI in sync with server auto-reconnect / drop (5s — lighter on dashboard)
     void get().refreshConnection();
     connectionWatchdog = setInterval(() => {
       void get().refreshConnection();
-    }, 2500);
+    }, 5000);
   },
 
   stopConnectionWatchdog: () => {

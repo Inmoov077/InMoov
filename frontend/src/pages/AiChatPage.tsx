@@ -1,17 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Camera, CameraOff, Loader2, Mic, MicOff, Send, Square, User, Volume2 } from 'lucide-react';
-import { PageHeader } from '@/components/layout/PageHeader';
+import {
+  Bot,
+  Loader2,
+  Mic,
+  MicOff,
+  Send,
+  Sparkles,
+  User,
+  Volume2,
+  VolumeX,
+  MessageCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import * as api from '@/lib/api';
 import { playMoodExpression } from '@/lib/moodExpressions';
 import { speakText, stopSpeaking } from '@/lib/speech';
+import { VoiceInput, isVoiceInputSupported } from '@/lib/voiceInput';
 import { cn } from '@/lib/utils';
 
 interface ChatMessage {
@@ -19,378 +26,364 @@ interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
   mood?: string;
+  source?: string;
 }
 
-const MODELS = [
-  { id: 'gemini-text', label: 'Gemini Text' },
-  { id: 'gemini-vision', label: 'Gemini Vision' },
-  { id: 'llama-vision', label: 'Llama 3.2 Vision (Ollama)' },
+const CHIPS = [
+  'Who is the HOD?',
+  'Who is the Provost?',
+  'Where is Marwadi?',
+  'Who are you?',
+  'Hello',
+  'Thank you',
 ];
 
-const LANGUAGES = [
-  { id: 'en', label: 'English' },
-  { id: 'hi', label: 'Hindi' },
-  { id: 'gu', label: 'Gujarati' },
-];
-
+/**
+ * Local chat — type or mic. Voice engine kept stable (refs) so recognition
+ * is not torn down while speaking / waiting for a reply.
+ */
 export function AiChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [model, setModel] = useState('gemini-text');
-  const [language, setLanguage] = useState('en');
-  const [active, setActive] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [speakReplies, setSpeakReplies] = useState(true);
-  const [moodMotion, setMoodMotion] = useState(true);
-  const [camOn, setCamOn] = useState(false);
-  const [listening, setListening] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-
-  const captureFrame = useCallback((): string | undefined => {
-    const video = videoRef.current;
-    if (!camOn || !video || video.readyState < 2) return undefined;
-    try {
-      const c = document.createElement('canvas');
-      c.width = 480;
-      c.height = 360;
-      const ctx = c.getContext('2d');
-      if (!ctx) return undefined;
-      ctx.translate(c.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0, c.width, c.height);
-      return c.toDataURL('image/jpeg', 0.75);
-    } catch {
-      return undefined;
-    }
-  }, [camOn]);
-
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCamOn(true);
-    } catch {
-      setCamOn(false);
-    }
-  };
-
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-    setCamOn(false);
-  };
-
-  const sendMessage = useCallback(
-    async (textOverride?: string) => {
-      const text = (textOverride ?? input).trim();
-      if (!text || loading) return;
-
-      const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', text };
-      setMessages((m) => [...m, userMsg]);
-      if (!textOverride) setInput('');
-      setLoading(true);
-      playMoodExpression('thinking');
-
-      try {
-        const needsVision = model.includes('vision');
-        const image = needsVision ? captureFrame() : undefined;
-        const res = await api.sendConversation({
-          message: text,
-          model_provider: model,
-          language,
-          image,
-        });
-
-        if (res.ok) {
-          const mood = res.mood || 'normal';
-          if (moodMotion) playMoodExpression(mood);
-          const reply = res.text ?? '';
-          setMessages((m) => [
-            ...m,
-            { id: crypto.randomUUID(), role: 'assistant', text: reply, mood },
-          ]);
-          if (speakReplies && reply) speakText(reply);
-        } else {
-          setMessages((m) => [
-            ...m,
-            { id: crypto.randomUUID(), role: 'assistant', text: res.error ?? 'Request failed' },
-          ]);
-        }
-      } catch (err) {
-        setMessages((m) => [
-          ...m,
-          {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            text: err instanceof Error ? err.message : 'Network error',
-          },
-        ]);
-      } finally {
-        setLoading(false);
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-      }
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'hi',
+      role: 'assistant',
+      text: 'Hi! I am InMoov. Ask me anything from local data — HOD, Provost, Robotics club, or say hello. Tap the mic to talk.',
+      mood: 'happy',
+      source: 'local',
     },
-    [input, loading, model, language, captureFrame, moodMotion, speakReplies],
-  );
+  ]);
+  const [input, setInput] = useState('');
+  const [partial, setPartial] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [speakOn, setSpeakOn] = useState(true);
+  const [micSupported] = useState(() => isVoiceInputSupported());
 
-  const toggleListen = () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const voiceRef = useRef<VoiceInput | null>(null);
+  const speakOnRef = useRef(speakOn);
+  const loadingRef = useRef(loading);
+  const sendRef = useRef<(raw: string) => Promise<void>>(async () => {});
+  speakOnRef.current = speakOn;
+  loadingRef.current = loading;
 
-    if (listening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setListening(false);
+  const scrollDown = () => {
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 40);
+  };
+
+  const sendMessage = useCallback(async (raw: string) => {
+    const text = raw.trim();
+    if (!text) return;
+    if (loadingRef.current) {
+      // Queue briefly: don't drop voice finals while previous reply loads
+      toast.message('Still answering… try again in a moment');
       return;
     }
 
-    const rec = new SR();
-    rec.continuous = false;
-    rec.interimResults = false;
-    rec.lang = language === 'hi' ? 'hi-IN' : language === 'gu' ? 'gu-IN' : 'en-US';
-    rec.onresult = (e: SpeechRecognitionEvent) => {
-      const transcript = e.results[0]?.[0]?.transcript;
-      if (transcript) void sendMessage(transcript);
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    recognitionRef.current = rec;
-    rec.start();
-    setListening(true);
-  };
+    setMessages((m) => [...m, { id: crypto.randomUUID(), role: 'user', text }]);
+    setInput('');
+    setPartial('');
+    setLoading(true);
+    loadingRef.current = true;
+    try {
+      playMoodExpression('thinking');
+    } catch {
+      /* optional */
+    }
+    scrollDown();
 
-  const startSession = () => {
-    setActive(true);
-    setMessages([
-      {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        text: 'Hi! I am InMoov. Talk or type — I move my face to match how I feel.',
-        mood: 'happy',
+    try {
+      const res = await api.sendConversation({
+        message: text,
+        model_provider: 'local',
+        language: 'en',
+      });
+
+      let reply = '';
+      let mood = 'normal';
+      let source = 'local';
+
+      if (res && typeof res === 'object') {
+        if (res.ok === false) {
+          reply = String(res.error || 'No answer from local data.');
+        } else {
+          reply = String(res.text || res.reply || res.message || '').trim();
+          mood = String(res.mood || 'normal');
+          source = String(res.source || 'local');
+        }
+      }
+
+      if (!reply) {
+        reply =
+          'I heard you, but I have no answer for that yet. Try: who is the HOD? or hello.';
+        source = 'local_fallback';
+      }
+
+      try {
+        playMoodExpression(mood);
+      } catch {
+        /* optional */
+      }
+
+      setMessages((m) => [
+        ...m,
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          text: reply,
+          mood,
+          source,
+        },
+      ]);
+
+      if (speakOnRef.current && reply) {
+        // Speak after paint so user always sees text even if TTS is blocked
+        window.setTimeout(() => speakText(reply), 120);
+      }
+    } catch (e) {
+      const err =
+        e instanceof Error
+          ? e.message
+          : 'Server offline — start Flask (python app.py) and try again';
+      setMessages((m) => [
+        ...m,
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          text: err,
+        },
+      ]);
+      toast.error('Chat request failed');
+    } finally {
+      setLoading(false);
+      loadingRef.current = false;
+      scrollDown();
+    }
+  }, []);
+
+  sendRef.current = sendMessage;
+
+  // Create voice engine once; callbacks always call latest send via ref
+  useEffect(() => {
+    const v = new VoiceInput();
+    voiceRef.current = v;
+    v.configure({
+      lang: 'en-US',
+      continuous: true,
+      callbacks: {
+        onStart: () => setListening(true),
+        onEnd: () => {
+          setListening(false);
+          setPartial('');
+        },
+        onPartial: (t) => setPartial(t),
+        onFinal: (t) => {
+          setListening(false);
+          setPartial('');
+          const clean = t.trim();
+          if (!clean) {
+            toast.message('Did not catch that — try again');
+            return;
+          }
+          setInput(clean);
+          toast.success(`Heard: “${clean.slice(0, 48)}${clean.length > 48 ? '…' : ''}”`);
+          void sendRef.current(clean);
+        },
+        onError: (msg) => {
+          setListening(false);
+          setPartial('');
+          toast.error(msg);
+        },
       },
-    ]);
-    playMoodExpression('happy');
-  };
+    });
+    return () => {
+      v.stop(false);
+      stopSpeaking();
+    };
+  }, []);
 
-  const stopSession = () => {
-    abortRef.current?.abort();
+  const toggleMic = () => {
+    if (!micSupported) {
+      toast.error('Use Chrome or Edge for voice (mic not supported here)');
+      return;
+    }
+    const v = voiceRef.current;
+    if (!v) {
+      toast.error('Voice not ready — refresh the page');
+      return;
+    }
+    if (listening || v.listening) {
+      // Stop and send whatever was heard
+      v.stop(true);
+      setListening(false);
+      return;
+    }
+    if (loadingRef.current) {
+      toast.message('Wait for the reply, then speak');
+      return;
+    }
     stopSpeaking();
-    stopCamera();
-    if (recognitionRef.current) recognitionRef.current.stop();
-    setListening(false);
-    setActive(false);
-    setLoading(false);
+    const ok = v.start();
+    if (ok) {
+      setListening(true);
+      toast.message('Listening… speak clearly, then pause or tap mic again');
+    }
   };
-
-  useEffect(() => () => stopCamera(), []);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Talk to robot"
-        description="Gemini / Ollama chat with mood expressions, voice, and optional camera vision."
-        actions={
-          <div className="flex gap-2">
-            {!active ? (
-              <Button size="sm" onClick={startSession}>
-                Start chatting
-              </Button>
-            ) : (
-              <Button size="sm" variant="destructive" onClick={stopSession}>
-                <Square className="h-4 w-4" />
-                End chat
-              </Button>
-            )}
+    <div className="mx-auto flex h-[calc(100vh-4.5rem)] max-w-3xl flex-col gap-0 px-3 py-3 md:px-4">
+      {/* Top bar */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/50 bg-card px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+            <MessageCircle className="h-5 w-5" />
           </div>
-        }
-      />
-
-      <div className="grid gap-4 lg:grid-cols-4">
-        <div className="space-y-4 lg:col-span-1">
-          <Card>
-            <CardHeader className="p-4 pb-2">
-              <CardTitle>AI settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 p-4 pt-2">
-              <div className="space-y-2">
-                <Label>Model</Label>
-                <Select value={model} onValueChange={setModel} disabled={!active}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MODELS.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Language</Label>
-                <Select value={language} onValueChange={setLanguage} disabled={!active}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.map((l) => (
-                      <SelectItem key={l.id} value={l.id}>
-                        {l.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Speak replies</Label>
-                <Switch checked={speakReplies} onCheckedChange={setSpeakReplies} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Mood → motion</Label>
-                <Switch checked={moodMotion} onCheckedChange={setMoodMotion} />
-              </div>
-              <Badge variant={active ? 'online' : 'offline'}>
-                {active ? 'Chatting' : 'Not started'}
-              </Badge>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                Vision input
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 p-4 pt-2">
-              <div className="camera-feed-wrap max-h-40">
-                <video
-                  ref={videoRef}
-                  className={cn('camera-video', camOn && 'active')}
-                  autoPlay
-                  playsInline
-                  muted
-                />
-                {!camOn && (
-                  <div className="camera-placeholder">
-                    <CameraOff className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full"
-                disabled={!active}
-                onClick={camOn ? stopCamera : startCamera}
-              >
-                {camOn ? 'Stop camera' : 'Start camera for vision'}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Required for Gemini Vision / Llama Vision models.
-              </p>
-            </CardContent>
-          </Card>
+          <div>
+            <h1 className="font-display text-lg font-semibold leading-tight">Chat</h1>
+            <p className="text-xs text-muted-foreground">
+              Local answers · {micSupported ? 'mic ready' : 'type only (use Chrome/Edge for mic)'}
+            </p>
+          </div>
         </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="online" className="text-[10px]">
+            <Sparkles className="mr-1 h-3 w-3" />
+            Campus data
+          </Badge>
+          <Button
+            size="sm"
+            variant={speakOn ? 'default' : 'outline'}
+            className="h-9 gap-1.5"
+            onClick={() => {
+              setSpeakOn((s) => !s);
+              if (speakOn) stopSpeaking();
+            }}
+          >
+            {speakOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            {speakOn ? 'Speak on' : 'Speak off'}
+          </Button>
+        </div>
+      </div>
 
-        <Card className="lg:col-span-3">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle>Messages</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-2">
-            <ScrollArea className="console-surface h-[400px] p-4">
-              {messages.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground">
-                  Press Start chatting, then type or use the mic.
-                </p>
+      {/* Suggestions */}
+      <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1">
+        {CHIPS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            disabled={loading}
+            onClick={() => void sendMessage(c)}
+            className="shrink-0 rounded-full border border-border/50 bg-card px-3 py-1.5 text-xs font-medium shadow-sm transition hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50"
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+
+      {/* Messages */}
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-border/50 bg-gradient-to-b from-muted/30 to-card/40 px-3 py-4 shadow-inner">
+        <div className="mx-auto flex max-w-2xl flex-col gap-3">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={cn(
+                'flex gap-2.5',
+                msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
               )}
-              <div className="space-y-4">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={cn('flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}
-                  >
-                    <div
-                      className={cn(
-                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                        msg.role === 'user' ? 'bg-accent/20 text-accent' : 'bg-primary/20 text-primary',
-                      )}
+            >
+              <div
+                className={cn(
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl',
+                  msg.role === 'user' ? 'bg-accent/20 text-accent' : 'bg-primary/15 text-primary',
+                )}
+              >
+                {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+              </div>
+              <div
+                className={cn(
+                  'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm',
+                  msg.role === 'user'
+                    ? 'rounded-tr-md bg-accent text-accent-foreground'
+                    : 'rounded-tl-md border border-border/50 bg-card',
+                )}
+              >
+                <p className="whitespace-pre-wrap">{msg.text}</p>
+                {msg.role === 'assistant' && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {msg.source && (
+                      <span className="rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground">
+                        {msg.source}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                      onClick={() => speakText(msg.text)}
                     >
-                      {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                    </div>
-                    <div
-                      className={cn(
-                        'max-w-[80%] rounded-lg border px-4 py-2.5 text-sm',
-                        msg.role === 'user'
-                          ? 'border-accent/30 bg-accent/10 shadow-sm'
-                          : 'border-border/80 bg-card-elevated/80 shadow-sm',
-                      )}
-                    >
-                      <p>{msg.text}</p>
-                      {msg.mood && (
-                        <Badge variant="copper" className="mt-2">
-                          mood: {msg.mood}
-                        </Badge>
-                      )}
-                      {msg.role === 'assistant' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2 h-7 gap-1 px-2 text-xs"
-                          onClick={() => speakText(msg.text)}
-                        >
-                          <Volume2 className="h-3 w-3" />
-                          Speak
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {loading && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Thinking…
+                      <Volume2 className="h-3 w-3" /> Speak
+                    </button>
                   </div>
                 )}
-                <div ref={bottomRef} />
               </div>
-            </ScrollArea>
-
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                disabled={!active || loading}
-                onClick={toggleListen}
-                title="Voice input"
-              >
-                {listening ? <MicOff className="h-4 w-4 text-destructive" /> : <Mic className="h-4 w-4" />}
-              </Button>
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                placeholder={active ? 'Type a message…' : 'Start session first'}
-                disabled={!active || loading}
-                className="flex-1"
-              />
-              <Button onClick={() => sendMessage()} disabled={!active || loading || !input.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+          {loading && (
+            <div className="flex items-center gap-2 px-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Thinking…
+            </div>
+          )}
+          {partial && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-foreground">
+              <span className="font-medium text-primary">Hearing:</span> “{partial}”
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      </div>
+
+      {/* Composer */}
+      <div className="mt-3 rounded-2xl border border-border/50 bg-card p-2.5 shadow-sm">
+        <div className="flex items-end gap-2">
+          <Button
+            type="button"
+            size="icon"
+            variant={listening ? 'destructive' : 'outline'}
+            className={cn('h-12 w-12 shrink-0 rounded-2xl', listening && 'animate-pulse')}
+            disabled={loading && !listening}
+            onClick={toggleMic}
+            title={listening ? 'Stop & send' : 'Start voice'}
+          >
+            {listening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </Button>
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                void sendMessage(input);
+              }
+            }}
+            placeholder={listening ? 'Listening… speak now' : 'Type or tap mic…'}
+            disabled={loading}
+            className="h-12 flex-1 rounded-2xl border-border/40 bg-muted/30 text-base"
+          />
+          <Button
+            type="button"
+            className="h-12 shrink-0 rounded-2xl px-5"
+            disabled={loading || !input.trim()}
+            onClick={() => void sendMessage(input)}
+          >
+            <Send className="h-4 w-4" />
+            Send
+          </Button>
+        </div>
+        <p className="mt-2 px-1 text-center text-[10px] text-muted-foreground">
+          {listening
+            ? 'Speak, then pause — or tap mic again to send what was heard'
+            : 'Chrome/Edge · allow microphone · Speak on for voice replies · Flask must be running'}
+        </p>
       </div>
     </div>
   );

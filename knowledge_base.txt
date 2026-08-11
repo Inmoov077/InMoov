@@ -16,4 +16,19 @@ Dr. Rajendrasinh (R.B.) Jadeja is the Provost and Pro Vice-Chancellor of Marwadi
 
 Dr. Madhu Shukla is a Professor, Associate Dean, and Head of the Department of Computer Engineering - AI & Big Data Analytics at Marwadi University. Her research focuses on using Artificial Intelligence, Machine Learning, and Big Data Analytics in Healthcare, particularly in cardiovascular disease prediction and digital pathology. She is an editor for books on medical decision support systems and serves on the technical program committees of multiple international conferences.
 
+FAQ — Who is the HOD of AI / Computer Engineering AI & Big Data?
+Answer: The Head of Department (HOD) is Dr. Madhu Shukla. She is Professor, Associate Dean, and HOD of Computer Engineering - AI & Big Data Analytics at Marwadi University.
+
+FAQ — Who is HOD? Who is the head of department of AI ML DS?
+Answer: Dr. Madhu Shukla is the HOD (Head of Department) for Computer Engineering - AI & Big Data Analytics at Marwadi University.
+
+FAQ — Who is the Provost?
+Answer: Dr. Rajendrasinh (R.B.) Jadeja is the Provost and Pro Vice-Chancellor of Marwadi University.
+
+FAQ — Who manages the Robotics club?
+Answer: Professor Akshay Ranpariya is the administrator of the MU Robotics & AI Club (Main Building, Room MB106).
+
+FAQ — Where is Marwadi University?
+Answer: Marwadi University is on the Rajkot-Morbi highway in Rajkot, Gujarat, India.
+
 InMoov at Marwadi University uses a chest-mounted Intel RealSense D455 depth camera for presence detection. When a person stands in front of the robot for about five seconds within roughly 0.45 to 2.2 meters, the robot enables its motors, moves to a rest pose, and greets the visitor with a spoken hello. The control software is a local Flask server with a React dashboard; optional dependencies are pyrealsense2 and opencv-python.

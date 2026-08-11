@@ -69,13 +69,25 @@
 
   @media (min-width: 1024px) {
     .studio-shell {
-      grid-template-columns: minmax(360px, 1.1fr) minmax(340px, 0.9fr);
+      /* Resizable preview width via --studio-preview-w */
+      grid-template-columns: var(--studio-preview-w, 420px) minmax(320px, 1fr);
       align-items: start;
+      gap: 0.5rem;
     }
   }
 
+  .studio-shell-resizing {
+    cursor: col-resize;
+    user-select: none;
+  }
+
+  .studio-shell-resizing iframe,
+  .studio-shell-resizing canvas {
+    pointer-events: none;
+  }
+
   .studio-preview {
-    @apply flex flex-col;
+    @apply relative flex flex-col;
   }
 
   @media (min-width: 1024px) {
@@ -88,10 +100,10 @@
   }
 
   .studio-preview-frame {
-    @apply overflow-hidden rounded-xl border border-border/60;
+    @apply overflow-hidden rounded-xl border border-border/50 bg-muted/15;
     height: min(48vh, 420px);
-    min-height: 280px;
-    box-shadow: 0 1px 2px hsla(230, 35%, 12%, 0.04), 0 8px 28px hsla(230, 35%, 12%, 0.07);
+    min-height: 260px;
+    box-shadow: 0 1px 2px hsla(230, 35%, 12%, 0.04), 0 6px 20px hsla(230, 35%, 12%, 0.05);
   }
 
   @media (min-width: 1024px) {
@@ -99,6 +111,44 @@
       flex: 1;
       height: 100%;
       min-height: 0;
+    }
+  }
+
+  /* Drag handle on right edge of preview */
+  .studio-resize-handle {
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .studio-resize-handle {
+      display: block;
+      position: absolute;
+      top: 0;
+      right: -6px;
+      width: 12px;
+      height: 100%;
+      cursor: col-resize;
+      z-index: 20;
+      touch-action: none;
+    }
+    .studio-resize-handle::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 3px;
+      height: 48px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      background: hsl(var(--border));
+      opacity: 0.7;
+      transition: background 0.15s, opacity 0.15s, height 0.15s;
+    }
+    .studio-resize-handle:hover::after,
+    .studio-resize-handle.is-active::after {
+      background: hsl(var(--primary));
+      opacity: 1;
+      height: 64px;
     }
   }
 
@@ -434,35 +484,49 @@
     @apply bg-card text-foreground shadow-sm;
   }
 
-  /* Dense motor rows — less bulk, less scroll */
+  /* Motor rows — full labels + readable degrees (no clip) */
   .motor-row {
-    @apply grid items-center gap-x-2 gap-y-1 rounded-lg border border-border/40 bg-card/60 px-2 py-1.5;
-    grid-template-columns: 3.25rem minmax(0, 1fr) 2.4rem;
+    @apply grid items-center gap-x-2 gap-y-1.5 rounded-xl border border-border/45 bg-card/70 px-2.5 py-2;
+    grid-template-columns: minmax(5.5rem, 7rem) minmax(0, 1fr) 3.25rem;
     border-left: 3px solid var(--motor-color, hsl(var(--primary)));
   }
 
-  @media (min-width: 420px) {
+  @media (min-width: 480px) {
     .motor-row {
-      grid-template-columns: 3.25rem minmax(0, 1fr) 2.4rem auto;
+      grid-template-columns: minmax(6rem, 7.5rem) minmax(0, 1fr) 3.25rem auto;
     }
   }
 
   .motor-row-label {
-    @apply flex min-w-0 flex-col;
+    @apply flex min-w-0 flex-col gap-0.5;
+  }
+
+  .motor-row-label label {
+    @apply truncate text-[12px] font-semibold leading-tight text-foreground;
+  }
+
+  .motor-row-pin {
+    @apply font-mono text-[10px] tabular-nums text-muted-foreground;
   }
 
   .motor-row-value {
-    @apply text-right font-mono text-xs font-bold tabular-nums text-primary;
+    @apply text-right font-mono text-sm font-bold tabular-nums text-primary;
+  }
+
+  .motor-row-value-input {
+    @apply h-8 w-[3.25rem] rounded-md border border-border/50 bg-background px-1 text-center
+      font-mono text-sm font-bold tabular-nums text-primary outline-none
+      focus:border-primary/50 focus:ring-1 focus:ring-primary/30;
   }
 
   .motor-row-presets {
-    @apply col-span-3 flex flex-wrap gap-0.5 sm:col-span-1 sm:col-start-4 sm:max-w-[7.5rem] sm:justify-end;
+    @apply col-span-3 flex flex-wrap gap-1 sm:col-span-1 sm:col-start-4 sm:max-w-none sm:justify-end;
   }
 
   .motor-chip {
-    @apply rounded-md border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors disabled:opacity-40;
-    border-color: hsl(var(--border) / 0.5);
-    background: hsl(var(--muted) / 0.5);
+    @apply rounded-md border px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors disabled:opacity-40;
+    border-color: hsl(var(--border) / 0.55);
+    background: hsl(var(--muted) / 0.45);
   }
   .motor-chip:hover {
     border-color: hsl(var(--primary) / 0.4);
@@ -473,6 +537,15 @@
     border-color: hsl(var(--primary) / 0.5);
     background: hsl(var(--primary) / 0.12);
     color: hsl(var(--primary));
+  }
+
+  /* Body side cards */
+  .body-side-card {
+    @apply rounded-xl border border-border/50 bg-muted/25 p-2.5 shadow-sm;
+  }
+
+  .body-side-title {
+    @apply text-xs font-bold uppercase tracking-wide text-muted-foreground;
   }
 
   .section-dense {
@@ -498,6 +571,62 @@
     border-color: hsl(var(--primary) / 0.45);
     background: hsl(var(--primary) / 0.05);
     box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25);
+  }
+
+  /* /presets — simple split: 3D + flat list (no cards) */
+  .moves-page {
+    @apply grid w-full gap-6;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 1024px) {
+    .moves-page {
+      grid-template-columns: minmax(320px, 42%) minmax(0, 1fr);
+      gap: 2rem;
+      align-items: start;
+    }
+  }
+
+  .moves-page-preview {
+    @apply flex flex-col;
+  }
+
+  @media (min-width: 1024px) {
+    .moves-page-preview {
+      position: sticky;
+      top: calc(3.5rem + 1rem);
+    }
+  }
+
+  .moves-page-3d {
+    @apply overflow-hidden rounded-lg border border-border/40 bg-muted/20;
+    height: min(42vh, 360px);
+    min-height: 240px;
+  }
+
+  @media (min-width: 1024px) {
+    .moves-page-3d {
+      height: min(70vh, 560px);
+      min-height: 380px;
+    }
+  }
+
+  .moves-page-list {
+    @apply pb-8;
+  }
+
+  /* legacy aliases */
+  .moves-layout {
+    @apply moves-page;
+  }
+  .moves-preview {
+    @apply moves-page-preview;
+  }
+  .moves-preview-frame {
+    @apply moves-page-3d;
+  }
+  .moves-panel {
+    @apply moves-page-list;
   }
 
   .surface {
