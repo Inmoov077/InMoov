@@ -59,21 +59,23 @@ export function getArmEffectiveLimits(side: BodySide, arm: Partial<ArmJoints>): 
   let shoulderMax = hard.shoulder.max;
 
   // High elbow flex → cut omoplate (forearm folds into torso / shoulder cover)
-  const elbowOver = Math.max(0, elbow - 40);
-  liftMax = Math.max(hard.lift.min + 4, liftMax - Math.round(elbowOver * 0.4));
+  // Softer than before so salute / temple-reach poses keep silhouette
+  const elbowOver = Math.max(0, elbow - 42);
+  liftMax = Math.max(hard.lift.min + 4, liftMax - Math.round(elbowOver * 0.28));
 
   // High omoplate raise → cut elbow flex (bicep/shoulder housing bind)
-  const liftOver = Math.max(0, lift - 32);
-  elbowMax = Math.max(hard.elbow.min + 4, elbowMax - Math.round(liftOver * 0.7));
+  // Allow higher elbow when arm is raised for military salute / hand-to-head
+  const liftOver = Math.max(0, lift - 38);
+  elbowMax = Math.max(hard.elbow.min + 4, elbowMax - Math.round(liftOver * 0.45));
 
   // High shoulder (arm forward/up) → leave head/ear clearance via lower omoplate max
-  if (shoulder > 125) {
-    liftMax = Math.max(hard.lift.min + 4, liftMax - Math.round((shoulder - 125) * 0.25));
+  if (shoulder > 135) {
+    liftMax = Math.max(hard.lift.min + 4, liftMax - Math.round((shoulder - 135) * 0.2));
   }
 
   // High omoplate → slightly reduce shoulder max (less reach over the head assembly)
-  if (lift > 45) {
-    shoulderMax = Math.max(hard.shoulder.min + 20, shoulderMax - Math.round((lift - 45) * 1.2));
+  if (lift > 52) {
+    shoulderMax = Math.max(hard.shoulder.min + 20, shoulderMax - Math.round((lift - 52) * 1.0));
   }
 
   // Bent elbow → keep rotate nearer neutral so hand does not clip torso/hip

@@ -7,11 +7,13 @@ import {
   createStudioBackdrop,
   createWoodTable,
 } from '@/lib/robotMaterials';
-import { DEFAULT_ARM, DEFAULT_HAND, DEFAULT_LEG } from '@/lib/bodyConfig';
+import { DEFAULT_HAND } from '@/lib/bodyConfig';
+import { servoByKey } from '@/lib/servoConfig';
 import {
   ELBOW_FLEX,
   EYES_PAN,
   EYES_TILT,
+  FINGER,
   HEAD_PAN,
   HEAD_ROLL,
   HEAD_TILT,
@@ -31,8 +33,8 @@ import {
   KNEE,
   ANKLE,
   FOOT_ROLL,
-  fingerServoToRad,
-  servoToJointRad,
+  type JointGoalRange,
+  servoToUrdfRad,
 } from '@/lib/inmoovJointMap';
 
 /** Compiled from MyRobotLab/inmoov_ros xacro + procedural legs */
@@ -80,20 +82,62 @@ export interface AngleState {
   rightLeg: { hip: number; thigh: number; knee: number; ankle: number; foot: number };
 }
 
-/** Rest pose — matches bodyStore + servoStore defaults (0 rad on every URDF joint). */
+function restOf(key: string, fallback: number): number {
+  const n = Number(servoByKey(key)?.rest);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function restHand(): { thumb: number; index: number; middle: number; ring: number; pinky: number } {
+  return {
+    thumb: restOf('l_thumb', DEFAULT_HAND.thumb),
+    index: restOf('l_index', DEFAULT_HAND.index),
+    middle: restOf('l_middle', DEFAULT_HAND.middle),
+    ring: restOf('l_ring', DEFAULT_HAND.ring),
+    pinky: restOf('l_pinky', DEFAULT_HAND.pinky),
+  };
+}
+
+/**
+ * Perfect default / neutral pose.
+ * Must match restPose.ts + bodyStore init so 3D hands/arms open at sides.
+ */
 export const DEFAULT_ANGLE_STATE: AngleState = {
-  headPan: 85,
-  eye: 90,
-  jaw: 8,
-  neckRot: 60,
-  neckTilt: 50,
-  neckRoll: 120,
-  leftArm: { ...DEFAULT_ARM },
-  rightArm: { ...DEFAULT_ARM },
-  leftHand: { ...DEFAULT_HAND },
-  rightHand: { ...DEFAULT_HAND },
-  leftLeg: { ...DEFAULT_LEG },
-  rightLeg: { ...DEFAULT_LEG },
+  headPan: restOf('head_neck', 85),
+  eye: restOf('head_eye', 90),
+  jaw: restOf('head_jaw', 8),
+  neckRot: restOf('neck_rot', 60),
+  neckTilt: restOf('neck_tilt', 50),
+  neckRoll: restOf('neck_roll', 120),
+  leftArm: {
+    shoulder: restOf('l_shoulder', 30),
+    lift: restOf('l_lift', 15),
+    rotate: restOf('l_rotate', 90),
+    elbow: restOf('l_elbow', 0),
+    wrist: restOf('l_wrist', 90),
+  },
+  rightArm: {
+    shoulder: restOf('r_shoulder', 30),
+    lift: restOf('r_lift', 10),
+    rotate: restOf('r_rotate', 90),
+    elbow: restOf('r_elbow', 10),
+    wrist: restOf('r_wrist', 90),
+  },
+  leftHand: restHand(),
+  rightHand: restHand(),
+  leftLeg: {
+    hip: restOf('l_hip', 90),
+    thigh: restOf('l_thigh', 90),
+    knee: restOf('l_knee', 15),
+    ankle: restOf('l_ankle', 90),
+    foot: restOf('l_foot', 90),
+  },
+  rightLeg: {
+    hip: restOf('r_hip', 90),
+    thigh: restOf('r_thigh', 90),
+    knee: restOf('r_knee', 15),
+    ankle: restOf('r_ankle', 90),
+    foot: restOf('r_foot', 90),
+  },
 };
 
 export type UrdfRobot = THREE.Object3D & {
@@ -157,66 +201,146 @@ export function lerpAngles(current: AngleState, target: AngleState, t: number): 
   };
 }
 
-const REST = DEFAULT_ANGLE_STATE;
+/**
+ * Map UI/hardware servo ° → URDF joint radians for the 3D mesh.
+ *
+ * Critical design (InMoov / urdf-loader):
+ * - Mesh rest pose = joint value 0 (how the URDF is authored)
+ * - So we map rest-relative:  jointRad = goal(servo) − goal(rest)
+ * - Use each servo's real min/max from config so elbow 10→80 uses the FULL
+ *   visual bend (not a tiny slice of a fake 0–180 range)
+ *
+ * Result: default pose looks normal again, and moves still use full joint travel.
+ */
+function mapJoint(
+  servoDeg: number,
+  range: JointGoalRange,
+  servoKey?: string,
+  fallbackMin = 0,
+  fallbackMax = 180,
+  fallbackRest?: number,
+): number {
+  let sMin = fallbackMin;
+  let sMax = fallbackMax;
+  let sRest = fallbackRest ?? (fallbackMin + fallbackMax) / 2;
+  if (servoKey) {
+    const s = servoByKey(servoKey);
+    if (s) {
+      if (Number.isFinite(s.min)) sMin = Number(s.min);
+      if (Number.isFinite(s.max)) sMax = Number(s.max);
+      if (Number.isFinite(s.rest)) sRest = Number(s.rest);
+    }
+  }
+  if (sMax <= sMin) {
+    sMin = fallbackMin;
+    sMax = fallbackMax;
+  }
+  // Rest always inside walls
+  sRest = Math.min(sMax, Math.max(sMin, sRest));
+  const v = Math.min(sMax, Math.max(sMin, Number(servoDeg)));
+  const safeV = Number.isFinite(v) ? v : sRest;
+  // Rest-relative absolute goals → 0 rad at rest, full span at min/max
+  return (
+    servoToUrdfRad(safeV, range, sMin, sMax) - servoToUrdfRad(sRest, range, sMin, sMax)
+  );
+}
 
-/** Map slider → joint rad relative to default pose (aligned at rest). */
-function j(
+/**
+ * Drive every finger segment so open → fist is obvious in 3D.
+ * Values are rest-relative (0 at open rest).
+ */
+function fingerChain(
+  side: 'l' | 'r',
+  finger: 'thumb' | 'index' | 'middle' | 'ring' | 'pinky',
   servo: number,
-  range: Parameters<typeof servoToJointRad>[1],
-  rest: number,
-  servoMin = 0,
-  servoMax = 180,
-) {
-  return servoToJointRad(servo, range, rest, servoMin, servoMax);
+  servoKey: string,
+  range: JointGoalRange = FINGER,
+): Record<string, number> {
+  const base = mapJoint(servo, range, servoKey, 10, 130, 10);
+  // Multi-segment curl — proximal / distal track the main joint
+  const proximal = base * 0.92;
+  const distal = base * 0.82;
+  const tip = base * 0.7;
+  const out: Record<string, number> = {
+    [`${side}_${finger}_joint`]: base,
+    [`${side}_${finger}1_joint`]: proximal,
+  };
+  if (finger === 'thumb') {
+    out[`${side}_thumb3_joint`] = distal;
+  } else {
+    out[`${side}_${finger}3_joint`] = distal;
+  }
+  if (finger === 'ring' || finger === 'pinky') {
+    out[`${side}_${finger}4_joint`] = tip;
+  }
+  return out;
 }
 
 function buildJointValues(angles: AngleState): Record<string, number> {
-  const la = angles.leftArm;
-  const ra = angles.rightArm;
-  const lh = angles.leftHand;
-  const rh = angles.rightHand;
-  const ll = angles.leftLeg;
-  const rl = angles.rightLeg;
+  const la = angles.leftArm ?? DEFAULT_ANGLE_STATE.leftArm;
+  const ra = angles.rightArm ?? DEFAULT_ANGLE_STATE.rightArm;
+  const lh = angles.leftHand ?? DEFAULT_ANGLE_STATE.leftHand;
+  const rh = angles.rightHand ?? DEFAULT_ANGLE_STATE.rightHand;
+  const ll = angles.leftLeg ?? DEFAULT_ANGLE_STATE.leftLeg;
+  const rl = angles.rightLeg ?? DEFAULT_ANGLE_STATE.rightLeg;
+
   return {
-    head_pan_joint: j(angles.headPan, HEAD_PAN, REST.headPan),
-    eyes_tilt_joint: j(angles.eye, EYES_TILT, REST.eye),
-    eyes_pan_joint: j(angles.eye, EYES_PAN, REST.eye),
-    jaw_joint: j(angles.jaw, JAW, REST.jaw, 0, 40),
-    waist_pan_joint: j(angles.neckRot, WAIST_PAN, REST.neckRot),
-    waist_roll_joint: j(angles.neckTilt, WAIST_ROLL, REST.neckTilt),
-    head_tilt_joint: j(angles.neckTilt, HEAD_TILT, REST.neckTilt),
-    head_roll_joint: j(angles.neckRoll, HEAD_ROLL, REST.neckRoll),
-    l_shoulder_out_joint: j(la.shoulder, L_SHOULDER_OUT, REST.leftArm.shoulder),
-    l_shoulder_lift_joint: j(la.lift, SHOULDER_LIFT, REST.leftArm.lift),
-    l_upper_arm_roll_joint: j(la.rotate, L_UPPER_ARM_ROLL, REST.leftArm.rotate),
-    l_elbow_flex_joint: j(la.elbow, ELBOW_FLEX, REST.leftArm.elbow),
-    l_wrist_roll_joint: j(la.wrist, L_WRIST_ROLL, REST.leftArm.wrist),
-    r_shoulder_out_joint: j(ra.shoulder, R_SHOULDER_OUT, REST.rightArm.shoulder),
-    r_shoulder_lift_joint: j(ra.lift, SHOULDER_LIFT, REST.rightArm.lift),
-    r_upper_arm_roll_joint: j(ra.rotate, R_UPPER_ARM_ROLL, REST.rightArm.rotate),
-    r_elbow_flex_joint: j(ra.elbow, ELBOW_FLEX, REST.rightArm.elbow),
-    r_wrist_roll_joint: j(ra.wrist, R_WRIST_ROLL, REST.rightArm.wrist),
-    l_thumb_joint: fingerServoToRad(lh.thumb, THUMB, REST.leftHand.thumb),
-    l_index_joint: fingerServoToRad(lh.index, undefined, REST.leftHand.index),
-    l_middle_joint: fingerServoToRad(lh.middle, undefined, REST.leftHand.middle),
-    l_ring_joint: fingerServoToRad(lh.ring, undefined, REST.leftHand.ring),
-    l_pinky_joint: fingerServoToRad(lh.pinky, undefined, REST.leftHand.pinky),
-    r_thumb_joint: fingerServoToRad(rh.thumb, THUMB, REST.rightHand.thumb),
-    r_index_joint: fingerServoToRad(rh.index, undefined, REST.rightHand.index),
-    r_middle_joint: fingerServoToRad(rh.middle, undefined, REST.rightHand.middle),
-    r_ring_joint: fingerServoToRad(rh.ring, undefined, REST.rightHand.ring),
-    r_pinky_joint: fingerServoToRad(rh.pinky, undefined, REST.rightHand.pinky),
-    l_hip_pan_joint: j(ll.hip, HIP_PAN, REST.leftLeg.hip),
-    l_hip_lift_joint: j(ll.thigh, HIP_LIFT, REST.leftLeg.thigh),
-    l_knee_joint: j(ll.knee, KNEE, REST.leftLeg.knee, 0, 160),
-    l_ankle_joint: j(ll.ankle, ANKLE, REST.leftLeg.ankle),
-    l_foot_roll_joint: j(ll.foot, FOOT_ROLL, REST.leftLeg.foot),
-    r_hip_pan_joint: j(rl.hip, HIP_PAN, REST.rightLeg.hip),
-    r_hip_lift_joint: j(rl.thigh, HIP_LIFT, REST.rightLeg.thigh),
-    r_knee_joint: j(rl.knee, KNEE, REST.rightLeg.knee, 0, 160),
-    r_ankle_joint: j(rl.ankle, ANKLE, REST.rightLeg.ankle),
-    r_foot_roll_joint: j(rl.foot, FOOT_ROLL, REST.rightLeg.foot),
+    // Head / neck / waist — rest-relative, full config range
+    head_pan_joint: mapJoint(angles.headPan, HEAD_PAN, 'head_neck', 0, 180, 85),
+    eyes_tilt_joint: mapJoint(angles.eye, EYES_TILT, 'head_eye', 60, 120, 90),
+    eyes_pan_joint: mapJoint(angles.eye, EYES_PAN, 'head_eye', 60, 120, 90),
+    jaw_joint: mapJoint(angles.jaw, JAW, 'head_jaw', 0, 40, 8),
+    waist_pan_joint: mapJoint(angles.neckRot, WAIST_PAN, 'neck_rot', 0, 180, 60),
+    waist_roll_joint: mapJoint(angles.neckTilt, WAIST_ROLL, 'neck_tilt', 0, 180, 50),
+    head_tilt_joint: mapJoint(angles.neckTilt, HEAD_TILT, 'neck_tilt', 0, 180, 50),
+    head_roll_joint: mapJoint(angles.neckRoll, HEAD_ROLL, 'neck_roll', 60, 130, 120),
+
+    // Left arm — rest-relative + real min/max = correct default + full travel
+    l_shoulder_out_joint: mapJoint(la.shoulder, L_SHOULDER_OUT, 'l_shoulder', 30, 180, 30),
+    l_shoulder_lift_joint: mapJoint(la.lift, SHOULDER_LIFT, 'l_lift', 15, 65, 15),
+    l_upper_arm_roll_joint: mapJoint(la.rotate, L_UPPER_ARM_ROLL, 'l_rotate', 40, 180, 90),
+    l_elbow_flex_joint: mapJoint(la.elbow, ELBOW_FLEX, 'l_elbow', 0, 52, 0),
+    l_wrist_roll_joint: mapJoint(la.wrist, L_WRIST_ROLL, 'l_wrist', 10, 160, 90),
+
+    // Right arm
+    r_shoulder_out_joint: mapJoint(ra.shoulder, R_SHOULDER_OUT, 'r_shoulder', 30, 180, 30),
+    r_shoulder_lift_joint: mapJoint(ra.lift, SHOULDER_LIFT, 'r_lift', 10, 70, 10),
+    r_upper_arm_roll_joint: mapJoint(ra.rotate, R_UPPER_ARM_ROLL, 'r_rotate', 40, 180, 90),
+    r_elbow_flex_joint: mapJoint(ra.elbow, ELBOW_FLEX, 'r_elbow', 10, 80, 10),
+    r_wrist_roll_joint: mapJoint(ra.wrist, R_WRIST_ROLL, 'r_wrist', 10, 160, 90),
+
+    // Hands — multi-segment curl (0 at open rest)
+    ...fingerChain('l', 'thumb', lh.thumb, 'l_thumb', THUMB),
+    ...fingerChain('l', 'index', lh.index, 'l_index'),
+    ...fingerChain('l', 'middle', lh.middle, 'l_middle'),
+    ...fingerChain('l', 'ring', lh.ring, 'l_ring'),
+    ...fingerChain('l', 'pinky', lh.pinky, 'l_pinky'),
+    ...fingerChain('r', 'thumb', rh.thumb, 'r_thumb', THUMB),
+    ...fingerChain('r', 'index', rh.index, 'r_index'),
+    ...fingerChain('r', 'middle', rh.middle, 'r_middle'),
+    ...fingerChain('r', 'ring', rh.ring, 'r_ring'),
+    ...fingerChain('r', 'pinky', rh.pinky, 'r_pinky'),
+
+    // Legs
+    l_hip_pan_joint: mapJoint(ll.hip, HIP_PAN, 'l_hip', 0, 180, 90),
+    l_hip_lift_joint: mapJoint(ll.thigh, HIP_LIFT, 'l_thigh', 0, 180, 90),
+    l_knee_joint: mapJoint(ll.knee, KNEE, 'l_knee', 0, 160, 15),
+    l_ankle_joint: mapJoint(ll.ankle, ANKLE, 'l_ankle', 0, 180, 90),
+    l_foot_roll_joint: mapJoint(ll.foot, FOOT_ROLL, 'l_foot', 0, 180, 90),
+    r_hip_pan_joint: mapJoint(rl.hip, HIP_PAN, 'r_hip', 0, 180, 90),
+    r_hip_lift_joint: mapJoint(rl.thigh, HIP_LIFT, 'r_thigh', 0, 180, 90),
+    r_knee_joint: mapJoint(rl.knee, KNEE, 'r_knee', 0, 160, 15),
+    r_ankle_joint: mapJoint(rl.ankle, ANKLE, 'r_ankle', 0, 180, 90),
+    r_foot_roll_joint: mapJoint(rl.foot, FOOT_ROLL, 'r_foot', 0, 180, 90),
   };
+}
+
+function forceIgnoreLimits(urdf: UrdfRobot | undefined): void {
+  if (!urdf?.joints) return;
+  for (const joint of Object.values(urdf.joints)) {
+    const j = joint as { ignoreLimits?: boolean };
+    j.ignoreLimits = true;
+  }
 }
 
 export function applyAngles(robot: RobotModel | null, angles: AngleState) {
@@ -225,13 +349,27 @@ export function applyAngles(robot: RobotModel | null, angles: AngleState) {
   if (robot.kind === 'urdf') {
     const jointValues = buildJointValues(angles);
     const urdf = robot.urdf;
-    if (urdf?.joints) {
+    forceIgnoreLimits(urdf);
+
+    // Prefer batched setJointValues (official urdf-loader API)
+    if (urdf?.setJointValues) {
+      urdf.setJointValues(jointValues);
+    } else if (urdf?.joints) {
       for (const [name, rad] of Object.entries(jointValues)) {
-        const joint = urdf.joints[name] as { setJointValue?: (v: number) => boolean } | undefined;
-        if (joint?.setJointValue) {
-          joint.setJointValue(rad);
-        } else if (urdf.setJointValue) {
+        const joint = urdf.joints[name] as
+          | { setJointValue?: (v: number) => boolean; ignoreLimits?: boolean }
+          | undefined;
+        if (joint) {
+          joint.ignoreLimits = true;
+          if (joint.setJointValue) {
+            joint.setJointValue(rad);
+            continue;
+          }
+        }
+        if (urdf.setJointValue) {
           urdf.setJointValue(name, rad);
+        } else if (robot.setJoint) {
+          robot.setJoint(name, rad);
         }
       }
     } else if (robot.setJoint) {
